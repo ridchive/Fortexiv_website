@@ -1,0 +1,253 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Simple Product Catalog</title>
+
+  <style>
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      margin: 0;
+      font-family: Arial, sans-serif;
+      background: #f4f6f8;
+      color: #17202a;
+    }
+
+    header {
+      background: #16324f;
+      color: white;
+      padding: 32px 20px;
+      text-align: center;
+    }
+
+    header h1 {
+      margin: 0 0 8px;
+    }
+
+    header p {
+      margin: 0;
+      color: #d5e5f5;
+    }
+
+    .controls {
+      display: flex;
+      gap: 12px;
+      justify-content: center;
+      padding: 24px 20px;
+      flex-wrap: wrap;
+    }
+
+    .baru {
+      gap: 12px;
+      justify-content: center;
+      padding: 24px 20px;
+    }
+
+    input,
+    select {
+      padding: 12px;
+      border: 1px solid #c7d0d9;
+      border-radius: 6px;
+      font-size: 16px;
+      background: white;
+    }
+
+    input {
+      width: min(320px, 100%);
+    }
+
+    main {
+      max-width: 1100px;
+      margin: auto;
+      padding: 0 20px 40px;
+    }
+
+    .catalog {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+      gap: 20px;
+    }
+
+    .product {
+      background: white;
+      border-radius: 8px;
+      overflow: hidden;
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+      transition: transform 0.2s;
+    }
+
+    .product:hover {
+      transform: translateY(-4px);
+    }
+
+    .product-image {
+      height: 150px;
+      display: grid;
+      place-items: center;
+      font-size: 56px;
+      background: #dcecf7;
+    }
+
+    .product-info {
+      padding: 18px;
+    }
+
+    .product h2 {
+      margin: 0 0 8px;
+      font-size: 20px;
+    }
+
+    .category {
+      color: #667788;
+      font-size: 14px;
+      margin-bottom: 12px;
+    }
+
+    .price {
+      color: #16704a;
+      font-size: 20px;
+      font-weight: bold;
+    }
+
+    .empty {
+      text-align: center;
+      color: #667788;
+      padding: 40px;
+      grid-column: 1 / -1;
+    }
+  </style>
+</head>
+
+<body>
+  <header>
+    <h1>Northstar Catalog</h1>
+    <p>Simple products for everyday life</p>
+  </header>
+
+  <!-- <section class="baru">
+    <div>
+      <label>Nama Produk:</label><input type="text" id="productNameInput" placeholder="Masukkan nama produk"/>
+    </div>
+    <div>
+      <label>Kategori:</label>
+      <select id="productCategorySelect">
+        <option value="home">Home</option>
+        <option value="tech">Technology</option>
+        <option value="outdoor">Outdoor</option>
+      </select>
+    </div>
+    <div>
+      <label>Harga:</label><input type="number" min="0" max="1000" id="productPriceInput" placeholder="Masukkan harga produk"/>
+    </div>
+    <div>
+      <button id="addProductButton">Tambah Produk</button>
+    </div>
+  </section> -->
+
+  <section class="controls">
+    <input id="searchInput" type="search" placeholder="Search products...">
+
+    <select id="categorySelect">
+      <option value="all">All categories</option>
+      <option value="home">Home</option>
+      <option value="tech">Technology</option>
+      <option value="outdoor">Outdoor</option>
+    </select>
+  </section>
+
+  <main>
+    <section id="catalog" class="catalog"></section>
+  </main>
+
+  <script>
+    // json data for products
+    const products = [
+      {
+        name: "Desk Lamp",
+        category: "home",
+        categoryName: "Home",
+        price: 34.99,
+        icon: "💡"
+      },
+      {
+        name: "Wireless Headphones",
+        category: "tech",
+        categoryName: "Technology",
+        price: 79.99,
+        icon: "🎧"
+      },
+      {
+        name: "Travel Backpack",
+        category: "outdoor",
+        categoryName: "Outdoor",
+        price: 59.99,
+        icon: "🎒"
+      },
+      {
+        name: "Ceramic Mug",
+        category: "home",
+        categoryName: "Home",
+        price: 14.99,
+        icon: "☕"
+      },
+      {
+        name: "Smart Watch",
+        category: "tech",
+        categoryName: "Technology",
+        price: 129.99,
+        icon: "⌚"
+      },
+      {
+        name: "Camping Lantern",
+        category: "outdoor",
+        categoryName: "Outdoor",
+        price: 24.99,
+        icon: "🏕️"
+      }
+    ];
+
+    const catalog = document.querySelector("#catalog");
+    const searchInput = document.querySelector("#searchInput");
+    const categorySelect = document.querySelector("#categorySelect");
+
+    function displayProducts() {
+      const searchText = searchInput.value.toLowerCase();
+      const selectedCategory = categorySelect.value;
+
+      const filteredProducts = products.filter((product) => {
+        const matchesSearch = product.name.toLowerCase().includes(searchText);
+        const matchesCategory =
+          selectedCategory === "all" ||
+          product.category === selectedCategory;
+
+        return matchesSearch && matchesCategory;
+      });
+
+      if (filteredProducts.length === 0) {
+        catalog.innerHTML = '<p class="empty">No products found.</p>';
+        return;
+      }
+
+      catalog.innerHTML = filteredProducts.map((product) => `
+        <article class="product">
+          <div class="product-image">${product.icon}</div>
+          <div class="product-info">
+            <h2>${product.name}</h2>
+            <div class="category">${product.categoryName}</div>
+            <div class="price">Rp${product.price.toFixed(2)}</div>
+          </div>
+        </article>
+      `).join("");
+    }
+
+    searchInput.addEventListener("input", displayProducts);
+    categorySelect.addEventListener("change", displayProducts);
+
+    displayProducts();
+  </script>
+</body>
+</html>
