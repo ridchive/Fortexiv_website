@@ -78,9 +78,43 @@
     }
 
     .intro {
-      margin: 0 0 30px;
+      margin: 0 0 20px;
       color: #667788;
       line-height: 1.5;
+    }
+
+    .guest-button {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      min-height: 48px;
+      border-radius: 4px;
+      background: #16704a;
+      color: white;
+      font-weight: 700;
+      text-decoration: none;
+      transition: background 160ms ease;
+    }
+
+    .guest-button:hover {
+      background: #105b3b;
+    }
+
+    .divider {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      margin: 20px 0;
+      color: #7b8996;
+      font-size: 13px;
+    }
+
+    .divider::before,
+    .divider::after {
+      height: 1px;
+      flex: 1;
+      background: #dce2e7;
+      content: "";
     }
 
     .field {
@@ -262,7 +296,9 @@
 
     <section class="form-panel" aria-labelledby="login-title">
       <h2 id="login-title">Selamat datang kembali</h2>
-      <p class="intro">Masukkan detail akun Anda untuk masuk.</p>
+      <p class="intro">Pilih cara masuk untuk melanjutkan ke katalog.</p>
+      <a class="guest-button" href="index.html?masuk=berhasil">Masuk sebagai tamu</a>
+      <div class="divider" aria-hidden="true">atau gunakan akun</div>
 
       <form id="loginForm">
         <div class="field">
