@@ -1,0 +1,482 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>FORTEXIV</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+:root{
+  --bg:#EEF2F8; --surface:#FFFFFF; --line:#E1E7F0;
+  --ink:#1B2333; --muted:#6B7688;
+  --blue:#3568E0; --blue-soft:#E8EEFC; --blue-dark:#26499E;
+  --yellow:#F4B740;
+  --radius:16px; --radius-sm:10px;
+  --shadow:0 10px 30px -12px rgba(30,50,90,.18);
+  --sans:'Inter',system-ui,-apple-system,sans-serif;
+  --head:'Space Grotesk',var(--sans);
+  box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px);
+}
+@media (prefers-color-scheme: dark){ :root:not([data-theme="light"]){ --bg:#EEF2F8; --surface:#FFFFFF; --ink:#1B2333; } }
+*{box-sizing:border-box;}
+html{scroll-padding-top:env(safe-area-inset-top,0px);}
+body{margin:0;background:var(--bg);color:var(--ink);font-family:var(--sans);}
+h1,h2,h3{font-family:var(--head);margin:0;}
+button{font-family:var(--sans);}
+.app{max-width:1180px;margin:0 auto;padding:0 20px;}
+.screen{display:none;}
+.screen.active{display:block;}
+
+/* NAV */
+.nav{position:sticky;top:env(safe-area-inset-top,0px);background:rgba(238,242,248,.85);backdrop-filter:blur(8px);
+  border-bottom:1px solid var(--line);z-index:30;}
+.nav-inner{max-width:1180px;margin:0 auto;padding:16px 20px;display:flex;align-items:center;justify-content:space-between;position:relative;}
+.logo{font-family:var(--head);font-weight:700;font-size:20px;letter-spacing:-.02em;cursor:pointer;}
+.logo span{color:var(--blue);}
+.iconbtn{width:40px;height:40px;border-radius:50%;border:1px solid var(--line);background:var(--surface);
+  display:flex;align-items:center;justify-content:center;cursor:pointer;font-size:16px;}
+.menu{position:absolute;top:56px;right:20px;background:var(--surface);border:1px solid var(--line);border-radius:var(--radius-sm);
+  box-shadow:var(--shadow);min-width:220px;display:none;overflow:hidden;}
+.menu.open{display:block;}
+.menu div{padding:13px 16px;font-size:14px;cursor:pointer;border-bottom:1px solid var(--line);}
+.menu div:last-child{border-bottom:none;}
+.menu div:hover{background:var(--blue-soft);}
+
+/* LOGIN */
+.login-wrap{min-height:88vh;display:flex;align-items:center;justify-content:center;}
+.login-card{background:var(--surface);border:1px solid var(--line);border-radius:20px;box-shadow:var(--shadow);
+  padding:40px 36px;width:100%;max-width:380px;}
+.login-card .logo{text-align:center;margin-bottom:6px;font-size:24px;}
+.login-sub{text-align:center;color:var(--muted);font-size:13px;margin-bottom:24px;}
+.seg{display:flex;background:var(--blue-soft);border-radius:999px;padding:4px;margin-bottom:20px;}
+.seg button{flex:1;border:none;background:none;padding:9px 0;border-radius:999px;font-size:13px;font-weight:600;
+  color:var(--muted);cursor:pointer;}
+.seg button.on{background:var(--surface);color:var(--blue-dark);box-shadow:0 2px 6px rgba(30,50,90,.12);}
+label{display:block;font-size:12px;color:var(--muted);margin:14px 0 6px;font-weight:500;}
+.input{width:100%;padding:11px 14px;border:1px solid var(--line);border-radius:var(--radius-sm);background:#FBFCFE;
+  font-size:14px;color:var(--ink);}
+.input:focus{outline:none;border-color:var(--blue);box-shadow:0 0 0 3px var(--blue-soft);}
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:6px;border-radius:999px;border:none;
+  padding:11px 22px;font-size:14px;font-weight:600;cursor:pointer;}
+.btn-primary{background:var(--blue);color:#fff;width:100%;margin-top:20px;}
+.btn-primary:hover{background:var(--blue-dark);}
+.btn-outline{background:var(--surface);color:var(--ink);border:1px solid var(--line);width:100%;margin-top:10px;}
+.btn-yellow{background:var(--yellow);color:#3A2A00;}
+
+/* SECTIONS */
+.section-head{display:flex;align-items:baseline;justify-content:space-between;margin:36px 0 16px;}
+.eyebrow{color:var(--muted);font-size:13px;}
+.backlink{display:inline-block;margin:20px 0 4px;color:var(--muted);font-size:13px;cursor:pointer;}
+.backlink:hover{color:var(--blue);}
+
+/* HERO / SHOWCASE */
+.hero{padding:56px 0 8px;text-align:center;}
+.hero .eyebrow{display:block;margin-bottom:10px;}
+.hero h1{font-size:34px;letter-spacing:-.01em;max-width:640px;margin:0 auto;}
+.hero p{color:var(--muted);font-size:14px;margin:14px auto 0;max-width:46ch;}
+.transition{display:flex;flex-direction:column;align-items:center;gap:8px;color:var(--muted);font-size:13px;
+  padding:44px 0 8px;text-align:center;}
+.transition .arrow-down{width:34px;height:34px;border-radius:50%;background:var(--blue-soft);color:var(--blue-dark);
+  display:flex;align-items:center;justify-content:center;font-size:16px;}
+
+/* CAROUSEL */
+.carousel-row{display:flex;align-items:center;gap:14px;margin-top:8px;}
+.arrow{width:44px;height:44px;border-radius:50%;background:var(--surface);border:1px solid var(--line);
+  display:flex;align-items:center;justify-content:center;cursor:pointer;flex-shrink:0;box-shadow:var(--shadow);font-size:18px;}
+.carousel{display:flex;gap:22px;overflow-x:auto;padding:6px 2px 18px;flex:1;scrollbar-width:none;}
+.carousel::-webkit-scrollbar{display:none;}
+.pcard{min-width:270px;background:var(--surface);border:1px solid var(--line);border-radius:20px;
+  overflow:hidden;cursor:pointer;transition:transform .2s;flex-shrink:0;}
+.pcard:hover{transform:translateY(-4px);box-shadow:var(--shadow);}
+.pcard .img{height:190px;background:linear-gradient(135deg,#DCE6FB,#EAF0FC);display:flex;align-items:center;
+  justify-content:center;color:var(--blue-dark);font-size:30px;font-weight:700;font-family:var(--head);}
+.pcard .meta{padding:16px 18px 20px;}
+.pcard .meta .cat{font-size:11px;color:var(--blue);font-weight:600;letter-spacing:.02em;}
+.pcard .meta .t{font-size:17px;font-weight:600;margin-top:4px;}
+.pcard .meta .s{font-size:12px;color:var(--muted);margin-top:4px;}
+
+/* ARTICLE */
+.article-card{background:var(--surface);border:1px solid var(--line);border-radius:20px;overflow:hidden;box-shadow:var(--shadow);
+  max-width:760px;margin:0 auto;}
+.article-nav{display:flex;align-items:center;justify-content:space-between;max-width:760px;margin:16px auto 0;}
+.article-nav .side{font-size:13px;color:var(--muted);max-width:220px;}
+.article-hero{height:320px;background:linear-gradient(135deg,#DCE6FB,#F4E9CE);display:flex;align-items:center;justify-content:center;
+  color:var(--blue-dark);font-family:var(--head);font-size:15px;}
+.article-body{padding:32px 36px 40px;}
+.article-body .eyebrow{margin-bottom:6px;}
+.article-body h2{font-size:28px;margin-bottom:14px;}
+.article-body p{color:var(--muted);font-size:14px;line-height:1.75;max-width:60ch;margin-bottom:14px;}
+.article-body h4{font-family:var(--head);font-size:13px;text-transform:none;color:var(--ink);margin:22px 0 6px;}
+
+/* CATALOGUE */
+.searchbar{display:flex;gap:10px;margin-bottom:16px;}
+.searchbar .input{flex:1;}
+.chips{display:flex;gap:8px;margin-bottom:20px;flex-wrap:wrap;}
+.chip{padding:7px 14px;border-radius:999px;border:1px solid var(--line);background:var(--surface);font-size:12px;
+  color:var(--muted);cursor:pointer;}
+.chip.on{background:var(--blue);color:#fff;border-color:var(--blue);}
+.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(210px,1fr));gap:18px;}
+.prod{background:var(--surface);border:1px solid var(--line);border-radius:var(--radius);overflow:hidden;cursor:pointer;
+  transition:transform .2s;}
+.prod:hover{transform:translateY(-3px);box-shadow:var(--shadow);}
+.prod .img{height:130px;background:linear-gradient(135deg,#EAF0FC,#F7F4EA);}
+.prod .body{padding:14px;}
+.prod .name{font-size:14px;font-weight:600;}
+.prod .seller{font-size:11px;color:var(--muted);margin-top:2px;}
+.prod .row{display:flex;justify-content:space-between;align-items:center;margin-top:10px;}
+.prod .price{font-weight:700;color:var(--blue-dark);}
+.prod .add{width:30px;height:30px;border-radius:50%;background:var(--blue-soft);color:var(--blue-dark);border:none;
+  font-size:16px;cursor:pointer;}
+
+/* PRODUCT DETAIL */
+.pdetail{display:grid;grid-template-columns:1fr 1fr;gap:36px;background:var(--surface);border:1px solid var(--line);
+  border-radius:20px;padding:28px;box-shadow:var(--shadow);}
+.pdetail .img{border-radius:var(--radius);height:320px;background:linear-gradient(135deg,#DCE6FB,#EAF0FC);}
+.qty{display:flex;align-items:center;gap:10px;margin:18px 0;}
+.qty button{width:32px;height:32px;border-radius:50%;border:1px solid var(--line);background:var(--surface);cursor:pointer;}
+
+/* CART / STEPS */
+.steps{display:flex;gap:8px;margin:20px 0 24px;}
+.steps span{font-size:12px;padding:6px 14px;border-radius:999px;background:var(--surface);border:1px solid var(--line);color:var(--muted);}
+.steps span.on{background:var(--blue);color:#fff;border-color:var(--blue);}
+.cart-table{width:100%;border-collapse:collapse;background:var(--surface);border:1px solid var(--line);border-radius:var(--radius);
+  overflow:hidden;}
+.cart-table td,.cart-table th{padding:14px 16px;text-align:left;font-size:14px;border-bottom:1px solid var(--line);}
+.cart-table tr:last-child td{border-bottom:none;font-weight:700;}
+.pay-card{max-width:420px;margin:0 auto;background:var(--surface);border:1px solid var(--line);border-radius:20px;
+  padding:28px;box-shadow:var(--shadow);}
+.center-page{min-height:60vh;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;gap:10px;}
+.check{width:64px;height:64px;border-radius:50%;background:var(--blue-soft);color:var(--blue);display:flex;align-items:center;
+  justify-content:center;font-size:28px;}
+
+/* ACCOUNT / DASH */
+.panel{background:var(--surface);border:1px solid var(--line);border-radius:var(--radius);padding:20px;margin-bottom:16px;}
+.dash-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:16px;margin-bottom:24px;}
+.stat{background:var(--surface);border:1px solid var(--line);border-radius:var(--radius);padding:20px;}
+.stat{padding:16px 18px;}
+.stat .num{font-family:var(--head);font-size:22px;font-weight:700;color:var(--blue-dark);}
+.stat .lab{font-size:11px;color:var(--muted);margin-top:4px;}
+.dash-grid.small{grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:12px;}
+.flow{display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin-bottom:20px;}
+.flow span{font-size:11.5px;padding:7px 12px;border-radius:999px;background:var(--blue-soft);color:var(--blue-dark);font-weight:600;}
+.flow .sep{color:var(--muted);font-weight:400;background:none;padding:0;}
+.otable{width:100%;border-collapse:collapse;background:var(--surface);border:1px solid var(--line);border-radius:var(--radius);
+  overflow:hidden;}
+.otable th{text-align:left;font-size:11px;color:var(--muted);text-transform:none;padding:12px 16px;border-bottom:1px solid var(--line);}
+.otable td{padding:13px 16px;font-size:13.5px;border-bottom:1px solid var(--line);}
+.otable tr:last-child td{border-bottom:none;}
+.badge{font-size:11px;font-weight:600;padding:4px 10px;border-radius:999px;}
+.badge.paid{background:var(--blue-soft);color:var(--blue-dark);}
+.badge.processing{background:#FDF1D9;color:#8A6100;}
+.badge.completed{background:#DFF3E6;color:#1F7A46;}
+.badge.ready{background:#E7EEFB;color:var(--blue-dark);}
+
+.footer{text-align:center;color:var(--muted);font-size:12px;padding:40px 0;}
+</style>
+</head>
+<body>
+
+<div class="nav">
+  <div class="nav-inner">
+    <div class="logo" onclick="go('home')">FORTE<span>XIV</span></div>
+    <button class="iconbtn" onclick="toggleMenu()">☰</button>
+    <div class="menu" id="menu">
+      <div onclick="go('account')">Account Information</div>
+      <div onclick="go('cartOrders')">Cart &amp; Order Information</div>
+      <div id="sellerMenuItem" onclick="go('sellerDash')">Seller Dashboard</div>
+    </div>
+  </div>
+</div>
+
+<div class="app">
+
+<!-- LOGIN -->
+<div class="screen active" id="screen-login">
+  <div class="login-wrap">
+    <div class="login-card">
+      <div class="logo">FORTE<span>XIV</span></div>
+      <div class="login-sub">Discover student projects. Support them.</div>
+      <label style="margin-top:0;">Sign in as</label>
+      <div class="seg">
+        <button id="tSeller" class="on" onclick="setRole('seller')">Seller</button>
+        <button id="tBuyer" onclick="setRole('buyer')">Buyer</button>
+      </div>
+      <label>Username</label>
+      <input class="input" placeholder="e.g. maya.putri">
+      <label>Password</label>
+      <input class="input" type="password" placeholder="••••••••">
+      <button class="btn btn-primary" onclick="go('home')">Sign in</button>
+      <button class="btn btn-outline" onclick="go('home')">Continue with Google</button>
+    </div>
+  </div>
+</div>
+
+<!-- HOME -->
+<div class="screen" id="screen-home">
+  <div class="hero">
+    <span class="eyebrow">PROJECT SHOWCASE · 12 CLASSES EXHIBITING</span>
+    <h1>What students are building this term</h1>
+    <p>A digital exhibition of school projects — click any project to read its story.</p>
+  </div>
+  <div class="carousel-row">
+    <div class="arrow" onclick="scrollCarousel(-1)">&#8249;</div>
+    <div class="carousel" id="carousel"></div>
+    <div class="arrow" onclick="scrollCarousel(1)">&#8250;</div>
+  </div>
+
+  <div class="transition">
+    <span>Now discover what they made</span>
+    <div class="arrow-down">&#8595;</div>
+  </div>
+
+  <div class="section-head">
+    <h2 style="font-size:20px;">Product marketplace</h2>
+    <span class="eyebrow">Made by the classes above</span>
+  </div>
+  <div class="searchbar">
+    <input class="input" placeholder="Search products">
+    <button class="btn btn-outline" style="width:auto;margin:0;">Filter</button>
+  </div>
+  <div class="chips">
+    <div class="chip on">All</div><div class="chip">Handmade</div><div class="chip">Food</div>
+    <div class="chip">Stationery</div><div class="chip">Tech</div>
+  </div>
+  <div class="grid" id="prodGrid"></div>
+  <div class="footer">FORTEXIV · a school project exhibition &amp; marketplace</div>
+</div>
+
+<!-- ARTICLE -->
+<div class="screen" id="screen-article">
+  <div class="backlink" onclick="go('home')">&larr; Back to showcase</div>
+  <div class="article-nav">
+    <div class="arrow" onclick="changeArticle(-1)">&#8249;</div>
+    <div class="side" id="artPrev" style="text-align:right;"></div>
+    <div style="width:14px;"></div>
+    <div class="side" id="artNext"></div>
+    <div class="arrow" onclick="changeArticle(1)">&#8250;</div>
+  </div>
+  <div class="article-card">
+    <div class="article-hero" id="artHero">Project photo</div>
+    <div class="article-body">
+      <div class="eyebrow" id="artClass">CLASS · Grade 6</div>
+      <h2 id="artTitle">Building a Sustainable Green Economy</h2>
+      <p id="artIntro">A short introduction to what the class set out to do this term.</p>
+      <h4>The project</h4>
+      <p id="artStory">An explanation of how the class carried out the project, the challenges they solved,
+        and what they learned along the way.</p>
+      <h4>Outcome</h4>
+      <p id="artOutcome">What the class produced, and the products below that came out of this project.</p>
+    </div>
+  </div>
+</div>
+
+<!-- PRODUCT DETAIL -->
+<div class="screen" id="screen-product">
+  <div class="backlink" onclick="go('home')">&larr; Back to catalogue</div>
+  <div class="pdetail">
+    <div class="img"></div>
+    <div>
+      <div class="eyebrow" id="pdSeller">Class 3 · Handmade</div>
+      <h2 id="pdName" style="font-size:22px;margin:8px 0;">Recycled Tote Bag</h2>
+      <p style="color:var(--muted);font-size:14px;">Made from upcycled fabric by the class as part of their
+        sustainability project.</p>
+      <div class="price" id="pdPrice" style="font-size:22px;font-weight:700;color:var(--blue-dark);margin-top:12px;">$14</div>
+      <div class="qty"><button onclick="qty(-1)">−</button><span id="qtyVal">1</span><button onclick="qty(1)">+</button></div>
+      <button class="btn btn-yellow" style="width:100%;" onclick="go('cart')">Add to cart</button>
+    </div>
+  </div>
+</div>
+
+<!-- CART -->
+<div class="screen" id="screen-cart">
+  <div class="backlink" onclick="go('home')">&larr; Continue browsing</div>
+  <h2 style="font-size:20px;margin:8px 0 4px;">Your cart</h2>
+  <div class="steps"><span class="on">Cart</span><span>Payment</span><span>Order</span></div>
+  <table class="cart-table">
+    <tr><th>Product</th><th>Qty</th><th>Price</th></tr>
+    <tr><td>Recycled Tote Bag</td><td>1</td><td>$14</td></tr>
+    <tr><td>Handmade Card Set</td><td>2</td><td>$9</td></tr>
+    <tr><td>Total</td><td></td><td>$32</td></tr>
+  </table>
+  <button class="btn btn-primary" style="width:auto;margin-top:20px;" onclick="go('payment')">Checkout</button>
+</div>
+
+<!-- PAYMENT -->
+<div class="screen" id="screen-payment">
+  <div class="backlink" onclick="go('cart')">&larr; Back to cart</div>
+  <h2 style="font-size:20px;margin:8px 0 4px;">Payment</h2>
+  <div class="steps"><span>Cart</span><span class="on">Payment</span><span>Order</span></div>
+  <div class="pay-card">
+    <label style="margin-top:0;">Card number</label>
+    <input class="input" placeholder="4242 4242 4242 4242">
+    <label>Expiry</label>
+    <input class="input" placeholder="MM/YY">
+    <button class="btn btn-primary" onclick="go('orderDone')">Pay $32</button>
+  </div>
+</div>
+
+<!-- ORDER DONE -->
+<div class="screen" id="screen-orderDone">
+  <div class="center-page">
+    <div class="steps"><span>Cart</span><span>Payment</span><span class="on">Order</span></div>
+    <div class="check">✓</div>
+    <h2 style="font-size:22px;">Order placed</h2>
+    <p style="color:var(--muted);font-size:14px;">Your support helps the class fund their next project.</p>
+    <button class="btn btn-primary" style="width:auto;" onclick="go('home')">Back to homepage</button>
+  </div>
+</div>
+
+<!-- ACCOUNT -->
+<div class="screen" id="screen-account">
+  <div class="backlink" onclick="go('home')">&larr; Back to homepage</div>
+  <h2 style="font-size:20px;margin:16px 0;">Account information</h2>
+  <div class="panel">
+    <label style="margin-top:0;">Profile</label>
+    <div style="font-size:14px;font-weight:600;">Maya Putri</div>
+    <label>Account type</label>
+    <div style="font-size:14px;" id="accRole">Seller</div>
+  </div>
+  <div class="panel"><label style="margin-top:0;">Account settings</label>
+    <div style="font-size:13px;color:var(--muted);">Notification preferences, password, payout details.</div>
+  </div>
+</div>
+
+<!-- CART & ORDER INFO -->
+<div class="screen" id="screen-cartOrders">
+  <div class="backlink" onclick="go('home')">&larr; Back to homepage</div>
+  <h2 style="font-size:20px;margin:16px 0;">Cart &amp; order information</h2>
+  <div class="panel"><label style="margin-top:0;">Current cart</label>
+    <div style="font-size:13px;color:var(--muted);">2 items · $32 subtotal</div></div>
+  <label style="margin:0 0 10px;">Order history</label>
+  <table class="otable">
+    <tr><th>Order</th><th>Product</th><th>Seller / Class</th><th>Qty</th><th>Total</th><th>Status</th></tr>
+    <tr><td>#1042</td><td>Recycled Tote Bag</td><td>Class 3</td><td>2</td><td>$28</td><td><span class="badge completed">Completed</span></td></tr>
+    <tr><td>#1039</td><td>Handmade Card Set</td><td>Class 7</td><td>1</td><td>$9</td><td><span class="badge ready">Ready</span></td></tr>
+    <tr><td>#1035</td><td>Solar Phone Charger</td><td>Class 9</td><td>1</td><td>$22</td><td><span class="badge processing">Preparing</span></td></tr>
+  </table>
+</div>
+
+<!-- SELLER DASHBOARD -->
+<div class="screen" id="screen-sellerDash">
+  <div class="backlink" onclick="go('home')">&larr; Back to homepage</div>
+  <h2 style="font-size:20px;margin:16px 0 14px;">Seller dashboard</h2>
+  <div class="dash-grid small">
+    <div class="stat"><div class="num">7</div><div class="lab">Total orders</div></div>
+    <div class="stat"><div class="num">3</div><div class="lab">Pending orders</div></div>
+    <div class="stat"><div class="num">5</div><div class="lab">Items to prepare</div></div>
+    <div class="stat"><div class="num">2</div><div class="lab">Completed orders</div></div>
+  </div>
+  <div class="flow">
+    <span>Orders received</span><span class="sep">→</span><span>Check buyers</span><span class="sep">→</span>
+    <span>Prepare quantity</span><span class="sep">→</span><span>Distribution</span><span class="sep">→</span><span>Completed</span>
+  </div>
+  <label style="margin:0 0 10px;">Orders &amp; buyers</label>
+  <table class="otable">
+    <tr><th>Buyer</th><th>Product</th><th>Qty</th><th>Order</th><th>Payment</th><th>Status</th></tr>
+    <tr><td>Maya Putri</td><td>Tote Bag</td><td>2</td><td>#2041</td><td><span class="badge paid">Paid</span></td><td><span class="badge ready">Ready</span></td></tr>
+    <tr><td>Rizky</td><td>Tote Bag</td><td>1</td><td>#2044</td><td><span class="badge paid">Paid</span></td><td><span class="badge processing">Preparing</span></td></tr>
+    <tr><td>Alya</td><td>Card Set</td><td>3</td><td>#2048</td><td><span class="badge paid">Paid</span></td><td><span class="badge processing">Preparing</span></td></tr>
+    <tr><td>Fahmi</td><td>Tote Bag</td><td>1</td><td>#2032</td><td><span class="badge paid">Paid</span></td><td><span class="badge completed">Completed</span></td></tr>
+  </table>
+</div>
+
+</div>
+
+<script>
+let role='seller';
+function setRole(r){role=r;document.getElementById('tSeller').classList.toggle('on',r==='seller');
+  document.getElementById('tBuyer').classList.toggle('on',r==='buyer');}
+function go(id){
+  document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active'));
+  document.getElementById('screen-'+id).classList.add('active');
+  document.getElementById('menu').classList.remove('open');
+  document.getElementById('sellerMenuItem').style.display=(role==='seller')?'block':'none';
+  const ar=document.getElementById('accRole'); if(ar) ar.textContent = role[0].toUpperCase()+role.slice(1);
+  window.scrollTo(0,0);
+}
+function toggleMenu(){document.getElementById('menu').classList.toggle('open');}
+
+const classes=['Green Economy','Robotics Lab','Urban Farming','Digital Art','Water Cycle','Local History',
+  'Ocean Cleanup','Paper Craft','Coding Club','Textile Design','Solar Cars','Community Garden'];
+const N=classes.length;
+const carousel=document.getElementById('carousel');
+function renderCard(i){
+  const c=document.createElement('div');
+  c.className='pcard';
+  c.innerHTML=`<div class="img">${i+1}</div><div class="meta"><div class="cat">GRADE ${((i%6)+1)}</div>
+    <div class="t">${classes[i]}</div><div class="s">Class ${i+1}</div></div>`;
+  c.onclick=()=>openArticle(i);
+  return c;
+}
+// three copies of the deck for a seamless loop
+for(let set=0;set<3;set++){ for(let i=0;i<N;i++){ carousel.appendChild(renderCard(i)); } }
+let oneSetWidth=0, posX=0;
+function measure(){ oneSetWidth=carousel.scrollWidth/3; posX=oneSetWidth; carousel.scrollLeft=posX; }
+window.addEventListener('load',measure); measure();
+
+let currentIndex=0;
+function openArticle(i){
+  currentIndex=i;
+  const name=classes[i], grade=((i%6)+1);
+  document.getElementById('artTitle').textContent=name;
+  document.getElementById('artClass').textContent='CLASS · Grade '+grade;
+  document.getElementById('artIntro').textContent=`Class ${i+1} set out to explore ${name.toLowerCase()} through a hands-on term-long project.`;
+  document.getElementById('artStory').textContent=`The class researched, prototyped and iterated as a group, presenting their progress to the school along the way and solving problems as a team.`;
+  document.getElementById('artOutcome').textContent=`The project resulted in a set of products, now available in the marketplace below, made and sold by the class.`;
+  document.getElementById('artPrev').textContent='← '+classes[(i-1+N)%N];
+  document.getElementById('artNext').textContent=classes[(i+1)%N]+' →';
+  go('article');
+}
+function changeArticle(dir){ openArticle((currentIndex+dir+N)%N); }
+function scrollCarousel(dir){
+  const cardW=carousel.children[0].offsetWidth+22;
+  posX+=dir*cardW; carousel.scrollLeft=posX; pauseAuto();
+}
+
+const products=[['Recycled Tote Bag',14,'Class 3'],['Handmade Card Set',9,'Class 7'],
+  ['Solar Phone Charger',22,'Class 9'],['Ceramic Planter',18,'Class 2'],
+  ['Herb Seed Kit',7,'Class 5'],['Embroidered Patch',6,'Class 10'],
+  ['Wooden Puzzle',12,'Class 1'],['Beeswax Wraps',10,'Class 8']];
+const prodGrid=document.getElementById('prodGrid');
+products.forEach(([name,price,seller])=>{
+  const p=document.createElement('div');
+  p.className='prod';
+  p.innerHTML=`<div class="img"></div><div class="body"><div class="name">${name}</div>
+    <div class="seller">${seller}</div><div class="row"><span class="price">$${price}</span>
+    <button class="add" onclick="event.stopPropagation();openProduct('${name}',${price},'${seller}')">+</button></div></div>`;
+  p.onclick=()=>openProduct(name,price,seller);
+  prodGrid.appendChild(p);
+});
+function openProduct(name,price,seller){
+  document.getElementById('pdName').textContent=name;
+  document.getElementById('pdPrice').textContent='$'+price;
+  document.getElementById('pdSeller').textContent=seller+' · Handmade';
+  document.getElementById('qtyVal').textContent='1';
+  go('product');
+}
+let q=1;
+function qty(d){q=Math.max(1,q+d);document.getElementById('qtyVal').textContent=q;}
+
+let paused=false, resumeTimer=null;
+function frameStep(){
+  if(!paused){
+    posX+=0.35;
+    if(oneSetWidth && posX>=oneSetWidth*2) posX-=oneSetWidth;
+    carousel.scrollLeft=posX;
+  }else{
+    posX=carousel.scrollLeft;
+  }
+  requestAnimationFrame(frameStep);
+}
+requestAnimationFrame(frameStep);
+function pauseAuto(){ paused=true; clearTimeout(resumeTimer); resumeTimer=setTimeout(()=>{paused=false;},2500); }
+carousel.addEventListener('pointerdown',pauseAuto);
+carousel.addEventListener('touchstart',pauseAuto);
+carousel.addEventListener('mouseenter',()=>{paused=true;});
+carousel.addEventListener('mouseleave',()=>{clearTimeout(resumeTimer);resumeTimer=setTimeout(()=>{paused=false;},1200);});
+go('login');
+</script>
+</body>
+</html>
