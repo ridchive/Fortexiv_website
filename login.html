@@ -289,7 +289,7 @@
         <p class="status" id="formStatus" role="status" aria-live="polite"></p>
       </form>
 
-      <a class="back-link" href="index.html">Kembali ke katalog</a>
+      <a class="back-link" href="about.html">Kembali ke Tentang</a>
     </section>
   </main>
 
@@ -308,7 +308,8 @@
 
     loginForm.addEventListener("submit", (event) => {
       event.preventDefault();
-      formStatus.textContent = "Form siap digunakan. Hubungkan ke backend untuk mengaktifkan autentikasi.";
+      formStatus.textContent = "Berhasil masuk. Membuka katalog...";
+      window.location.href = "index.html?masuk=berhasil";
     });
   </script>
 </body>

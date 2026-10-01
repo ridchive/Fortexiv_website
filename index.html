@@ -4,6 +4,11 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Simple Product Catalog</title>
+  <script>
+    if (new URLSearchParams(window.location.search).get("masuk") !== "berhasil") {
+      window.location.replace("login.html");
+    }
+  </script>
 
   <style>
     * {
@@ -147,9 +152,9 @@
     <h1>Northstar Catalog</h1>
     <p>Simple products for everyday life</p>
     <nav>
-      <a href="index.html">Beranda</a>
+      <a href="index.html?masuk=berhasil">Beranda</a>
       <a href="about.html">Tentang</a>
-      <a href="login.html">Masuk</a>
+      <a href="login.html">Keluar</a>
     </nav>
   </header>
 
