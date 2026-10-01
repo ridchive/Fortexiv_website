@@ -1,0 +1,611 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>ShopDash - Dashboard Produk</title>
+
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+      font-family: Arial, sans-serif;
+    }
+
+    body {
+      background: #f5f6fa;
+      color: #222;
+    }
+
+    /* SIDEBAR */
+    .sidebar {
+      position: fixed;
+      left: 0;
+      top: 0;
+      width: 230px;
+      height: 100vh;
+      background: #ffffff;
+      padding: 25px 15px;
+      border-right: 1px solid #eee;
+    }
+
+    .logo {
+      font-size: 24px;
+      font-weight: bold;
+      margin-bottom: 35px;
+      padding-left: 10px;
+    }
+
+    .logo span {
+      color: #ff6b35;
+    }
+
+    .menu {
+      list-style: none;
+    }
+
+    .menu li {
+      margin-bottom: 8px;
+    }
+
+    .menu button {
+      width: 100%;
+      padding: 13px;
+      border: none;
+      background: transparent;
+      text-align: left;
+      border-radius: 10px;
+      cursor: pointer;
+      font-size: 15px;
+    }
+
+    .menu button:hover,
+    .menu button.active {
+      background: #fff0ea;
+      color: #ff6b35;
+    }
+
+    /* MAIN */
+    .main {
+      margin-left: 230px;
+      padding: 30px;
+    }
+
+    .topbar {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 30px;
+    }
+
+    .topbar h1 {
+      font-size: 28px;
+    }
+
+    .search {
+      width: 300px;
+      padding: 12px 18px;
+      border: 1px solid #ddd;
+      border-radius: 10px;
+      outline: none;
+    }
+
+    /* STATISTICS */
+    .stats {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 18px;
+      margin-bottom: 30px;
+    }
+
+    .stat-card {
+      background: white;
+      padding: 20px;
+      border-radius: 15px;
+      box-shadow: 0 3px 12px rgba(0,0,0,0.04);
+    }
+
+    .stat-card h3 {
+      font-size: 14px;
+      color: #777;
+      margin-bottom: 10px;
+    }
+
+    .stat-card p {
+      font-size: 25px;
+      font-weight: bold;
+    }
+
+    /* CATEGORY */
+    .section-title {
+      margin-bottom: 15px;
+    }
+
+    .categories {
+      display: flex;
+      gap: 12px;
+      margin-bottom: 25px;
+      flex-wrap: wrap;
+    }
+
+    .category {
+      background: white;
+      border: 1px solid #eee;
+      padding: 10px 18px;
+      border-radius: 20px;
+      cursor: pointer;
+    }
+
+    .category:hover,
+    .category.active {
+      background: #ff6b35;
+      color: white;
+    }
+
+    /* PRODUCTS */
+    .products {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 20px;
+    }
+
+    .product {
+      background: white;
+      border-radius: 15px;
+      overflow: hidden;
+      box-shadow: 0 3px 12px rgba(0,0,0,0.05);
+      transition: 0.2s;
+    }
+
+    .product:hover {
+      transform: translateY(-4px);
+    }
+
+    .product img {
+      width: 100%;
+      height: 180px;
+      object-fit: cover;
+    }
+
+    .product-info {
+      padding: 15px;
+    }
+
+    .product-category {
+      font-size: 12px;
+      color: #888;
+      margin-bottom: 7px;
+    }
+
+    .product-name {
+      font-size: 17px;
+      font-weight: bold;
+      margin-bottom: 8px;
+    }
+
+    .price {
+      color: #ff6b35;
+      font-size: 18px;
+      font-weight: bold;
+      margin-bottom: 8px;
+    }
+
+    .stock {
+      font-size: 13px;
+      color: #666;
+      margin-bottom: 12px;
+    }
+
+    .buy-btn {
+      width: 100%;
+      padding: 10px;
+      border: none;
+      background: #ff6b35;
+      color: white;
+      border-radius: 8px;
+      cursor: pointer;
+      font-weight: bold;
+    }
+
+    .buy-btn:hover {
+      background: #e95725;
+    }
+
+    /* RESPONSIVE */
+    @media (max-width: 1000px) {
+      .products {
+        grid-template-columns: repeat(2, 1fr);
+      }
+
+      .stats {
+        grid-template-columns: repeat(2, 1fr);
+      }
+    }
+
+    @media (max-width: 700px) {
+      .sidebar {
+        display: none;
+      }
+
+      .main {
+        margin-left: 0;
+        padding: 20px;
+      }
+
+      .topbar {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 15px;
+      }
+
+      .search {
+        width: 100%;
+      }
+
+      .products {
+        grid-template-columns: 1fr;
+      }
+    }
+  </style>
+</head>
+
+<body>
+
+  <!-- SIDEBAR -->
+  <aside class="sidebar">
+
+    <div class="logo">
+      Shop<span>Dash</span>
+    </div>
+
+    <ul class="menu">
+
+      <li>
+        <button class="active" onclick="filterCategory('Semua')">
+          🏠 Dashboard
+        </button>
+      </li>
+
+      <li>
+        <button onclick="filterCategory('Fashion')">
+          👕 Fashion
+        </button>
+      </li>
+
+      <li>
+        <button onclick="filterCategory('Elektronik')">
+          💻 Elektronik
+        </button>
+      </li>
+
+      <li>
+        <button onclick="filterCategory('Makanan')">
+          🍔 Makanan
+        </button>
+      </li>
+
+      <li>
+        <button onclick="filterCategory('Rumah Tangga')">
+          🏠 Rumah Tangga
+        </button>
+      </li>
+
+    </ul>
+
+  </aside>
+
+
+  <!-- MAIN CONTENT -->
+  <main class="main">
+
+    <!-- TOPBAR -->
+    <div class="topbar">
+
+      <div>
+        <h1>Dashboard Produk</h1>
+        <p>Kelola dan lihat semua barang jualanmu.</p>
+      </div>
+
+      <input
+        type="text"
+        class="search"
+        id="search"
+        placeholder="🔎 Cari produk..."
+        onkeyup="searchProduct()"
+      >
+
+    </div>
+
+
+    <!-- STATISTICS -->
+    <section class="stats">
+
+      <div class="stat-card">
+        <h3>Total Produk</h3>
+        <p id="totalProduk">12</p>
+      </div>
+
+      <div class="stat-card">
+        <h3>Total Stok</h3>
+        <p id="totalStok">147</p>
+      </div>
+
+      <div class="stat-card">
+        <h3>Kategori</h3>
+        <p>4</p>
+      </div>
+
+      <div class="stat-card">
+        <h3>Keranjang</h3>
+        <p id="cartCount">0</p>
+      </div>
+
+    </section>
+
+
+    <!-- CATEGORY -->
+    <h2 class="section-title">Kategori Produk</h2>
+
+    <div class="categories">
+
+      <button class="category active"
+        onclick="filterCategory('Semua')">
+        Semua
+      </button>
+
+      <button class="category"
+        onclick="filterCategory('Fashion')">
+        👕 Fashion
+      </button>
+
+      <button class="category"
+        onclick="filterCategory('Elektronik')">
+        💻 Elektronik
+      </button>
+
+      <button class="category"
+        onclick="filterCategory('Makanan')">
+        🍔 Makanan
+      </button>
+
+      <button class="category"
+        onclick="filterCategory('Rumah Tangga')">
+        🏠 Rumah Tangga
+      </button>
+
+    </div>
+
+
+    <!-- PRODUCTS -->
+    <h2 class="section-title">Daftar Produk</h2>
+
+    <div class="products" id="productList"></div>
+
+  </main>
+
+
+<script>
+
+const products = [
+
+  {
+    name: "Kaos Oversize",
+    category: "Fashion",
+    price: 75000,
+    stock: 20,
+    image: "https://images.unsplash.com/photo-1521572163474-6864f9cf17ab"
+  },
+
+  {
+    name: "Hoodie Basic",
+    category: "Fashion",
+    price: 150000,
+    stock: 12,
+    image: "https://images.unsplash.com/photo-1556821840-3a63f95609a7"
+  },
+
+  {
+    name: "Sneakers Casual",
+    category: "Fashion",
+    price: 350000,
+    stock: 8,
+    image: "https://images.unsplash.com/photo-1542291026-7eec264c27ff"
+  },
+
+  {
+    name: "Headphone Wireless",
+    category: "Elektronik",
+    price: 250000,
+    stock: 15,
+    image: "https://images.unsplash.com/photo-1505740420928-5e560c06d30e"
+  },
+
+  {
+    name: "Smartwatch",
+    category: "Elektronik",
+    price: 450000,
+    stock: 7,
+    image: "https://images.unsplash.com/photo-1523275335684-37898b6baf30"
+  },
+
+  {
+    name: "Keyboard Mechanical",
+    category: "Elektronik",
+    price: 550000,
+    stock: 5,
+    image: "https://images.unsplash.com/photo-1587829741301-dc798b83add3"
+  },
+
+  {
+    name: "Kopi Arabica",
+    category: "Makanan",
+    price: 85000,
+    stock: 25,
+    image: "https://images.unsplash.com/photo-1495474472287-4d71bcdd2085"
+  },
+
+  {
+    name: "Cookies Premium",
+    category: "Makanan",
+    price: 65000,
+    stock: 18,
+    image: "https://images.unsplash.com/photo-1499636136210-6f4ee915583e"
+  },
+
+  {
+    name: "Keripik Pisang",
+    category: "Makanan",
+    price: 30000,
+    stock: 30,
+    image: "https://images.unsplash.com/photo-1621939514649-280e2aa7b2a8"
+  },
+
+  {
+    name: "Botol Minum",
+    category: "Rumah Tangga",
+    price: 45000,
+    stock: 20,
+    image: "https://images.unsplash.com/photo-1602143407151-7111542de6e8"
+  },
+
+  {
+    name: "Lampu Meja",
+    category: "Rumah Tangga",
+    price: 120000,
+    stock: 10,
+    image: "https://images.unsplash.com/photo-1507473885765-e6ed057f782c"
+  },
+
+  {
+    name: "Tas Belanja",
+    category: "Rumah Tangga",
+    price: 25000,
+    stock: 40,
+    image: "https://images.unsplash.com/photo-1594223274512-ad4803739b7c"
+  }
+
+];
+
+let cart = 0;
+
+
+// TAMPILKAN PRODUK
+
+function displayProducts(data) {
+
+  const productList = document.getElementById("productList");
+
+  productList.innerHTML = "";
+
+  data.forEach(product => {
+
+    const card = document.createElement("div");
+
+    card.className = "product";
+
+    card.innerHTML = `
+
+      <img src="${product.image}" alt="${product.name}">
+
+      <div class="product-info">
+
+        <div class="product-category">
+          ${product.category}
+        </div>
+
+        <div class="product-name">
+          ${product.name}
+        </div>
+
+        <div class="price">
+          Rp ${product.price.toLocaleString("id-ID")}
+        </div>
+
+        <div class="stock">
+          Stok: ${product.stock}
+        </div>
+
+        <button
+          class="buy-btn"
+          onclick="addToCart()">
+          + Keranjang
+        </button>
+
+      </div>
+
+    `;
+
+    productList.appendChild(card);
+
+  });
+
+}
+
+
+// FILTER KATEGORI
+
+function filterCategory(category) {
+
+  document.querySelectorAll(".category")
+    .forEach(button => button.classList.remove("active"));
+
+  if (category === "Semua") {
+
+    displayProducts(products);
+
+  } else {
+
+    const filtered = products.filter(
+      product => product.category === category
+    );
+
+    displayProducts(filtered);
+
+  }
+
+}
+
+
+// SEARCH
+
+function searchProduct() {
+
+  const keyword =
+    document.getElementById("search")
+    .value
+    .toLowerCase();
+
+  const filtered = products.filter(product =>
+
+    product.name
+      .toLowerCase()
+      .includes(keyword)
+
+  );
+
+  displayProducts(filtered);
+
+}
+
+
+// CART
+
+function addToCart() {
+
+  cart++;
+
+  document.getElementById("cartCount")
+    .innerText = cart;
+
+}
+
+
+// INITIAL LOAD
+
+displayProducts(products);
+
+</script>
+
+</body>
+</html>
