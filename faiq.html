@@ -1,0 +1,110 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="description" content="Halaman profil pribadi Faiq.">
+  <title>Profil Faiq</title>
+  <style>
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      min-height: 100vh;
+      margin: 0;
+      display: grid;
+      place-items: center;
+      padding: 24px;
+      font-family: Arial, sans-serif;
+      color: #17202a;
+      background: linear-gradient(135deg, #e8f1f8, #f4f6f8);
+    }
+
+    main {
+      width: min(100%, 680px);
+      padding: 48px 36px;
+      text-align: center;
+      background: white;
+      border-radius: 18px;
+      box-shadow: 0 12px 36px rgba(22, 50, 79, 0.12);
+    }
+
+    .avatar {
+      width: 104px;
+      height: 104px;
+      margin: 0 auto 24px;
+      display: grid;
+      place-items: center;
+      border-radius: 50%;
+      color: white;
+      background: #16324f;
+      font-size: 2.5rem;
+      font-weight: bold;
+    }
+
+    h1 {
+      margin: 0 0 10px;
+      color: #16324f;
+      font-size: clamp(2rem, 6vw, 2.75rem);
+    }
+
+    .subtitle {
+      margin: 0;
+      color: #667788;
+      font-size: 1.1rem;
+    }
+
+    .intro {
+      max-width: 480px;
+      margin: 24px auto 0;
+      color: #34495e;
+      line-height: 1.7;
+    }
+
+    nav {
+      display: flex;
+      justify-content: center;
+      gap: 12px;
+      flex-wrap: wrap;
+      margin-top: 32px;
+    }
+
+    nav a {
+      padding: 12px 18px;
+      border: 1px solid #16324f;
+      border-radius: 8px;
+      color: #16324f;
+      font-weight: bold;
+      text-decoration: none;
+      transition: background 0.2s, color 0.2s;
+    }
+
+    nav a:hover,
+    nav a:focus-visible {
+      color: white;
+      background: #16324f;
+    }
+
+    @media (max-width: 480px) {
+      main {
+        padding: 36px 22px;
+      }
+    }
+  </style>
+</head>
+<body>
+  <main>
+    <div class="avatar" aria-hidden="true">F</div>
+    <h1>Halo, saya Faiq</h1>
+    <p class="subtitle">Selamat datang di halaman profil saya</p>
+    <p class="intro">
+      Ini adalah halaman profil pribadi saya. Silakan jelajahi website Fortexiv melalui tautan di bawah.
+    </p>
+    <nav aria-label="Navigasi utama">
+      <a href="index.html?masuk=berhasil">Beranda</a>
+      <a href="about.html">Tentang website</a>
+    </nav>
+  </main>
+</body>
+</html>
