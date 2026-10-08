@@ -1,0 +1,187 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Detail Produk - Northstar Catalog</title>
+  <script>
+    if (sessionStorage.getItem("northstarLoggedIn") !== "true") {
+      window.location.replace("login.html");
+    }
+  </script>
+  <style>
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      margin: 0;
+      font-family: Arial, sans-serif;
+      background: #f4f6f8;
+      color: #17202a;
+    }
+
+    header {
+      background: #16324f;
+      color: white;
+      padding: 32px 20px 18px;
+      text-align: center;
+    }
+
+    header h1 {
+      margin: 0 0 8px;
+    }
+
+    nav {
+      display: flex;
+      justify-content: center;
+      gap: 18px;
+      margin-top: 18px;
+      flex-wrap: wrap;
+    }
+
+    nav a {
+      color: white;
+      text-decoration: none;
+      font-weight: bold;
+      opacity: 0.9;
+    }
+
+    nav a:hover {
+      opacity: 1;
+      text-decoration: underline;
+    }
+
+    main {
+      width: min(900px, 100%);
+      margin: 32px auto;
+      padding: 0 20px 40px;
+    }
+
+    .back-link {
+      display: inline-block;
+      margin-bottom: 20px;
+      color: #16324f;
+      font-weight: bold;
+      text-decoration: none;
+    }
+
+    .back-link:hover {
+      text-decoration: underline;
+    }
+
+    .product-detail {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+      gap: 32px;
+      align-items: center;
+      padding: 32px;
+      background: white;
+      border-radius: 12px;
+      box-shadow: 0 4px 14px rgba(0, 0, 0, 0.08);
+    }
+
+    .product-image {
+      display: grid;
+      min-height: 320px;
+      place-items: center;
+      border-radius: 10px;
+      background: #dcecf7;
+      font-size: clamp(80px, 18vw, 140px);
+    }
+
+    .category {
+      margin: 0 0 8px;
+      color: #667788;
+      font-size: 14px;
+    }
+
+    h2 {
+      margin: 0 0 14px;
+      color: #16324f;
+      font-size: clamp(26px, 5vw, 36px);
+    }
+
+    .description {
+      color: #455565;
+      line-height: 1.6;
+    }
+
+    .price {
+      display: block;
+      margin-top: 20px;
+      color: #16704a;
+      font-size: 24px;
+    }
+
+    .not-found {
+      padding: 32px;
+      background: white;
+      border-radius: 12px;
+      box-shadow: 0 4px 14px rgba(0, 0, 0, 0.08);
+      line-height: 1.6;
+    }
+
+    @media (max-width: 640px) {
+      .product-detail {
+        grid-template-columns: 1fr;
+        gap: 22px;
+        padding: 20px;
+      }
+
+      .product-image {
+        min-height: 240px;
+      }
+    }
+  </style>
+</head>
+<body>
+  <header>
+    <h1>Northstar Catalog</h1>
+    <nav>
+      <a href="index.html">Beranda</a>
+      <a href="about.html">Tentang</a>
+      <a href="login.html" id="logoutLink">Keluar</a>
+    </nav>
+  </header>
+
+  <main>
+    <a class="back-link" href="index.html">&larr; Kembali ke katalog</a>
+    <section id="productContent" aria-live="polite"></section>
+  </main>
+
+  <script src="products.js"></script>
+  <script>
+    document.querySelector("#logoutLink").addEventListener("click", () => {
+      sessionStorage.removeItem("northstarLoggedIn");
+    });
+
+    const productId = new URLSearchParams(window.location.search).get("id");
+    const product = window.products.find((item) => item.id === productId);
+    const productContent = document.querySelector("#productContent");
+
+    if (!product) {
+      document.title = "Produk Tidak Ditemukan - Northstar Catalog";
+      productContent.innerHTML = `
+        <div class="not-found">
+          <h2>Produk tidak ditemukan</h2>
+          <p>Produk yang kamu cari tidak tersedia. Silakan kembali ke katalog dan pilih produk lainnya.</p>
+        </div>
+      `;
+    } else {
+      document.title = `${product.name} - Northstar Catalog`;
+      productContent.innerHTML = `
+        <article class="product-detail">
+          <div class="product-image" aria-hidden="true">${product.icon}</div>
+          <div>
+            <p class="category">${product.categoryName}</p>
+            <h2>${product.name}</h2>
+            <p class="description">${product.description}</p>
+            <strong class="price">Rp${product.price.toFixed(2)}</strong>
+          </div>
+        </article>
+      `;
+    }
+  </script>
+</body>
+</html>
