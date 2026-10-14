@@ -128,7 +128,10 @@ class AdminController extends Controller
             return $order;
         });
 
-        return back()->with('pickup_order', $order->load('buyer'))->with('status', 'Ticket valid. Pesanan berhasil ditandai sudah diambil.');
+        // Sessions are JSON-serialized, so flash plain values rather than an Eloquent model.
+        return back()
+            ->with('pickup_order', ['order_code' => $order->order_code, 'buyer_name' => $order->buyer->name])
+            ->with('status', 'Ticket valid. Pesanan berhasil ditandai sudah diambil.');
     }
 
     public function report(Request $request): View

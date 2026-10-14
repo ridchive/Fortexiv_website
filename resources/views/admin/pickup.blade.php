@@ -13,7 +13,7 @@
   </form>
   @if(session('pickup_order'))
     @php($order = session('pickup_order'))
-    <div class="panel" style="margin-top:20px"><strong>Pickup confirmed</strong><p>Order {{ $order->order_code }} for {{ $order->buyer->name }}.</p></div>
+    <div class="panel" style="margin-top:20px"><strong>Pickup confirmed</strong><p>Order {{ $order['order_code'] }} for {{ $order['buyer_name'] }}.</p></div>
   @endif
 </section>
 @endsection

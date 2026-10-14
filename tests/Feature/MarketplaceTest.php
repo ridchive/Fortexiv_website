@@ -123,8 +123,13 @@ class MarketplaceTest extends TestCase
 
         $this->actingAs($buyer)->get(route('tickets.show', $order))->assertOk()->assertSee($order->fresh()->ticket->ticket_code);
 
-        $this->actingAs($admin)->post(route('admin.pickup.validate'), ['ticket_code' => $order->fresh()->ticket->ticket_code])->assertRedirect();
+        $this->actingAs($admin)->from(route('admin.pickup'))->post(route('admin.pickup.validate'), ['ticket_code' => $order->fresh()->ticket->ticket_code])
+            ->assertRedirect(route('admin.pickup'))
+            // Plain values only: sessions are JSON-serialized, so a flashed model would break the page.
+            ->assertSessionHas('pickup_order', ['order_code' => $order->order_code, 'buyer_name' => $buyer->name]);
         $this->assertSame('picked_up', $order->fresh()->status);
+        $this->actingAs($admin)->withSession(['pickup_order' => ['order_code' => $order->order_code, 'buyer_name' => $buyer->name]])
+            ->get(route('admin.pickup'))->assertOk()->assertSee("Order {$order->order_code} for {$buyer->name}.");
         $this->actingAs($admin)->from(route('admin.pickup'))->post(route('admin.pickup.validate'), ['ticket_code' => $order->fresh()->ticket->ticket_code])->assertSessionHasErrors('ticket_code');
     }
 
