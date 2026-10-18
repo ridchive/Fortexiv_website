@@ -618,13 +618,12 @@ Portal seller hanya memperlihatkan data kelas yang ditugaskan kepada pengguna te
 
 ### 12.2 Alur standar
 
-1. Buyer menunjukkan QR pesanan.
-2. Petugas memindai atau menggunakan lookup fallback yang diizinkan.
-3. Layar memverifikasi konteks order dan menunjukkan grup kelas yang relevan serta statusnya.
-4. Buyer diarahkan ke kelas/zona yang berlaku, atau petugas langsung menangani grup berwenangnya—tergantung rancangan venue yang dipilih.
-5. Petugas memverifikasi item grup, menyerahkan barang fisik, lalu baru mengonfirmasi handover.
-6. Sistem menandai grup tersebut sebagai diserahkan; grup lain tetap terbuka bila belum diambil.
-7. Saat grup terakhir menjadi final, sistem menandai pesanan buyer selesai.
+1. Buyer menuju kelas/stand penjual
+2. Penjual mengarahkan buyer untuk membuka QR nya
+3. Buyer menunjukkan QR pesanan yang sesuai dengan kelasnya.
+6. Penjuak mengscan QR, memverifikasi item grup, menyerahkan barang fisik.
+7. Sistem menandai grup tersebut sebagai diserahkan; grup lain tetap terbuka bila belum diambil.
+8. Saat grup terakhir menjadi final, sistem menandai pesanan buyer selesai.
 
 ### 12.3 Exception Hari H
 
