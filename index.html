@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Simple Product Catalog</title>
   <script>
-    if (new URLSearchParams(window.location.search).get("masuk") !== "berhasil") {
+    if (sessionStorage.getItem("northstarLoggedIn") !== "true") {
       window.location.replace("login.html");
     }
   </script>
@@ -98,15 +98,26 @@
     }
 
     .product {
+      position: relative;
+      display: block;
       background: white;
       border-radius: 8px;
       overflow: hidden;
       box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
-      transition: transform 0.2s;
+      color: inherit;
+      text-decoration: none;
+      transition: transform 0.2s, box-shadow 0.2s;
     }
 
-    .product:hover {
+    .product:hover,
+    .product:focus-visible {
       transform: translateY(-4px);
+      box-shadow: 0 8px 20px rgba(0, 0, 0, 0.14);
+    }
+
+    .product:focus-visible {
+      outline: 3px solid #16704a;
+      outline-offset: 2px;
     }
 
     .product-image {
@@ -152,9 +163,9 @@
     <h1>Northstar Catalog</h1>
     <p>Simple products for everyday life</p>
     <nav>
-      <a href="index.html?masuk=berhasil">Beranda</a>
+      <a href="index.html">Beranda</a>
       <a href="about.html">Tentang</a>
-      <a href="login.html">Keluar</a>
+      <a href="login.html" id="logoutLink">Keluar</a>
     </nav>
   </header>
 
@@ -193,56 +204,15 @@
     <section id="catalog" class="catalog"></section>
   </main>
 
+  <script src="products.js"></script>
   <script>
-    // json data for products
-    const products = [
-      {
-        name: "Desk Lamp",
-        category: "home",
-        categoryName: "Home",
-        price: 34.99,
-        icon: "💡"
-      },
-      {
-        name: "Wireless Headphones",
-        category: "tech",
-        categoryName: "Technology",
-        price: 79.99,
-        icon: "🎧"
-      },
-      {
-        name: "Travel Backpack",
-        category: "outdoor",
-        categoryName: "Outdoor",
-        price: 59.99,
-        icon: "🎒"
-      },
-      {
-        name: "Ceramic Mug",
-        category: "home",
-        categoryName: "Home",
-        price: 14.99,
-        icon: "☕"
-      },
-      {
-        name: "Smart Watch",
-        category: "tech",
-        categoryName: "Technology",
-        price: 129.99,
-        icon: "⌚"
-      },
-      {
-        name: "Camping Lantern",
-        category: "outdoor",
-        categoryName: "Outdoor",
-        price: 24.99,
-        icon: "🏕️"
-      }
-    ];
-
+    const products = window.products;
     const catalog = document.querySelector("#catalog");
     const searchInput = document.querySelector("#searchInput");
     const categorySelect = document.querySelector("#categorySelect");
+    document.querySelector("#logoutLink").addEventListener("click", () => {
+      sessionStorage.removeItem("northstarLoggedIn");
+    });
 
     function displayProducts() {
       const searchText = searchInput.value.toLowerCase();
@@ -263,14 +233,14 @@
       }
 
       catalog.innerHTML = filteredProducts.map((product) => `
-        <article class="product">
+        <a class="product" href="product.html?id=${encodeURIComponent(product.id)}" aria-label="Lihat detail ${product.name}">
           <div class="product-image">${product.icon}</div>
           <div class="product-info">
             <h2>${product.name}</h2>
             <div class="category">${product.categoryName}</div>
             <div class="price">Rp${product.price.toFixed(2)}</div>
           </div>
-        </article>
+        </a>
       `).join("");
     }
 

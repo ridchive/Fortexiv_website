@@ -295,9 +295,9 @@
     </section>
 
     <section class="form-panel" aria-labelledby="login-title">
-      <h2 id="login-title">Selamat datang kembali</h2>
+      <h2 id="login-title">Selamat datang</h2>
       <p class="intro">Pilih cara masuk untuk melanjutkan ke katalog.</p>
-      <a class="guest-button" href="index.html?masuk=berhasil">Masuk sebagai tamu</a>
+      <a class="guest-button" id="guestLoginButton" href="index.html">Masuk sebagai tamu</a>
       <div class="divider" aria-hidden="true">atau gunakan akun</div>
 
       <form id="loginForm">
@@ -334,6 +334,13 @@
     const togglePassword = document.querySelector("#togglePassword");
     const loginForm = document.querySelector("#loginForm");
     const formStatus = document.querySelector("#formStatus");
+    const guestLoginButton = document.querySelector("#guestLoginButton");
+
+    guestLoginButton.addEventListener("click", (event) => {
+      event.preventDefault();
+      sessionStorage.setItem("northstarLoggedIn", "true");
+      window.location.href = "index.html";
+    });
 
     togglePassword.addEventListener("click", () => {
       const isVisible = passwordInput.type === "text";
@@ -345,7 +352,8 @@
     loginForm.addEventListener("submit", (event) => {
       event.preventDefault();
       formStatus.textContent = "Berhasil masuk. Membuka katalog...";
-      window.location.href = "index.html?masuk=berhasil";
+      sessionStorage.setItem("northstarLoggedIn", "true");
+      window.location.href = "index.html";
     });
   </script>
 </body>
