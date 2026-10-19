@@ -117,8 +117,6 @@ Beranda
 Portal Seller
 ├─ Ringkasan kelas
 ├─ Artikel proyek
-│  ├─ Daftar / status artikel
-│  └─ Buat atau revisi artikel
 ├─ Produk
 │  ├─ Daftar / status produk
 │  └─ Buat atau revisi produk
