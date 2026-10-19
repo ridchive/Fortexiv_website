@@ -133,7 +133,10 @@ Portal Seller
 Portal Admin
 ├─ Dashboard acara
 ├─ Pengaturan acara & jendela PO
-├─ Review artikel dan produk
+├─ Artikel proyek
+│  ├─ Daftar / status artikel
+│  └─ Buat atau revisi artikel
+├─ Review produk
 ├─ Kelas / seller dan akses tim
 ├─ Pesanan & pembayaran
 ├─ Insiden, pembatalan, refund, dan resolusi akhir
@@ -180,7 +183,7 @@ Status umum yang harus dipertimbangkan pada seluruh halaman: memuat, kosong, gag
 | Kontrol | Filter kelas/tema (jika disetujui), cari bila tersedia, buka artikel, reset filter. |
 | Tujuan navigasi | Detail artikel, katalog dengan konteks filter yang sesuai bila relevan. |
 | Keadaan khusus | Hasil filter kosong: jelaskan tidak ada proyek yang cocok dan tawarkan reset filter. Memuat: placeholder/skeleton. Gagal: tombol muat ulang. |
-| Pemilik konten | Tim kelas menyusun; admin menyetujui dan menerbitkan. |
+| Pemilik konten | Admin yang menyuusun dan membuat artikel |
 | Aturan bisnis | Hanya artikel yang disetujui dan dipublikasikan yang terlihat publik. Artikel boleh tetap dibaca setelah PO tutup. |
 | Kriteria penerimaan | Setiap kartu mengidentifikasi kelas dan mengarah ke satu artikel yang benar; filter tidak menampilkan konten yang tidak sesuai. |
 
@@ -194,7 +197,7 @@ Status umum yang harus dipertimbangkan pada seluruh halaman: memuat, kosong, gag
 | Kontrol | Buka produk terkait, tambah produk ke keranjang dari kartu (bila varian tidak perlu dipilih), bagikan jika diputuskan, kembali ke daftar proyek. |
 | Tujuan navigasi | Detail produk, katalog dengan filter kelas, daftar artikel, keranjang. |
 | Keadaan khusus | Tidak ada produk terkait: artikel tetap dapat dibaca dan menjelaskan bahwa produk belum/ tidak tersedia. PO tutup: produk tetap dapat dilihat, pembelian dinonaktifkan dengan alasan. Artikel tidak ditemukan/tidak publik: halaman aman dengan jalan kembali. |
-| Pemilik konten | Tim kelas; admin konten menyetujui publikasi dan perubahan material. |
+| Pemilik konten | Admin yang akan mengubah dan mengurusi artikel, bukan tim kelas |
 | Aturan bisnis | Produk yang ditampilkan harus milik kelas/proyek terkait. Perubahan artikel setelah ada pesanan tidak boleh mengubah fakta pesanan buyer. |
 | Kriteria penerimaan | Buyer dapat mengetahui kelas pemilik proyek dan menemukan seluruh produk terkait; artikel tidak berubah menjadi halaman katalog kosong. |
 
@@ -443,20 +446,34 @@ Portal seller hanya memperlihatkan data kelas yang ditugaskan kepada pengguna te
 | Aturan bisnis | Ada satu jendela PO yang berlaku untuk seluruh kelas peserta. Waktu yang ditampilkan website berasal dari pengaturan ini. |
 | Kriteria penerimaan | Sistem menolak pembukaan transaksi di luar jendela PO; perubahan jadwal meninggalkan riwayat yang dapat diperiksa. |
 
-### 8.3 Review artikel, produk, dan kelas
+### 8.3 Review dan Pengelolaan Artikel/Proyek
 
 | Aspek | Spesifikasi |
 |---|---|
-| Tujuan | Menjaga kelengkapan, relevansi, dan kepatuhan konten sebelum publikasi. |
+| Tujuan | Menjaga kelengkapan, relevansi, konsistensi, dan kualitas artikel proyek sebelum dan sesudah publikasi. |
 | Target | Admin konten/operasional. |
-| Konten/section | Antrean review; preview; data kelas; keterkaitan artikel-produk; catatan; status draft/diajukan/perlu revisi/disetujui/dipublikasikan sesuai proses yang disepakati. |
-| Kontrol | Setujui, minta revisi, tolak, terbitkan/tarik publikasi sesuai kewenangan; tulis alasan. |
-| Keadaan khusus | Konten sudah berorder: perubahan material perlu ditandai/diatur, tidak boleh diam-diam mengubah transaksi historis. |
-| Pemilik konten | Kelas membuat; admin memutuskan status. |
-| Aturan bisnis | Alasan revisi/penolakan wajib terlihat bagi kelas. Hanya konten disetujui yang publik. |
-| Kriteria penerimaan | Admin dapat memastikan setiap produk publik terkait dengan kelas/proyek; seller menerima status dan alasan review yang dapat ditindaklanjuti. |
+| Konten/section | Daftar artikel; editor artikel; judul; gambar sampul; ringkasan; isi artikel; informasi kelas; dokumentasi proyek; produk terkait; status publikasi; dan pratinjau halaman. |
+| Kontrol | Membuat, melihat, mengedit, menyimpan draft, menerbitkan, mengubah status publikasi, dan mengarsipkan artikel. |
+| Keadaan khusus | Artikel yang sudah memiliki produk atau transaksi terkait harus dapat diperbarui tanpa mengubah riwayat transaksi. Artikel yang tidak lagi relevan dapat diarsipkan sesuai kebijakan. |
+| Pemilik konten | Admin bertanggung jawab atas pembuatan, penyuntingan, dan pengelolaan artikel. |
+| Aturan bisnis | Hanya Admin yang berwenang mengelola artikel. Artikel berstatus draft tidak ditampilkan kepada publik. Hanya artikel yang telah diterbitkan yang dapat diakses publik. |
+| Kriteria penerimaan | Admin dapat membuat dan mengelola artikel secara mandiri, menghubungkan artikel dengan kelas dan produk terkait, serta mengatur status publikasi artikel. |
 
-### 8.4 Pesanan, pembayaran, pembatalan, refund, dan resolusi
+### 8.4 Pengelolaan dan Review Produk
+
+| Aspek | Spesifikasi |
+|---|---|
+| Tujuan | Memastikan informasi produk lengkap, relevan, dan sesuai ketentuan sebelum ditampilkan kepada Buyer. |
+| Target | Seller dan Admin operasional. |
+| Konten/section | Daftar produk; nama produk; foto; deskripsi/cerita produk; harga; stok; kategori; kelas pemilik; status produk; antrean review; dan catatan revisi. |
+| Kontrol Seller | Menambahkan produk, mengedit informasi produk miliknya, mengatur harga dan stok, mengajukan produk untuk review, serta melihat status dan catatan review. |
+| Kontrol Admin | Memeriksa produk, menyetujui, meminta revisi, menolak, serta mengatur publikasi atau penarikan produk sesuai kewenangan. |
+| Keadaan khusus | Perubahan material pada produk yang sudah memiliki pesanan harus ditangani dengan hati-hati dan tidak boleh diam-diam mengubah transaksi historis. |
+| Pemilik konten | Seller bertanggung jawab atas informasi produk miliknya. Admin bertanggung jawab atas proses review dan keputusan publikasi produk. |
+| Aturan bisnis | Seller hanya dapat mengelola produknya sendiri. Produk yang belum disetujui tidak ditampilkan sebagai produk publik yang dapat dibeli. Alasan revisi atau penolakan wajib disampaikan kepada Seller agar dapat ditindaklanjuti. |
+| Kriteria penerimaan | Seller dapat mengelola produk miliknya dan melihat status review beserta alasannya. Admin dapat memeriksa produk, menentukan keputusan review, dan memastikan produk yang dipublikasikan memiliki informasi lengkap serta terhubung dengan kelas yang benar. |
+
+### 8.5 Pesanan, pembayaran, pembatalan, refund, dan resolusi
 
 | Aspek | Spesifikasi |
 |---|---|
@@ -469,7 +486,7 @@ Portal seller hanya memperlihatkan data kelas yang ditugaskan kepada pengguna te
 | Aturan bisnis | Refund hanya memengaruhi kelas/grup yang terdampak. Resolusi akhir grup harus eksplisit sebelum pesanan buyer dapat selesai bila grup tidak diserahkan. Semua tindakan manual memerlukan alasan dan pelaku. |
 | Kriteria penerimaan | Admin dapat melihat alasan dan riwayat status; penyelesaian satu grup tidak otomatis membatalkan atau menutup grup lain. |
 
-### 8.5 Pengaturan dan meja Hari H
+### 8.6 Pengaturan dan meja Hari H
 
 | Aspek | Spesifikasi |
 |---|---|
@@ -482,7 +499,7 @@ Portal seller hanya memperlihatkan data kelas yang ditugaskan kepada pengguna te
 | Aturan bisnis | Rancangan venue—cek QR sentral lalu ke meja kelas, atau scan per meja kelas—masih **keputusan terbuka**. Sistem harus mendukung alur yang dipilih tanpa mengubah prinsip grup mandiri. |
 | Kriteria penerimaan | Petugas mengetahui kelas/grup apa yang menjadi kewenangannya dan cara eskalasi exception. |
 
-### 8.6 Layar pickup / pencarian pesanan
+### 8.7 Layar pickup / pencarian pesanan
 
 | Aspek | Spesifikasi |
 |---|---|
@@ -495,7 +512,7 @@ Portal seller hanya memperlihatkan data kelas yang ditugaskan kepada pengguna te
 | Aturan bisnis | QR membuka konteks buyer order dan grup; pemindaian saja bukan handover. Sistem mencegah penyerahan ganda pada grup sama. |
 | Kriteria penerimaan | Staf dapat menyerahkan satu grup yang tepat, mencatat waktu/petugas/lokasi sesuai kebutuhan, dan tidak dapat mengulang handover tanpa otorisasi. |
 
-### 8.7 Settlement dan payout per kelas
+### 8.8 Settlement dan payout per kelas
 
 | Aspek | Spesifikasi |
 |---|---|
@@ -508,7 +525,7 @@ Portal seller hanya memperlihatkan data kelas yang ditugaskan kepada pengguna te
 | Aturan bisnis | Payout bukan perubahan status order buyer. Rumus, biaya, metode, jadwal, dan otoritas final payout adalah **keputusan terbuka**. |
 | Kriteria penerimaan | Finance dapat membuktikan alasan payout/tahan per kelas; masalah kelas lain tidak memblokir kelas yang bersih. |
 
-### 8.8 Konten statis, laporan, dan riwayat tindakan
+### 8.9 Konten statis, laporan, dan riwayat tindakan
 
 | Aspek | Spesifikasi |
 |---|---|
@@ -617,9 +634,9 @@ Portal seller hanya memperlihatkan data kelas yang ditugaskan kepada pengguna te
 ### 12.2 Alur standar
 
 1. Buyer menuju kelas/stand penjual
-2. Penjual mengarahkan buyer untuk membuka QR nya
+2. Penjual mengarahkan buyer untuk membuka QR atau kode produknya
 3. Buyer menunjukkan QR pesanan yang sesuai dengan kelasnya.
-6. Penjuak mengscan QR, memverifikasi item grup, menyerahkan barang fisik.
+6. Penjual mengscan QR, memverifikasi product grup, menyerahkan barang fisik.
 7. Sistem menandai grup tersebut sebagai diserahkan; grup lain tetap terbuka bila belum diambil.
 8. Saat grup terakhir menjadi final, sistem menandai pesanan buyer selesai.
 
