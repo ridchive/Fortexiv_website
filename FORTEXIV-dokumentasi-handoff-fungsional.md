@@ -708,7 +708,8 @@ Nama status akhir dapat disesuaikan desain, tetapi maknanya tidak boleh berubah 
 | Aset konten | Pemilik penyusun | Penyetuju/publikasi | Lokasi tampil |
 |---|---|---|---|
 | Artikel proyek | Tim kelas | Admin konten | Beranda, daftar artikel, detail artikel |
-| Deskripsi/cerita produk | Tim kelas | Admin sesuai proses review | Katalog, detail produk, kartu terkait artikel |
+| Detail/deskripsi produk | Tim kelas (Seller) | Admin sesuai proses review | Katalog, detail produk |
+| Cerita/artikel produk | Admin konten | Admin konten/operasional | Detail produk, kartu produk terkait artikel |
 | Jadwal PO/Hari H dan lokasi | Admin operasional | Penanggung jawab acara | Beranda, checkout, order, halaman pickup/FAQ |
 | ToS dan kebijakan refund/no-show | Penanggung jawab kebijakan | Pihak berwenang yang ditunjuk | Footer, halaman ToS, checkout |
 | FAQ dan pengumuman | Admin operasional/konten | Admin berwenang | Beranda, FAQ, order bila relevan |
