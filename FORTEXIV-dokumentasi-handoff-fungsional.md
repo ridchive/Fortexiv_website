@@ -1,6 +1,6 @@
 # FORTEXIV — Handoff Kebutuhan Fungsional Website & Operasional
 
-**Versi:** 1.0  
+**Versi:** 1.1  
 **Tujuan dokumen:** arahan bersama untuk tim produk, desain, developer, admin operasional, seller/kelas, dan finance sebelum menentukan solusi teknis.  
 **Bahasa operasional:** Bahasa Indonesia.  
 **Batas dokumen:** kebutuhan pengalaman pengguna, konten, aturan bisnis, dan alur operasional. Dokumen ini sengaja **tidak** menetapkan database, API, framework, penyedia pembayaran, atau arsitektur teknis.
@@ -78,8 +78,8 @@ Artikel proyek kelas
 |---|---|---|---|
 | Pengunjung | Memahami acara dan menemukan proyek/produk | Membaca artikel, katalog, FAQ, ToS | Membuat atau mengubah pesanan tanpa proses yang ditetapkan |
 | Buyer | Memesan, membayar, dan mengambil produk | Mengelola pesanan miliknya, melihat QR/status, mengajukan masalah | Menetapkan pembayaran, refund, atau handover sebagai final |
-| Tim seller/kelas | Menawarkan proyek/produk dan memenuhi pesanan kelasnya | Menyiapkan konten, melihat kebutuhan kelasnya, menyiapkan/menyerahkan grupnya | Melihat data kelas lain; mengubah transaksi paid atau payout sendiri |
-| Admin konten/operasional | Menjaga acara berjalan tertib | Review konten, mengelola jendela PO, menangani exception, mengatur Hari H | Mencairkan payout tanpa kewenangan finance yang berlaku |
+| Tim seller/kelas | Mengelola informasi dasar produk dan memenuhi pesanan kelasnya | Mengelola nama, harga, stok, foto, kategori, dan deskripsi dasar produk miliknya; melihat kebutuhan kelasnya; menyiapkan/menyerahkan grupnya | Membuat atau mengedit artikel proyek maupun artikel/cerita produk; melihat data kelas lain; mengubah transaksi paid atau payout sendiri |
+| Admin konten/operasional | Menjaga narasi FORTEXIV dan acara berjalan tertib | Membuat, menulis, mengedit, mengelola, serta menerbitkan artikel proyek dan artikel/cerita produk; mengelola jendela PO, menangani exception, mengatur Hari H | Mencairkan payout tanpa kewenangan finance yang berlaku |
 | Finance | Menjaga pencatatan dana dan settlement | Rekonsiliasi pembayaran, refund, statement, payout | Menjadikan payout satu kelas sebagai bukti semua pesanan lain selesai |
 | Petugas pickup | Memastikan barang yang tepat diserahkan | Verifikasi QR/order, serah-terima grup yang menjadi tanggung jawabnya, catat masalah | Menyerahkan ulang grup yang telah tercatat diserahkan tanpa koreksi resmi |
 | Sistem FORTEXIV | Menampilkan tindakan/status sesuai fase | Mencegah tindakan tidak valid, menyimpan riwayat, memberi informasi | Mengambil keputusan diskresioner terkait refund/payout |
@@ -116,7 +116,6 @@ Beranda
 ```text
 Portal Seller
 ├─ Ringkasan kelas
-├─ Artikel proyek
 ├─ Produk
 │  ├─ Daftar / status produk
 │  └─ Buat atau revisi produk
@@ -136,6 +135,9 @@ Portal Admin
 ├─ Artikel proyek
 │  ├─ Daftar / status artikel
 │  └─ Buat atau revisi artikel
+├─ Artikel/cerita produk
+│  ├─ Daftar / status artikel produk
+│  └─ Buat atau revisi artikel produk
 ├─ Review produk
 ├─ Kelas / seller dan akses tim
 ├─ Pesanan & pembayaran
@@ -169,7 +171,7 @@ Status umum yang harus dipertimbangkan pada seluruh halaman: memuat, kosong, gag
 | Kontrol | Buka artikel, buka katalog, filter/lihat semua, buka keranjang, masuk. |
 | Tujuan navigasi | Daftar artikel, detail artikel, katalog, detail produk, FAQ, keranjang. |
 | Keadaan khusus | Belum ada artikel/produk: tampilkan pesan editorial yang ramah tanpa ruang kosong. PO tutup: jadwal tetap terlihat, CTA belanja menjadi informasi PO tutup. Gagal muat: sediakan coba lagi. |
-| Pemilik konten | Admin konten/operasional; kelas menyediakan materi yang telah disetujui. |
+| Pemilik konten | Admin konten/operasional. Admin menyusun dan mengelola artikel proyek serta artikel/cerita produk; kelas dapat menjadi sumber informasi proyek/produk bila diperlukan. |
 | Aturan bisnis | Artikel proyek mendapat penempatan lebih dominan dari produk; katalog tidak disembunyikan. Jadwal yang tampil berasal dari pengaturan acara yang disetujui. |
 | Kriteria penerimaan | Pengunjung dapat memahami apa itu FORTEXIV, batas PO, dan cara pengambilan tanpa masuk akun; kedua jalur artikel dan katalog dapat diakses jelas. |
 
@@ -183,7 +185,7 @@ Status umum yang harus dipertimbangkan pada seluruh halaman: memuat, kosong, gag
 | Kontrol | Filter kelas/tema (jika disetujui), cari bila tersedia, buka artikel, reset filter. |
 | Tujuan navigasi | Detail artikel, katalog dengan konteks filter yang sesuai bila relevan. |
 | Keadaan khusus | Hasil filter kosong: jelaskan tidak ada proyek yang cocok dan tawarkan reset filter. Memuat: placeholder/skeleton. Gagal: tombol muat ulang. |
-| Pemilik konten | Admin yang menyuusun dan membuat artikel |
+| Pemilik konten | Admin konten/operasional menyusun, menulis, mengedit, mengelola, dan menerbitkan artikel proyek. |
 | Aturan bisnis | Hanya artikel yang disetujui dan dipublikasikan yang terlihat publik. Artikel boleh tetap dibaca setelah PO tutup. |
 | Kriteria penerimaan | Setiap kartu mengidentifikasi kelas dan mengarah ke satu artikel yang benar; filter tidak menampilkan konten yang tidak sesuai. |
 
@@ -197,7 +199,7 @@ Status umum yang harus dipertimbangkan pada seluruh halaman: memuat, kosong, gag
 | Kontrol | Buka produk terkait, tambah produk ke keranjang dari kartu (bila varian tidak perlu dipilih), bagikan jika diputuskan, kembali ke daftar proyek. |
 | Tujuan navigasi | Detail produk, katalog dengan filter kelas, daftar artikel, keranjang. |
 | Keadaan khusus | Tidak ada produk terkait: artikel tetap dapat dibaca dan menjelaskan bahwa produk belum/ tidak tersedia. PO tutup: produk tetap dapat dilihat, pembelian dinonaktifkan dengan alasan. Artikel tidak ditemukan/tidak publik: halaman aman dengan jalan kembali. |
-| Pemilik konten | Admin yang akan mengubah dan mengurusi artikel, bukan tim kelas |
+| Pemilik konten | Admin konten/operasional membuat, menulis, mengedit, mengelola, dan menerbitkan artikel proyek; tim kelas tidak mengelola artikel ini. |
 | Aturan bisnis | Produk yang ditampilkan harus milik kelas/proyek terkait. Perubahan artikel setelah ada pesanan tidak boleh mengubah fakta pesanan buyer. |
 | Kriteria penerimaan | Buyer dapat mengetahui kelas pemilik proyek dan menemukan seluruh produk terkait; artikel tidak berubah menjadi halaman katalog kosong. |
 
@@ -221,12 +223,12 @@ Status umum yang harus dipertimbangkan pada seluruh halaman: memuat, kosong, gag
 |---|---|
 | Tujuan | Memberikan informasi cukup agar buyer dapat memutuskan pembelian dengan sadar. |
 | Target | Pengunjung dan buyer. |
-| Konten/section | Nama, visual, harga, pilihan/varian jika ada, ketersediaan sesuai aturan, jumlah, **cerita/deskripsi produk**, kelas pemilik, tautan ke artikel proyek, informasi PO, informasi pickup Hari H, kebijakan penting, produk terkait bila ada. |
+| Konten/section | Nama, visual, harga, pilihan/varian jika ada, ketersediaan sesuai aturan, jumlah, deskripsi dasar spesifikasi/karakteristik produk, **artikel/cerita produk** bila tersedia, kelas pemilik, tautan ke artikel proyek, informasi PO, informasi pickup Hari H, kebijakan penting, produk terkait bila ada. |
 | Kontrol | Pilih varian, atur jumlah, **Tambah ke Keranjang**, **Beli Sekarang**, buka artikel proyek, kembali ke katalog. |
 | Tujuan navigasi | Keranjang, checkout Beli Sekarang, artikel proyek, katalog. |
 | Keadaan khusus | Varian belum dipilih: CTA menjelaskan data yang kurang. Produk tidak tersedia/PO tertutup: tindakan membeli nonaktif dan alasan terlihat. Produk dihapus/tidak publik: tidak dapat dibeli. Loading/error/not found ditangani jelas. |
-| Pemilik konten | Tim kelas menyusun; admin menyetujui sesuai kebijakan. |
-| Aturan bisnis | Beli Sekarang membuat alur checkout untuk **satu produk ini**, sedangkan Tambah ke Keranjang dapat bergabung dengan produk kelas lain. Harga/deskripsi yang tampil saat checkout harus diverifikasi ulang. |
+| Pemilik konten | Seller/tim kelas mengelola informasi dasar produk (nama, harga, stok, foto, kategori, dan deskripsi dasar spesifikasi/karakteristik). Admin mengelola artikel/cerita produk, termasuk narasi dan penyajiannya; admin juga meninjau serta mengelola status publikasi produk sesuai kewenangan. |
+| Aturan bisnis | Beli Sekarang membuat alur checkout untuk **satu produk ini**, sedangkan Tambah ke Keranjang dapat bergabung dengan produk kelas lain. Harga dan informasi dasar produk yang tampil saat checkout harus diverifikasi ulang. Artikel/cerita produk tidak dapat dikelola Seller. |
 | Kriteria penerimaan | Buyer dapat mengetahui kelas, cerita, harga, dan cara pengambilan sebelum memilih beli; kedua CTA menghasilkan perilaku yang berbeda tetapi jelas. |
 
 ### 6.6 Keranjang
@@ -325,26 +327,26 @@ Portal seller hanya memperlihatkan data kelas yang ditugaskan kepada pengguna te
 |---|---|
 | Tujuan | Menjadi halaman awal operasional kelas. |
 | Target | Seller lead dan anggota seller berwenang. |
-| Konten/section | Status artikel/produk, jadwal PO, indikator kebutuhan tindakan, rekap paid/confirmed yang diizinkan, kesiapan Hari H, insiden terbuka, status settlement/payout kelas. |
+| Konten/section | Status produk, jadwal PO, indikator kebutuhan tindakan, rekap paid/confirmed yang diizinkan, kesiapan Hari H, insiden terbuka, status settlement/payout kelas. Artikel proyek dan artikel/cerita produk dikelola Admin dan tidak tersedia untuk dibuat atau diedit dari portal ini. |
 | Kontrol | Buka konten, rekap produksi, kesiapan, pickup, insiden, settlement sesuai hak. |
 | Keadaan khusus | Tidak ada kelas yang ditugaskan: jelaskan bahwa akses belum diberikan. PO tutup: fokus bergeser ke rekap produksi. |
 | Pemilik konten | Sistem; data berasal dari kelas/admin/finance. |
 | Aturan bisnis | Angka hanya untuk kelas sendiri; status payout tidak boleh dianggap sebagai status semua buyer order. |
 | Kriteria penerimaan | Seller segera tahu tindakan berikutnya dan tidak melihat data kelas lain. |
 
-### 7.2 Artikel proyek: daftar, buat, revisi
+### 7.2 Batas akses artikel proyek dan artikel/cerita produk
 
 | Aspek | Spesifikasi |
 |---|---|
-| Tujuan | Memungkinkan kelas menyusun cerita proyek untuk review admin. |
-| Target | Seller lead/anggota yang diizinkan. |
-| Konten/section | Daftar artikel dan status; editor berisi judul, ringkasan, isi cerita, visual, hubungan ke produk kelas, serta catatan review. Field final mengikuti keputusan konten. |
-| Kontrol | Simpan draft, ajukan review, revisi, pratinjau bila disetujui, lihat alasan penolakan/revisi. |
-| Tujuan navigasi | Daftar produk, preview artikel, dashboard. |
-| Keadaan khusus | Belum ada artikel: CTA buat artikel. Needs revision: alasan admin harus jelas. Saat PO terbuka/pernah ada pesanan, perubahan material mengikuti review ulang. |
-| Pemilik konten | Tim kelas menyusun; admin konten menyetujui/publikasi. |
-| Aturan bisnis | Artikel publik hanya setelah persetujuan. Artikel harus dapat menghubungkan produk dari kelas sendiri saja. |
-| Kriteria penerimaan | Kelas dapat mengirim artikel lengkap dan menerima alasan review; pengunjung tidak melihat draft/versi tidak disetujui. |
+| Tujuan | Menetapkan batas yang jelas: Seller/tim kelas tidak mengelola artikel proyek maupun artikel/cerita produk dari portal Seller. |
+| Target | Seller lead/anggota seller. |
+| Konten/section | Tidak ada daftar, editor, draft, atau catatan revisi artikel di portal Seller. Artikel yang telah publik hanya dapat dibaca melalui halaman publik bila relevan. |
+| Kontrol | Tidak ada kontrol membuat, mengedit, mengajukan review, atau menerbitkan artikel proyek maupun artikel/cerita produk. |
+| Tujuan navigasi | Produk, rekap produksi, dan dashboard. |
+| Keadaan khusus | Bila Seller memerlukan perubahan narasi artikel, kebutuhan tersebut disampaikan melalui prosedur operasional yang ditetapkan Admin; tidak ada pengeditan langsung oleh Seller. |
+| Pemilik konten | Admin konten/operasional sepenuhnya bertanggung jawab atas pembuatan, penulisan, penyuntingan, pengelolaan, dan publikasi artikel proyek serta artikel/cerita produk. |
+| Aturan bisnis | Admin dapat mengaitkan artikel proyek dengan kelas dan produk relevan, serta menampilkan artikel/cerita produk pada detail produk atau area relevan lain. |
+| Kriteria penerimaan | Dashboard Seller tidak menyediakan akses untuk membuat atau mengedit artikel proyek maupun artikel/cerita produk; artikel publik tetap dapat mengarahkan Buyer ke produk terkait. |
 
 ### 7.3 Produk: daftar, buat, revisi
 
@@ -352,13 +354,13 @@ Portal seller hanya memperlihatkan data kelas yang ditugaskan kepada pengguna te
 |---|---|
 | Tujuan | Mengelola daftar produk yang melekat pada proyek kelas. |
 | Target | Seller berwenang. |
-| Konten/section | Daftar produk dan status; form nama, kategori, gambar, harga, opsi/varian bila dipakai, deskripsi/cerita, ketersediaan sesuai keputusan, tautan artikel proyek, dan informasi wajib yang ditetapkan admin. |
+| Konten/section | Daftar produk dan status; form nama, kategori, foto, harga, opsi/varian bila dipakai, stok/ketersediaan sesuai keputusan, deskripsi dasar spesifikasi/karakteristik, tautan artikel proyek bila tersedia, dan informasi wajib yang ditetapkan admin. Artikel/cerita produk tidak menjadi field yang dikelola Seller. |
 | Kontrol | Simpan draft, ajukan review, revisi, nonaktifkan sesuai kewenangan, lihat catatan review. |
 | Tujuan navigasi | Artikel terkait, rekap produksi, dashboard. |
 | Keadaan khusus | Produk belum ada; produk perlu revisi; produk pernah dipesan; PO tertutup. Perubahan material setelah ada order tidak boleh mengubah snapshot order dan harus melalui aturan exception/review. |
-| Pemilik konten | Tim kelas; admin review/publikasi. |
+| Pemilik konten | Seller/tim kelas mengelola informasi dasar produk miliknya. Admin mengelola artikel/cerita produk; Admin juga melakukan review dan mengelola publikasi produk. |
 | Aturan bisnis | Setiap produk milik satu kelas dan terhubung ke artikel proyek yang relevan. Produk tidak tampil publik sebelum disetujui/dipublikasikan. |
-| Kriteria penerimaan | Produk publik selalu memiliki kelas, kategori, deskripsi/cerita, dan artikel proyek yang benar; seller tak bisa mengubah pesanan paid melalui edit produk. |
+| Kriteria penerimaan | Produk publik selalu memiliki kelas, kategori, deskripsi dasar, dan keterkaitan artikel proyek yang benar bila artikelnya tersedia. Seller tidak dapat membuat/mengedit artikel atau cerita produk, serta tidak dapat mengubah pesanan paid melalui edit produk. |
 
 ### 7.4 Rekap PO & produksi
 
@@ -450,14 +452,14 @@ Portal seller hanya memperlihatkan data kelas yang ditugaskan kepada pengguna te
 
 | Aspek | Spesifikasi |
 |---|---|
-| Tujuan | Menjaga kelengkapan, relevansi, konsistensi, dan kualitas artikel proyek sebelum dan sesudah publikasi. |
+| Tujuan | Menjaga kelengkapan, relevansi, konsistensi, dan kualitas artikel proyek serta artikel/cerita produk sebelum dan sesudah publikasi. |
 | Target | Admin konten/operasional. |
-| Konten/section | Daftar artikel; editor artikel; judul; gambar sampul; ringkasan; isi artikel; informasi kelas; dokumentasi proyek; produk terkait; status publikasi; dan pratinjau halaman. |
-| Kontrol | Membuat, melihat, mengedit, menyimpan draft, menerbitkan, mengubah status publikasi, dan mengarsipkan artikel. |
+| Konten/section | Daftar artikel proyek dan artikel/cerita produk; editor; judul; gambar sampul; ringkasan; narasi; informasi kelas; dokumentasi proyek; produk terkait; status publikasi; dan pratinjau halaman. |
+| Kontrol | Membuat, menulis, melihat, mengedit, menyimpan draft, menerbitkan, mengubah status publikasi, dan mengarsipkan artikel proyek maupun artikel/cerita produk. |
 | Keadaan khusus | Artikel yang sudah memiliki produk atau transaksi terkait harus dapat diperbarui tanpa mengubah riwayat transaksi. Artikel yang tidak lagi relevan dapat diarsipkan sesuai kebijakan. |
-| Pemilik konten | Admin bertanggung jawab atas pembuatan, penyuntingan, dan pengelolaan artikel. |
-| Aturan bisnis | Hanya Admin yang berwenang mengelola artikel. Artikel berstatus draft tidak ditampilkan kepada publik. Hanya artikel yang telah diterbitkan yang dapat diakses publik. |
-| Kriteria penerimaan | Admin dapat membuat dan mengelola artikel secara mandiri, menghubungkan artikel dengan kelas dan produk terkait, serta mengatur status publikasi artikel. |
+| Pemilik konten | Admin bertanggung jawab penuh atas pembuatan, penulisan, penyuntingan, pengelolaan, dan publikasi artikel proyek serta artikel/cerita produk. |
+| Aturan bisnis | Hanya Admin yang berwenang mengelola artikel. Admin menentukan struktur konten, judul, gambar sampul, narasi, dokumentasi, dan informasi proyek yang ditampilkan. Admin menjaga konsistensi narasi produk dengan identitas dan tujuan FORTEXIV. Artikel proyek dapat dikaitkan dengan kelas dan produk relevan; artikel/cerita produk dapat ditampilkan pada detail produk atau area relevan lain. Artikel berstatus draft tidak ditampilkan kepada publik. |
+| Kriteria penerimaan | Admin dapat mengelola artikel proyek dan artikel/cerita produk secara mandiri, menghubungkan artikel proyek dengan kelas dan produk terkait, menyajikan artikel/cerita produk pada lokasi relevan, serta mengatur status publikasi tanpa akses pengeditan dari Seller. |
 
 ### 8.4 Pengelolaan dan Review Produk
 
@@ -465,13 +467,13 @@ Portal seller hanya memperlihatkan data kelas yang ditugaskan kepada pengguna te
 |---|---|
 | Tujuan | Memastikan informasi produk lengkap, relevan, dan sesuai ketentuan sebelum ditampilkan kepada Buyer. |
 | Target | Seller dan Admin operasional. |
-| Konten/section | Daftar produk; nama produk; foto; deskripsi/cerita produk; harga; stok; kategori; kelas pemilik; status produk; antrean review; dan catatan revisi. |
-| Kontrol Seller | Menambahkan produk, mengedit informasi produk miliknya, mengatur harga dan stok, mengajukan produk untuk review, serta melihat status dan catatan review. |
+| Konten/section | Daftar produk; nama produk; foto; deskripsi dasar spesifikasi/karakteristik; harga; stok; kategori; kelas pemilik; status produk; antrean review; dan catatan revisi. Artikel/cerita produk dikelola pada area artikel oleh Admin. |
+| Kontrol Seller | Menambahkan produk, mengedit informasi dasar produk miliknya, mengatur harga dan stok, mengajukan produk untuk review, serta melihat status dan catatan review. |
 | Kontrol Admin | Memeriksa produk, menyetujui, meminta revisi, menolak, serta mengatur publikasi atau penarikan produk sesuai kewenangan. |
 | Keadaan khusus | Perubahan material pada produk yang sudah memiliki pesanan harus ditangani dengan hati-hati dan tidak boleh diam-diam mengubah transaksi historis. |
-| Pemilik konten | Seller bertanggung jawab atas informasi produk miliknya. Admin bertanggung jawab atas proses review dan keputusan publikasi produk. |
-| Aturan bisnis | Seller hanya dapat mengelola produknya sendiri. Produk yang belum disetujui tidak ditampilkan sebagai produk publik yang dapat dibeli. Alasan revisi atau penolakan wajib disampaikan kepada Seller agar dapat ditindaklanjuti. |
-| Kriteria penerimaan | Seller dapat mengelola produk miliknya dan melihat status review beserta alasannya. Admin dapat memeriksa produk, menentukan keputusan review, dan memastikan produk yang dipublikasikan memiliki informasi lengkap serta terhubung dengan kelas yang benar. |
+| Pemilik konten | Seller bertanggung jawab atas informasi dasar produk miliknya: nama, harga, stok, foto, kategori, dan deskripsi dasar spesifikasi/karakteristik. Admin bertanggung jawab atas artikel/cerita produk, proses review, dan keputusan publikasi produk. |
+| Aturan bisnis | Seller hanya dapat mengelola produknya sendiri dan tidak dapat mengelola artikel/cerita produk. Produk yang belum disetujui tidak ditampilkan sebagai produk publik yang dapat dibeli. Alasan revisi atau penolakan wajib disampaikan kepada Seller agar dapat ditindaklanjuti. |
+| Kriteria penerimaan | Seller dapat mengelola informasi dasar produk miliknya dan melihat status review beserta alasannya. Admin dapat memeriksa produk, menentukan keputusan review, mengelola artikel/cerita produk, dan memastikan produk yang dipublikasikan memiliki informasi dasar lengkap serta terhubung dengan kelas yang benar. |
 
 ### 8.5 Pesanan, pembayaran, pembatalan, refund, dan resolusi
 
@@ -570,9 +572,9 @@ Portal seller hanya memperlihatkan data kelas yang ditugaskan kepada pengguna te
 ## 10. Alur seller/kelas end-to-end
 
 1. Tim kelas memperoleh akses seller sesuai keputusan admin.
-2. Kelas menyiapkan artikel proyek dan produk lengkap, termasuk cerita/deskripsi produk.
-3. Kelas mengajukan konten; admin menyetujui, meminta revisi, atau menolak dengan alasan.
-4. Ketika publik, artikel menarik pengunjung ke produk; produk juga tersedia melalui katalog.
+2. Kelas mengelola informasi dasar produk yang dijualnya: nama, harga, stok, foto, kategori, serta deskripsi dasar spesifikasi/karakteristik.
+3. Kelas mengajukan produk untuk review; admin menyetujui, meminta revisi, atau menolak informasi produk dengan alasan.
+4. Admin membuat dan mengelola artikel proyek serta artikel/cerita produk. Ketika publik, artikel menarik pengunjung ke produk; produk juga tersedia melalui katalog.
 5. Selama PO, seller memantau permintaan kelasnya dalam batas informasi yang diizinkan. Angka sebelum final diberi label belum final.
 6. Setelah PO/payment dikunci sesuai kebijakan, kelas memakai rekap valid sebagai referensi produksi.
 7. Kelas menyiapkan barang, label/prosedur handover, dan melapor segera bila ada kekurangan atau masalah kualitas.
@@ -585,7 +587,8 @@ Portal seller hanya memperlihatkan data kelas yang ditugaskan kepada pengguna te
 - Seller tidak melihat detail order/data buyer kelas lain.
 - Seller tidak dapat mengubah status pembayaran, refund, atau payout secara mandiri.
 - Seller tidak dapat menyelesaikan satu buyer order secara keseluruhan jika masih ada grup kelas lain.
-- Edit produk/artikel setelah pesanan ada tidak mengubah informasi historis pesanan buyer.
+- Seller tidak memiliki akses untuk membuat atau mengedit artikel proyek maupun artikel/cerita produk.
+- Edit informasi dasar produk setelah pesanan ada tidak mengubah informasi historis pesanan buyer.
 
 ---
 
@@ -595,7 +598,7 @@ Portal seller hanya memperlihatkan data kelas yang ditugaskan kepada pengguna te
 
 1. Admin menetapkan acara, satu jendela PO, jadwal/batas bayar, Hari H, informasi pickup, kelas peserta, dan aturan yang telah final.
 2. Admin memastikan ToS, kebijakan pembatalan/refund, dan instruksi buyer tersedia serta konsisten.
-3. Admin meninjau artikel dan produk, memeriksa keterhubungan proyek-produk, lalu menerbitkan yang disetujui.
+3. Admin membuat, menulis, mengedit, dan menerbitkan artikel proyek serta artikel/cerita produk; Admin meninjau informasi dasar produk, memeriksa keterhubungan proyek-produk, lalu mengelola publikasi produk yang disetujui.
 4. Admin mengatur akses seller/pickup, rencana zona, kontak eskalasi, dan skenario fallback.
 5. Tim menjalankan pengujian berulang dengan peran nyata.
 
@@ -685,7 +688,7 @@ Nama status akhir dapat disesuaikan desain, tetapi maknanya tidak boleh berubah 
 
 ## 14. Aturan bisnis lintas halaman
 
-1. Artikel proyek dan cerita/deskripsi produk adalah bagian wajib dari pengalaman FORTEXIV.
+1. Artikel proyek dan artikel/cerita produk adalah bagian wajib dari pengalaman FORTEXIV dan dikelola Admin. Informasi dasar produk dikelola Seller/tim kelas.
 2. Setiap produk publik harus terkait dengan satu kelas dan artikel proyek yang relevan.
 3. Semua kelas peserta memakai satu jendela PO bersama.
 4. Tidak ada janji pengiriman; pemenuhan standar adalah pickup pada event.
@@ -697,7 +700,7 @@ Nama status akhir dapat disesuaikan desain, tetapi maknanya tidak boleh berubah 
 10. Sistem wajib mencegah penyerahan ulang grup yang sama tanpa otorisasi koreksi.
 11. Refund/penyesuaian hanya mengenai grup/kelas terdampak dan tidak mengubah status kelas lain secara otomatis.
 12. Payout adalah proses finance terpisah dari order/payment buyer dan dapat ditutup per kelas.
-13. Seller memiliki akses minimum yang diperlukan untuk kelas sendiri saja.
+13. Seller memiliki akses minimum yang diperlukan untuk kelas sendiri saja, termasuk pengelolaan informasi dasar produk miliknya; Seller tidak memiliki akses membuat atau mengedit artikel proyek maupun artikel/cerita produk.
 14. Override manual untuk payment, handover, refund, resolusi, atau payout harus menyimpan alasan dan pelaku yang berwenang.
 15. Copy status dan kebijakan di beranda, detail produk, checkout, order, FAQ, dan ToS harus konsisten.
 
@@ -707,9 +710,9 @@ Nama status akhir dapat disesuaikan desain, tetapi maknanya tidak boleh berubah 
 
 | Aset konten | Pemilik penyusun | Penyetuju/publikasi | Lokasi tampil |
 |---|---|---|---|
-| Artikel proyek | Tim kelas | Admin konten | Beranda, daftar artikel, detail artikel |
-| Detail/deskripsi produk | Tim kelas (Seller) | Admin sesuai proses review | Katalog, detail produk |
-| Cerita/artikel produk | Admin konten | Admin konten/operasional | Detail produk, kartu produk terkait artikel |
+| Artikel proyek | Admin konten/operasional | Admin konten/operasional | Beranda, daftar artikel, detail artikel |
+| Informasi dasar produk (nama, harga, stok, foto, kategori, deskripsi spesifikasi/karakteristik) | Tim kelas (Seller) | Admin sesuai proses review dan publikasi | Katalog, detail produk |
+| Cerita/artikel produk | Admin konten/operasional | Admin konten/operasional | Detail produk atau bagian relevan lain |
 | Jadwal PO/Hari H dan lokasi | Admin operasional | Penanggung jawab acara | Beranda, checkout, order, halaman pickup/FAQ |
 | ToS dan kebijakan refund/no-show | Penanggung jawab kebijakan | Pihak berwenang yang ditunjuk | Footer, halaman ToS, checkout |
 | FAQ dan pengumuman | Admin operasional/konten | Admin berwenang | Beranda, FAQ, order bila relevan |
@@ -736,7 +739,8 @@ Pengujian berulang adalah keputusan yang sudah dikonfirmasi. Uji dengan peran ny
 | Seller A membuka pickup order milik seller B | Seller A tidak dapat menyerahkan/melihat detail yang tidak berwenang. |
 | Barang kurang/rusak | Petugas tidak menandai handover palsu; insiden dan resolusi dapat ditelusuri. |
 | Kelas A bersih, kelas B punya isu | Payout A dapat dilanjutkan, B dapat ditahan/diatur sendiri. |
-| Konten produk berubah setelah buyer order | Pesanan historis tidak berubah diam-diam. |
+| Informasi dasar produk berubah setelah buyer order | Pesanan historis tidak berubah diam-diam. |
+| Admin mengelola artikel proyek/artikel produk | Admin dapat membuat, mengedit, mengaitkan, dan menerbitkan artikel; Seller tidak memiliki akses edit artikel melalui dashboard Seller. |
 | ToS | Buyer dapat membukanya dan persetujuannya dicatat sebelum checkout selesai. |
 
 Setiap skenario memiliki catatan: prasyarat, langkah, hasil diharapkan, hasil aktual, pemilik tindak lanjut, dan keputusan lulus/tidak lulus.
@@ -756,7 +760,7 @@ Bagian ini bukan instruksi implementasi. Pemilik bisnis perlu menetapkan jawaban
 7. Kebijakan pasti pembatalan, refund, fulfilment sebagian, penggantian, no-show, dan late pickup; siapa pemberi keputusan tiap kasus.
 8. Status dan waktu kapan pesanan valid untuk produksi bila payment masih dalam verifikasi.
 9. Field konten yang wajib untuk artikel/produk, termasuk aturan kategori, gambar, dan informasi khusus produk.
-10. Siapa yang dapat mengedit/menyetujui konten dan perubahan material setelah publikasi/ada order.
+10. Proses perubahan material setelah publikasi/ada order, dengan kepemilikan yang sudah ditetapkan: Admin untuk artikel proyek dan artikel/cerita produk; Seller untuk informasi dasar produknya; Admin berwenang atas review/publikasi produk.
 11. Rumus payout, potongan/biaya bila ada, rekening/tujuan pencairan, jadwal, dan pihak penyetuju.
 12. Durasi periode komplain/resolusi setelah Hari H.
 13. Kebijakan privasi, retensi, serta data buyer apa yang boleh dilihat seller/petugas.
