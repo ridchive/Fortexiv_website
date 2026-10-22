@@ -280,6 +280,13 @@ details.faq p{margin-top:8px;color:var(--muted);max-width:70ch}
 /* ====== util ====== */
 const KEY='fortexiv-proto-v1';
 const DAY=864e5,HR=36e5,MIN=6e4;
+const AUTH_TTL=5*MIN,AUTH_MAX_ATTEMPTS=5,AUTH_RESEND_WAIT=30e3;
+const DEMO_CREDENTIALS={
+  'buyer@fortexiv.test':'BuyerDemo123!',
+  'seller@fortexiv.test':'SellerDemo123!',
+  'admin@fortexiv.test':'AdminDemo123!',
+  'rani@fortexiv.test':'RaniDemo123!'
+};
 const $=(s,r=document)=>r.querySelector(s);
 const $$=(s,r=document)=>Array.from(r.querySelectorAll(s));
 const esc=s=>String(s==null?'':s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
@@ -382,12 +389,13 @@ function seed(){
       {id:'c3',name:'X Desain Grafis',short:'DG',project:'Kertas Kedua'},
       {id:'c4',name:'XII Kriya Kreatif',short:'KK',project:'Dari Jelantah Jadi Cahaya'}],
     users:[
-      {id:'u1',name:'Buyer Demo',email:'buyer@fortexiv.test',pw:'BuyerDemo123!',role:'buyer'},
-      {id:'u2',name:'Seller Demo',email:'seller@fortexiv.test',pw:'SellerDemo123!',role:'seller',classId:'c1'},
-      {id:'u3',name:'Admin Demo',email:'admin@fortexiv.test',pw:'AdminDemo123!',role:'admin'},
-      {id:'u4',name:'Rani Putri',email:'rani@fortexiv.test',pw:null,role:'buyer'},
-      {id:'u5',name:'Dimas Aji',email:'dimas@fortexiv.test',pw:null,role:'buyer'}],
-    products:[],articles:[],orders:[],refunds:[],payouts:[],activity:[]};
+      {id:'u1',name:'Buyer Demo',email:'buyer@fortexiv.test',role:'buyer',active:true,emailVerified:true},
+      {id:'u2',name:'Seller Demo',email:'seller@fortexiv.test',role:'seller',classId:'c1',active:true,emailVerified:true},
+      {id:'u3',name:'Admin Demo',email:'admin@fortexiv.test',role:'admin',active:true,emailVerified:true},
+      {id:'u4',name:'Rani Putri',email:'rani@fortexiv.test',role:'buyer',active:true,emailVerified:false},
+      {id:'u5',name:'Dimas Aji',email:'dimas@fortexiv.test',role:'buyer',active:true,emailVerified:true}],
+    products:[],articles:[],orders:[],refunds:[],payouts:[],activity:[],
+    auth:{version:2,pending:null,passwordHashes:{},reset:null,lastSentAt:0}};
   const P=(id,classId,name,cat,price,stock,m,p,desc,story,status,note)=>S.products.push({id,classId,name,cat,price,stock,art:{m,p},desc,story,status:status||'approved',note:note||'',log:[]});
   P('p1','c1','Tempe Daun Pisang','Makanan',12000,40,'blocks','leaf','Tempe kedelai fermentasi, dibungkus daun pisang dari kebun sekolah.','Fermentasi tempe memakai ragi dan daun pisang dari kebun kelas, bukan plastik. Setiap bungkus ditimbang 250 gram. Sisa daun dikomposkan di kebun yang sama, jadi siklusnya tertutup.');
   P('p2','c1','Es Krim Ijo Pandan','Makanan',10000,8,'cup','leaf','Es krim pandan alpukat dalam cup daun pisang yang dijahit lidi.','Cup daun pisang dipilih karena bisa dikomposkan dan tahan beku. Rasa pandan dan alpukat berasal dari tanaman kebun kelas. Stok terbatas karena dibuat sehari sebelum acara.');
@@ -400,7 +408,7 @@ function seed(){
   P('p9','c4','Pot Tanah Liat Mini','Dekorasi',20000,28,'pot','clay','Pot tanah liat mini dengan bibit lidah buaya.','Dibentuk tangan dari tanah liat lokal dan dibakar di tungku sekolah. Setiap pot dijual bersama satu bibit.');
   P('p10','c4','Lilin Minyak Jelantah','Dekorasi',35000,15,'candle','sun','Lilin dari minyak jelantah kantin yang disaring, dalam gelas kaca bekas.','Jelantah dari kantin disaring tiga kali sebelum dicor menjadi lilin. Nyala bersih, tanpa bau gorengan.');
   P('p11','c4','Sabun Batang Kulit Jeruk','Perawatan',17000,40,'bar','rose','Sabun batang dengan serbuk kulit jeruk dan minyak kelapa.','Kulit jeruk dari kantin dikeringkan lalu digiling. Sabun dibuat dengan metode dingin dan diperam selama empat minggu.','pending');
-  const A=(id,classId,title,summary,background,goal,process,result,productIds,p,s,status)=>S.articles.push({id,classId,title,summary,background,goal,process,result,productIds,cover:{p,s},status:status||'published',date:t0-Math.floor(Math.random()*5+3)*DAY});
+  const A=(id,classId,title,summary,background,goal,process,result,productIds,p,s,status)=>S.articles.push({id,type:'project',classId,title,summary,background,goal,process,result,productIds,cover:{p,s},status:status||'published',date:t0-Math.floor(Math.random()*5+3)*DAY,updatedAt:t0-Math.floor(Math.random()*3)*DAY});
   A('a1','c1','Kebun Tempe Tanpa Plastik','Kelas Agribisnis memproduksi tempe dengan bungkus daun pisang dari kebun sendiri dan mengompos sisanya.',
     'Setiap minggu kantin sekolah membuang puluhan bungkus plastik bekas tempe. Kelas XI Agribisnis 1 ingin membuktikan bahwa tempe tetap bisa dijual rapi tanpa plastik.',
     'Mengganti seluruh kemasan tempe kelas dengan daun pisang dan menurunkan sampah plastik kelas hingga nol selama satu periode PO.',
@@ -424,6 +432,12 @@ function seed(){
   A('a5','c2','Kebun Herbal untuk Dapur Sekolah','Rancangan kebun herbal kelas Tata Boga. Masih dalam penyusunan.',
     'Kelas ingin menyediakan bumbu segar tanpa membeli dari luar.','Menanam 12 jenis herbal untuk kebutuhan dapur kelas.',
     ['Memetakan kebutuhan bumbu tiap menu.','Menyiapkan bedengan dan pupuk kompos.'],'Naskah akhir menunggu data panen.',[],'sun',1,'draft');
+  S.products.forEach(p=>{
+    if(p.story){
+      S.articles.push({id:'story-'+p.id,type:'product',classId:p.classId,productId:p.id,title:'Cerita '+p.name,summary:p.desc,content:p.story,productIds:[p.id],cover:p.art,status:'published',date:t0-3*DAY,updatedAt:t0-3*DAY});
+      delete p.story;
+    }
+  });
   const prod=id=>S.products.find(p=>p.id===id);
   const mk=(no,userId,agoMs,items,pay,grp,extra)=>{
     const it=items.map(([pid,q])=>{const p=prod(pid);return{pid,qty:q,price:p.price,classId:p.classId,name:p.name}});
@@ -466,9 +480,33 @@ function seed(){
 }
 let S;
 function load(){try{const r=localStorage.getItem(KEY);if(r){const o=JSON.parse(r);if(o&&o.v===1)return o}}catch(e){}return null}
-function save(){try{localStorage.setItem(KEY,JSON.stringify(S))}catch(e){}}
+function save(){try{localStorage.setItem(KEY,JSON.stringify(S));return true}catch(e){console.error('Demo data could not be saved.',e);toast('Perubahan tidak tersimpan di browser. Periksa ruang penyimpanan atau pengaturan browser.','bad');return false}}
 function resetDemo(){S=seed();save()}
 S=load()||seed();
+async function migrateDemo(){
+  const legacyAuth=!S.auth||S.auth.version<2;
+  S.auth=S.auth||{pending:null,passwordHashes:{},reset:null,lastSentAt:0};
+  S.auth.version=2;
+  S.auth.passwordHashes=S.auth.passwordHashes||{};
+  S.articles=S.articles||[];
+  S.articles.forEach(a=>{a.type=a.type||'project';a.updatedAt=a.updatedAt||a.date||Date.now()});
+  S.products.forEach(p=>{
+    if(p.story){
+      if(!S.articles.some(a=>a.type==='product'&&a.productId===p.id)){
+        S.articles.push({id:'story-'+p.id,type:'product',classId:p.classId,productId:p.id,title:'Cerita '+p.name,summary:p.desc,content:p.story,productIds:[p.id],cover:p.art,status:'published',date:Date.now(),updatedAt:Date.now()});
+      }
+      delete p.story;
+    }
+  });
+  for(const u of S.users){
+    if(u.pw){
+      try{S.auth.passwordHashes[u.id]=await hashPassword(u.pw,u.id)}catch(err){console.error('Could not migrate a legacy demo password.',err)}
+    }
+    delete u.pw;u.active=u.active!==false;u.emailVerified=u.emailVerified!==false;
+  }
+  if(legacyAuth)S.session=null;
+  save();
+}
 
 /* ====== domain helpers ====== */
 const cur=()=>S.session?S.users.find(u=>u.id===S.session)||null:null;
@@ -585,7 +623,7 @@ function confirmBox(o){
   openModal(modalHead(o.title)+`<div class="stack"><p>${o.body}</p>${o.reason?`<div class="fld"><label for="cf-reason">Alasan tindakan</label><textarea id="cf-reason" placeholder="Tulis alasan singkat (min. 5 karakter)"></textarea><span class="err" id="cf-err" hidden>Alasan wajib diisi, minimal 5 karakter.</span></div>`:''}
   <div class="btns" style="justify-content:flex-end"><button class="btn sec" data-act="closeModal">Batal</button><button class="btn ${o.tone==='bad'?'bad':''}" data-act="confirmOk">${esc(o.label||'Lanjutkan')}</button></div></div>`);
 }
-const go=(p)=>{current=p;try{location.hash=p}catch(e){}render()};
+const go=(p)=>{current=p;closeModal();try{location.hash=p}catch(e){console.error('Could not navigate to the requested demo page.',e)}render()};
 const q=(obj)=>{const e=Object.entries(obj).filter(([,v])=>v!==''&&v!=null);return e.length?'?'+e.map(([k,v])=>k+'='+encodeURIComponent(v)).join('&'):''};
 function parseRoute(p){
   const [path,qs]=String(p||'/').split('?');
@@ -605,7 +643,7 @@ function header(){
   const menu=u?`<details class="umenu"><summary class="ib" aria-label="Akun">${ico('user',24)}</summary><div class="pop"><div class="who"><b>${esc(u.name)}</b><div class="muted small">${esc(u.email)} · ${u.role==='buyer'?'Buyer':u.role==='seller'?'Seller':'Admin'}</div></div>
     <a href="#${dashHome(u)}">${ico(u.role==='buyer'?'receipt':'sliders',18)} ${u.role==='buyer'?'Pesanan saya':'Buka dashboard'}</a><button data-act="logout">${ico('logout',18)} Keluar</button></div></details>`
     :`<a class="ib" href="#/masuk" aria-label="Masuk">${ico('user',24)}</a>`;
-  return `<div class="demobar">Prototype demo. Semua data adalah contoh dan pembayaran hanya simulasi.</div>
+  return `<div class="demobar">Prototype demo: OTP/email disimulasikan di browser ini, bukan keamanan produksi. Pembayaran juga simulasi.</div>
   <header class="wrap"><div class="hd"><a class="brand" href="#/"><i></i>FORTEXIV</a>
   <form class="hsearch" data-form="hsearch" role="search"><input id="hq" type="search" placeholder="Cari produk atau proyek" aria-label="Cari" value="${esc(CF.q&&route.path==='/produk'?CF.q:'')}"><button aria-label="Cari">${ico('search',16)}</button></form>
   <div class="hicons"><a class="ib" href="#/favorit" aria-label="Favorit">${ico('heart',24)}${S.wish.length?`<span class="n">${S.wish.length}</span>`:''}</a>
@@ -645,7 +683,7 @@ function poInfo(compact){
 
 /* ====== public views ====== */
 function heroSlides(){
-  const pubA=S.articles.filter(a=>a.status==='published').slice(0,2);
+  const pubA=S.articles.filter(a=>a.type==='project'&&a.status==='published').slice(0,2);
   const s=[{kick:'Green Ecosystem · PO bersama',h:'Konsumsi Bijak, Bumi Lestari.',t:'Empat kelas mengerjakan proyek nyata dari kebun, dapur, dan studio sekolah. Baca ceritanya, lalu pesan produknya lewat satu periode PO.',
     a:['/artikel','Jelajahi Proyek'],b:['/produk','Lihat Katalog'],pic:[art(S.products[0].art),art(S.products[8].art),art(S.products[5].art)],main:scene({p:'leaf',s:0})}];
   pubA.forEach(a=>{const ps=a.productIds.map(prodOf).filter(Boolean);
@@ -661,7 +699,7 @@ function heroHtml(){
   <div class="dots" role="tablist">${sl.map((_,i)=>`<button class="${i===heroIdx?'on':''}" data-act="hero" data-i="${i}" aria-label="Slide ${i+1}"></button>`).join('')}</div></section>`;
 }
 function viewHome(){
-  const pubA=S.articles.filter(a=>a.status==='published');
+  const pubA=S.articles.filter(a=>a.type==='project'&&a.status==='published');
   const feat=S.products.filter(p=>p.status==='approved'&&p.stock>0).slice(0,4);
   const ps=poStatus();
   const quotes=[['“Kami hitung ulang kebutuhan daun pisang supaya tidak ada yang terbuang.”','Tim XI Agribisnis 1','Catatan lapangan (contoh)','c1'],['“Dua belas botol kaca pertama berasal dari kantin sekolah kami sendiri.”','Tim XI Tata Boga 2','Catatan lapangan (contoh)','c2'],['“Setiap buku catatan sedikit berbeda, dan itu justru yang kami suka.”','Tim X Desain Grafis','Catatan lapangan (contoh)','c3']];
@@ -679,7 +717,7 @@ function viewHome(){
   <section class="ctab"><div class="wrap"><h2>Siap ikut PO bersama?</h2><div class="btns"><a class="btn" href="#/produk">Lihat katalog</a><a class="btn sec" href="#/bantuan">Baca cara pemesanan</a></div></div></section>`);
 }
 function viewArticles(){
-  const list=S.articles.filter(a=>a.status==='published');
+  const list=S.articles.filter(a=>a.type==='project'&&a.status==='published');
   if(freshNav)CF.ak='';
   if(route.q.kelas!=null)CF.ak=route.q.kelas;
   return pub(`<div class="wrap"><div class="pgh"><nav class="crumb"><a href="#/">Beranda</a> / <span>Proyek</span></nav><h1>Proyek kelas</h1><p class="muted" style="max-width:60ch">Setiap kelas mendokumentasikan latar belakang, proses, dan hasil proyeknya. Produk terkait ada di bagian bawah tiap cerita.</p></div>
@@ -692,11 +730,12 @@ function articleGrid(list){
 }
 function viewArticle(id){
   const a=artOf(id),u=cur();
-  if(!a||(a.status==='draft'&&!(u&&u.role==='admin')))return pub(`<div class="wrap"><div class="pgh">${emptyBox('Artikel tidak ditemukan','Artikel mungkin belum diterbitkan atau alamatnya salah.',`<a class="btn" href="#/artikel">Kembali ke daftar proyek</a>`)}</div></div>`);
+  if(a&&a.type!=='project')return notFound();
+  if(!a||(a.status!=='published'&&!(u&&u.role==='admin')))return pub(`<div class="wrap"><div class="pgh">${emptyBox('Artikel tidak ditemukan','Artikel mungkin belum diterbitkan atau alamatnya salah.',`<a class="btn" href="#/artikel">Kembali ke daftar proyek</a>`)}</div></div>`);
   const c=clsOf(a.classId);
   const prods=a.productIds.map(prodOf).filter(p=>p&&p.status==='approved');
   return pub(`<div class="wrap"><div class="pgh"><nav class="crumb"><a href="#/">Beranda</a> / <a href="#/artikel">Proyek</a> / <span>${esc(a.title)}</span></nav>
-  ${a.status==='draft'?note('<b>Preview draft.</b> Artikel ini belum terbit dan hanya terlihat oleh Admin.','warn'):''}
+  ${a.status!=='published'?note(`<b>Preview ${a.status==='draft'?'draft':'arsip'}.</b> Konten ini belum tampil secara publik dan hanya terlihat oleh Admin.`,'warn'):''}
   <div class="row"><span class="chip">${esc(c.name)}</span><span class="muted small">${fdate(a.date)}</span></div><h1>${esc(a.title)}</h1><p class="muted" style="max-width:62ch;font-size:1.1rem">${esc(a.summary)}</p></div>
   <div class="art-cover">${img(scene(a.cover),a.title)}</div>
   <div class="two" style="margin-top:34px"><article class="prose"><h2>Latar belakang</h2><p>${esc(a.background)}</p><h2>Tujuan</h2><p>${esc(a.goal)}</p><h2>Proses</h2><ol>${a.process.map(s=>`<li><span>${esc(s)}</span></li>`).join('')}</ol><h2>Hasil dan target</h2><p>${esc(a.result)}</p></article>
@@ -729,14 +768,15 @@ function viewProduct(id){
   const p=prodOf(id),u=cur();
   const canSee=p&&(p.status==='approved'||(u&&(u.role==='admin'||(u.role==='seller'&&u.classId===p.classId))));
   if(!canSee)return pub(`<div class="wrap"><div class="pgh">${emptyBox('Produk tidak ditemukan','Produk mungkin belum disetujui atau sudah dihapus.',`<a class="btn" href="#/produk">Kembali ke katalog</a>`)}</div></div>`);
-  const av=pAvail(p),a=S.articles.find(x=>x.status==='published'&&x.productIds.includes(p.id))||S.articles.find(x=>x.status==='published'&&x.classId===p.classId);
+  const av=pAvail(p),a=S.articles.find(x=>x.type==='project'&&x.status==='published'&&x.productIds.includes(p.id));
+  const stories=S.articles.filter(x=>x.type==='product'&&x.status==='published'&&x.productId===p.id);
   const inCart=(S.cart.find(c=>c.pid===p.id)||{qty:0}).qty;
   return pub(`<div class="wrap"><div class="pgh"><nav class="crumb"><a href="#/">Beranda</a> / <a href="#/produk">Katalog</a> / <span>${esc(p.name)}</span></nav></div>
   <div class="pd"><div class="ph">${img(art(p.art),p.name)}</div><div class="stack">
   <div class="row">${chip(av.label,av.tone)}${p.stock>0&&p.stock<=5?chip('Sisa '+p.stock,'warn'):''}${p.status!=='approved'?chip(p.status==='pending'?'Menunggu moderasi':'Ditolak','warn'):''}</div>
   <h1 style="font-size:clamp(1.8rem,3.4vw,2.5rem)">${esc(p.name)}</h1><div class="price" style="font-size:1.5rem;font-weight:800;font-family:var(--fd)">${rp(p.price)}</div>
   <p class="muted">${esc(clsOf(p.classId).name)} · ${esc(p.cat)}</p><p>${esc(p.desc)}</p>
-  <div class="box"><h3>Cerita produk</h3><p>${esc(p.story)}</p>${a?`<p style="margin-top:10px"><a href="#/artikel/${a.id}"><b>Baca proyek: ${esc(a.title)}</b></a></p>`:''}</div>
+  ${stories.map(story=>`<article class="box stack"><h2>Cerita produk</h2><h3>${esc(story.title)}</h3><p class="muted">${esc(story.summary)}</p><p>${esc(story.content)}</p></article>`).join('')}${a?`<div class="box"><h3>Proyek kelas terkait</h3><a href="#/artikel/${a.id}"><b>${esc(a.title)}</b></a></div>`:''}
   <div class="box"><h3>PO dan pengambilan</h3>${poInfo()}<p class="small muted" style="margin-top:8px">Tidak ada pengiriman. Barang diambil langsung saat acara.</p></div>
   ${p.stock>0?`<div class="row"><div class="qty"><button data-act="qtyd" data-d="-1" aria-label="Kurangi">${ico('minus',16)}</button><input id="pq" type="number" min="1" max="${p.stock}" value="1" aria-label="Jumlah"><button data-act="qtyd" data-d="1" aria-label="Tambah">${ico('plus',16)}</button></div><span class="muted small">Stok ${p.stock}${inCart?' · '+inCart+' di keranjang':''}</span></div>
   <div class="btns"><button class="btn sec" data-act="addCart" data-id="${p.id}">${ico('cart',18)} Tambah ke Keranjang</button><button class="btn" data-act="buyNow" data-id="${p.id}">Beli Sekarang</button></div>
@@ -759,14 +799,47 @@ function viewFaq(){
   <aside class="box stack"><h3>Kontak bantuan</h3>${note('Data contoh. Alamat dan nomor di bawah bukan kontak sungguhan.','warn')}<div class="kv"><span class="muted">Email</span><span class="code">bantuan-contoh@fortexiv.test</span></div><div class="kv"><span class="muted">WhatsApp</span><span class="code">0800-0000-0000</span></div><div class="kv"><span class="muted">Meja bantuan</span><span>Aula Utama SAI, hari acara</span></div></aside></div><div style="height:56px"></div></div>`);
 }
 function viewLogin(notice){
-  const rcs=[['buyer','Buyer','Belanja, bayar, dan lihat pesanan.'],['seller','Seller','Kelola produk kelas dan serah-terima pesanan.'],['admin','Admin','Atur konten, PO, refund, dan payout.']];
+  const shortcuts=[['buyer','Buyer','Belanja, bayar, dan lihat pesanan.'],['seller','Seller','Kelola produk dan pesanan kelas.'],['admin','Admin','Kelola artikel, pesanan, dan operasional.']];
   return pub(`<div class="wrap"><div class="loginwrap"><div class="stack"><h1 style="font-size:2.2rem">Masuk</h1>${notice?note(notice,'warn'):''}
   <form class="frm" data-form="login" novalidate><div class="fld"><label for="l-e">Email</label><input id="l-e" name="email" type="email" autocomplete="username" required><span class="err" data-e="email" hidden></span></div>
   <div class="fld"><label for="l-p">Kata sandi</label><input id="l-p" name="pw" type="password" autocomplete="current-password" required><span class="err" data-e="pw" hidden></span></div>
-  <div id="l-err" class="note bad" hidden></div><button class="btn">Masuk</button><p class="muted small">Belum punya akun? <a href="#/daftar"><b>Daftar sebagai Buyer</b></a></p></form></div>
-  <div class="stack"><h2 style="font-size:1.4rem">Masuk cepat untuk pengujian</h2><p class="muted small">Akun demo. Jangan dipakai di sistem produksi.</p>
-  <div class="rolecards">${rcs.map(r=>`<button class="rc" data-act="quickLogin" data-r="${r[0]}"><b>Login sebagai ${r[1]}</b><span class="muted small">${r[2]}</span></button>`).join('')}</div>
-  <div class="tbl"><table><thead><tr><th>Role</th><th>Email</th><th>Kata sandi</th></tr></thead><tbody><tr><td>Buyer</td><td><code>buyer@fortexiv.test</code></td><td><code>BuyerDemo123!</code></td></tr><tr><td>Seller</td><td><code>seller@fortexiv.test</code></td><td><code>SellerDemo123!</code></td></tr><tr><td>Admin</td><td><code>admin@fortexiv.test</code></td><td><code>AdminDemo123!</code></td></tr></tbody></table></div></div></div></div>`);
+  <div id="l-err" class="note bad" hidden></div><button class="btn">Masuk dan minta kode OTP</button><a href="#/lupa-password">Lupa kata sandi?</a><p class="muted small">Belum punya akun? <a href="#/daftar"><b>Daftar</b></a></p></form></div>
+  <aside class="box stack"><h2 style="font-size:1.4rem">Shortcut akun demo</h2><p class="muted small">Pilih role untuk mengisi kredensial demo. Setiap shortcut tetap menjalani verifikasi OTP; tidak ada email sungguhan yang dikirim.</p>
+  <div class="rolecards">${shortcuts.map(r=>`<button class="rc" type="button" data-act="quickLogin" data-r="${r[0]}"><b>Masuk sebagai ${r[1]}</b><span class="muted small">${r[2]}</span></button>`).join('')}</div>
+  <p class="muted small">Untuk mencoba verifikasi email, masukkan akun Buyer belum verifikasi secara manual di bawah.</p>
+  <div class="tbl"><table><thead><tr><th>Role</th><th>Email</th><th>Kata sandi demo</th></tr></thead><tbody><tr><td>Buyer</td><td><code>buyer@fortexiv.test</code></td><td><code>BuyerDemo123!</code></td></tr><tr><td>Seller</td><td><code>seller@fortexiv.test</code></td><td><code>SellerDemo123!</code></td></tr><tr><td>Admin</td><td><code>admin@fortexiv.test</code></td><td><code>AdminDemo123!</code></td></tr><tr><td>Buyer belum verifikasi</td><td><code>rani@fortexiv.test</code></td><td><code>RaniDemo123!</code></td></tr></tbody></table></div><p class="small muted">Kredensial hanya untuk demonstrasi lokal. Jangan gunakan kata sandi pribadi.</p></aside></div></div>`);
+}
+function demoInbox(code,expiresAt,label){
+  return `<div class="box stack" role="status"><h3>Inbox simulasi · ${esc(label)}</h3><p>Tidak ada email sungguhan yang dikirim. Gunakan kode demo berikut sebelum ${fdt(expiresAt)}.</p><div class="code" style="font-size:1.5rem;font-weight:800;letter-spacing:.18em">${esc(code)}</div></div>`;
+}
+function viewOtp(){
+  const p=S.auth.pending;
+  if(!p||p.kind!=='login')return viewLogin('Sesi OTP tidak ditemukan. Silakan mulai login kembali.');
+  if(Date.now()>p.expiresAt)return viewLogin('Kode OTP sudah kedaluwarsa. Silakan login kembali untuk meminta kode baru.');
+  const u=S.users.find(x=>x.id===p.userId);
+  return pub(`<div class="wrap"><div class="loginwrap"><section class="stack"><h1>Verifikasi login</h1><p>Kode OTP 6 digit dikirim ke <b>${esc(u.email)}</b>. Kode berlaku selama 5 menit dan maksimal 5 percobaan.</p>${demoInbox(p.code,p.expiresAt,'OTP login')}
+  <form class="frm" data-form="otp" novalidate><div class="fld"><label for="otp-code">Kode OTP</label><input id="otp-code" name="code" inputmode="numeric" autocomplete="one-time-code" maxlength="6" required><span class="err" data-e="code" hidden></span></div><div id="otp-err" class="note bad" hidden></div><button class="btn">Verifikasi dan masuk</button><button class="btn sec" type="button" data-act="resendCode" data-kind="login">Kirim ulang kode</button><p class="small muted">Kode salah tidak akan menampilkan kode yang benar. Logout akan mengakhiri sesi setelah login.</p></form></section></div></div>`);
+}
+function viewEmailVerification(){
+  const p=S.auth.pending;
+  if(!p||p.kind!=='email')return viewLogin('Tidak ada verifikasi email yang menunggu.');
+  if(Date.now()>p.expiresAt)return viewLogin('Kode verifikasi sudah kedaluwarsa. Mulai login lagi untuk meminta kode baru.');
+  const u=S.users.find(x=>x.id===p.userId);
+  return pub(`<div class="wrap"><div class="loginwrap"><section class="stack"><h1>Verifikasi email</h1><p>Verifikasi <b>${esc(u.email)}</b> dengan kode terpisah dari OTP login dan token reset password.</p>${demoInbox(p.code,p.expiresAt,'verifikasi email')}
+  <form class="frm" data-form="verifyEmail" novalidate><div class="fld"><label for="verify-code">Kode verifikasi email</label><input id="verify-code" name="code" inputmode="numeric" maxlength="6" required><span class="err" data-e="code" hidden></span></div><div id="verify-err" class="note bad" hidden></div><button class="btn">Verifikasi email dan lanjut login</button><button class="btn sec" type="button" data-act="resendCode" data-kind="email">Kirim ulang kode</button></form></section></div></div>`);
+}
+function viewForgotPassword(){
+  return pub(`<div class="wrap"><div class="loginwrap"><section class="stack"><h1>Lupa kata sandi?</h1><p>Masukkan email akun. Untuk demo, token reset akan ditampilkan di inbox simulasi.</p>
+  <form class="frm" data-form="forgot" novalidate><div class="fld"><label for="forgot-email">Email</label><input id="forgot-email" name="email" type="email" autocomplete="email" required><span class="err" data-e="email" hidden></span></div><div id="forgot-err" class="note bad" hidden></div><button class="btn">Buat token reset</button><a href="#/masuk">Kembali ke login</a></form></section></div></div>`);
+}
+function viewResetPassword(){
+  const r=S.auth.reset;
+  if(!r||r.used)return viewForgotPassword();
+  if(Date.now()>r.expiresAt)return viewForgotPassword();
+  return pub(`<div class="wrap"><div class="loginwrap"><section class="stack"><h1>Reset kata sandi</h1><p>Token reset untuk <b>${esc(r.email)}</b> hanya berlaku 10 menit, maksimal 5 percobaan, dan hanya dapat digunakan sekali.</p>${demoInbox(r.code,r.expiresAt,'token reset')}
+  <form class="frm" data-form="resetPassword" novalidate><div class="fld"><label for="reset-code">Token reset</label><input id="reset-code" name="code" inputmode="numeric" maxlength="6" required><span class="err" data-e="code" hidden></span></div>
+  <div class="fld"><label for="reset-pw">Kata sandi baru</label><input id="reset-pw" name="pw" type="password" autocomplete="new-password" required><span class="hint">Minimal 8 karakter.</span><span class="err" data-e="pw" hidden></span></div>
+  <div class="fld"><label for="reset-pw2">Konfirmasi kata sandi</label><input id="reset-pw2" name="pw2" type="password" autocomplete="new-password" required><span class="err" data-e="pw2" hidden></span></div><div id="reset-err" class="note bad" hidden></div><button class="btn">Simpan kata sandi baru</button></form></section></div></div>`);
 }
 function viewRegister(){
   return pub(`<div class="wrap"><div class="loginwrap"><div class="stack"><h1 style="font-size:2.2rem">Daftar sebagai Buyer</h1><p class="muted">Pendaftaran demo. Data hanya tersimpan di browser ini.</p>
@@ -903,7 +976,7 @@ function productForm(p){
   <div class="frm2"><div class="fld"><label for="pf-h">Harga (Rp)</label><input id="pf-h" name="price" type="number" min="1000" step="500" value="${p?p.price:''}"><span class="err" data-e="price" hidden></span></div>
   <div class="fld"><label for="pf-s">Stok</label><input id="pf-s" name="stock" type="number" min="0" step="1" value="${p?p.stock:''}"><span class="err" data-e="stock" hidden></span></div></div>
   <div class="fld"><label for="pf-d">Deskripsi singkat</label><textarea id="pf-d" name="desc" style="min-height:64px">${esc(p?p.desc:'')}</textarea><span class="err" data-e="desc" hidden></span></div>
-  <div class="fld"><label for="pf-t">Cerita produk</label><textarea id="pf-t" name="story">${esc(p?p.story:'')}</textarea><span class="err" data-e="story" hidden></span></div>
+  <p class="small muted">Cerita produk dikelola Admin di menu Konten, terpisah dari informasi dasar produk.</p>
   <div class="frm2"><div class="fld"><label for="pf-m">Ilustrasi</label><select id="pf-m" name="m">${Object.keys(MOT).map(k=>`<option value="${k}" ${a.m===k?'selected':''}>${k}</option>`).join('')}</select></div>
   <div class="fld"><label for="pf-p">Warna</label><select id="pf-p" name="pal">${Object.keys(PAL).map(k=>`<option value="${k}" ${a.p===k?'selected':''}>${PALNAMES[k]}</option>`).join('')}</select></div></div>
   <div class="btns" style="justify-content:flex-end"><button type="button" class="btn sec" data-act="closeModal">Batal</button><button class="btn">${p?'Simpan perubahan':'Ajukan produk'}</button></div></form>`;
@@ -1007,26 +1080,43 @@ function viewAdminHome(){
   ${S.report?note('Laporan difinalkan '+fdt(S.report.at)+' (simulasi).','good'):''}<button class="btn" data-act="report" ${bl.length||S.report?'disabled':''}>Finalkan laporan (demo)</button></section></aside></div>`);
 }
 function viewAdminContent(){
-  return shell('admin','/admin/konten','Manajemen konten',`${tableWrap([['Artikel'],['Kelas'],['Produk terkait','num'],['Status'],['Aksi','num']],S.articles.map(a=>`<tr><td><div class="row" style="flex-wrap:nowrap">${img(scene(a.cover),a.title,'thumb')}<b>${esc(a.title)}</b></div></td><td>${esc(clsOf(a.classId).name)}</td><td class="num">${a.productIds.length}</td><td>${a.status==='published'?chip('Terbit','good'):chip('Draft','warn')}</td>
-  <td class="num"><div class="btns" style="justify-content:flex-end"><a class="btn sec sm" href="#/artikel/${a.id}">Preview</a><a class="btn sm" href="#/admin/konten/${a.id}">Edit</a></div></td></tr>`),['Belum ada artikel',''])}`,
-  `<a class="btn" href="#/admin/konten/baru">${ico('plus',16)} Artikel baru</a>`);
+  const type=route.q.jenis==='product'?'product':'project';
+  const list=S.articles.filter(a=>a.type===type).sort((a,b)=>(b.updatedAt||b.date)-(a.updatedAt||a.date));
+  const rows=list.map(a=>{
+    const relation=type==='project'?a.productIds.map(prodOf).filter(Boolean).map(p=>p.name).join(', '):(prodOf(a.productId)||{}).name||'Produk tidak ditemukan';
+    const status=a.status==='published'?chip('Terbit','good'):a.status==='archived'?chip('Arsip','bad'):chip('Draft','warn');
+    return `<tr><td><div class="row" style="flex-wrap:nowrap">${img(scene(a.cover||{p:'leaf',s:0}),a.title,'thumb')}<div><b>${esc(a.title)}</b><div class="muted small">${fdt(a.updatedAt||a.date)}</div></div></div></td><td>${esc(clsOf(a.classId).name)}</td><td>${esc(relation)}</td><td>${status}</td>
+    <td class="num"><div class="btns" style="justify-content:flex-end">${type==='project'?`<a class="btn sec sm" href="#/artikel/${a.id}">Preview</a>`:`<a class="btn sec sm" href="#/produk/${a.productId}">Lihat produk</a>`}<a class="btn sm" href="#/admin/konten/${a.id}">Edit</a></div></td></tr>`;
+  });
+  const tabs=`<div class="tabs"><a class="pill ${type==='project'?'on':''}" href="#/admin/konten">Artikel Proyek</a><a class="pill ${type==='product'?'on':''}" href="#/admin/konten?jenis=product">Cerita Produk</a></div>`;
+  const create=`<a class="btn" href="#/admin/konten/baru${type==='product'?'?jenis=product':''}">${ico('plus',16)} ${type==='project'?'Artikel proyek baru':'Cerita produk baru'}</a>`;
+  return shell('admin','/admin/konten',type==='project'?'Artikel Proyek':'Cerita Produk',`${note('Hanya Admin yang dapat mengelola konten. Draft dan arsip tersembunyi dari publik. Demo ini menyimpan data di browser perangkat ini; pemeriksaan role frontend bukan keamanan produksi.','info')}${tabs}${tableWrap([['Konten'],['Kelas'],['Produk terkait'],['Status'],['Aksi','num']],rows,['Belum ada konten',type==='project'?'Buat artikel proyek pertama.':'Buat cerita produk pertama.'])}`,create);
 }
 function viewAdminEditor(id){
   const a=id==='baru'?null:artOf(id);
   if(id!=='baru'&&!a)return shell('admin','/admin/konten','Artikel tidak ditemukan',emptyBox('Artikel tidak ditemukan','',`<a class="btn" href="#/admin/konten">Kembali</a>`));
-  const v=a||{title:'',classId:'c1',summary:'',background:'',goal:'',process:[],result:'',productIds:[],cover:{p:'leaf',s:0},status:'draft'};
-  return shell('admin','/admin/konten',a?'Edit artikel':'Artikel baru',`<form class="frm" data-form="article" novalidate><input type="hidden" name="id" value="${a?a.id:''}">
+  const type=a?a.type:(route.q.jenis==='product'?'product':'project');
+  const v=a||{type,classId:'c1',title:'',summary:'',background:'',goal:'',process:[],result:'',content:'',productId:'',productIds:[],cover:{p:'leaf',s:0},status:'draft'};
+  if(type==='product'){
+    return shell('admin','/admin/konten',a?'Edit cerita produk':'Cerita produk baru',`<form class="frm" data-form="article" novalidate><input type="hidden" name="id" value="${a?a.id:''}"><input type="hidden" name="type" value="product">
+    <div class="two"><div class="stack"><div class="fld"><label for="ae-t">Judul cerita</label><input id="ae-t" name="title" value="${esc(v.title)}" required><span class="err" data-e="title" hidden></span></div>
+    <div class="fld"><label for="ae-s">Ringkasan</label><textarea id="ae-s" name="summary">${esc(v.summary)}</textarea><span class="err" data-e="summary" hidden></span></div>
+    <div class="fld"><label for="ae-content">Cerita</label><textarea id="ae-content" name="content" style="min-height:220px">${esc(v.content)}</textarea><span class="err" data-e="content" hidden></span></div></div>
+    <aside class="stack"><div class="box stack"><div class="fld"><label for="ae-product">Produk terkait</label><select id="ae-product" name="productId" required>${S.products.map(p=>`<option value="${p.id}" ${v.productId===p.id?'selected':''}>${esc(p.name)} · ${esc(clsOf(p.classId).name)}</option>`).join('')}</select><span class="err" data-e="productId" hidden></span></div><p class="small muted">Cerita ini terpisah dari nama, harga, stok, kategori, foto, dan spesifikasi dasar produk.</p></div>
+    <div class="box stack"><span class="lbl">Status: ${v.status==='published'?'Terbit':v.status==='archived'?'Arsip':'Draft'}</span><div class="btns"><button class="btn" name="act" value="publish">Terbitkan</button><button class="btn sec" name="act" value="draft">Simpan draft</button></div>${a&&a.status!=='archived'?`<button type="button" class="btn bad" data-act="archiveArticle" data-id="${a.id}">Arsipkan cerita</button>`:''}${a?`<a class="btn line" href="#/produk/${a.productId}">Lihat detail produk</a>`:''}</div></aside></div></form>`);
+  }
+  return shell('admin','/admin/konten',a?'Edit Artikel Proyek':'Artikel Proyek baru',`<form class="frm" data-form="article" novalidate><input type="hidden" name="id" value="${a?a.id:''}"><input type="hidden" name="type" value="project">
   <div class="two"><div class="stack"><div class="fld"><label for="ae-t">Judul</label><input id="ae-t" name="title" type="text" value="${esc(v.title)}"><span class="err" data-e="title" hidden></span></div>
   <div class="fld"><label for="ae-s">Ringkasan</label><textarea id="ae-s" name="summary" style="min-height:70px">${esc(v.summary)}</textarea><span class="err" data-e="summary" hidden></span></div>
-  <div class="fld"><label for="ae-b">Latar belakang</label><textarea id="ae-b" name="background">${esc(v.background)}</textarea></div>
-  <div class="fld"><label for="ae-g">Tujuan</label><textarea id="ae-g" name="goal" style="min-height:70px">${esc(v.goal)}</textarea></div>
-  <div class="fld"><label for="ae-p">Proses (satu langkah per baris)</label><textarea id="ae-p" name="process">${esc(v.process.join('\n'))}</textarea></div>
-  <div class="fld"><label for="ae-r">Hasil atau target</label><textarea id="ae-r" name="result" style="min-height:70px">${esc(v.result)}</textarea></div></div>
+  <div class="fld"><label for="ae-b">Latar belakang</label><textarea id="ae-b" name="background">${esc(v.background)}</textarea><span class="err" data-e="background" hidden></span></div>
+  <div class="fld"><label for="ae-g">Tujuan</label><textarea id="ae-g" name="goal" style="min-height:70px">${esc(v.goal)}</textarea><span class="err" data-e="goal" hidden></span></div>
+  <div class="fld"><label for="ae-p">Proses (satu langkah per baris)</label><textarea id="ae-p" name="process">${esc(v.process.join('\n'))}</textarea><span class="err" data-e="process" hidden></span></div>
+  <div class="fld"><label for="ae-r">Hasil atau target</label><textarea id="ae-r" name="result" style="min-height:70px">${esc(v.result)}</textarea><span class="err" data-e="result" hidden></span></div></div>
   <aside class="stack"><div class="box stack"><div class="fld"><label for="ae-c">Kelas</label><select id="ae-c" name="classId">${S.classes.map(c=>`<option value="${c.id}" ${v.classId===c.id?'selected':''}>${esc(c.name)}</option>`).join('')}</select></div>
   <div class="frm2"><div class="fld"><label for="ae-cp">Warna sampul</label><select id="ae-cp" name="cp">${Object.keys(PAL).map(k=>`<option value="${k}" ${v.cover.p===k?'selected':''}>${PALNAMES[k]}</option>`).join('')}</select></div>
   <div class="fld"><label for="ae-cs">Gambar sampul</label><select id="ae-cs" name="cs">${['Perbukitan','Bedengan','Kertas','Gelombang'].map((n,i)=>`<option value="${i}" ${+v.cover.s===i?'selected':''}>${n}</option>`).join('')}</select></div></div></div>
-  <div class="box stack"><span class="lbl">Produk terkait</span>${S.products.filter(p=>p.status==='approved').map(p=>`<label class="chk"><input type="checkbox" name="pids" value="${p.id}" ${v.productIds.includes(p.id)?'checked':''}><span>${esc(p.name)} <span class="muted small">· ${esc(clsOf(p.classId).name)}</span></span></label>`).join('')}</div>
-  <div class="box stack"><span class="lbl">Status saat ini: ${v.status==='published'?'Terbit':'Draft'}</span><div class="btns"><button class="btn" name="act" value="publish">Terbitkan</button><button class="btn sec" name="act" value="draft">Simpan draft</button></div>${a?`<a class="btn line" href="#/artikel/${a.id}">Lihat preview</a>`:''}</div></aside></div></form>`);
+  <div class="box stack"><span class="lbl">Produk terkait</span>${S.products.filter(p=>p.status==='approved').map(p=>`<label class="chk"><input type="checkbox" name="pids" value="${p.id}" ${v.productIds.includes(p.id)?'checked':''}><span>${esc(p.name)} <span class="muted small">· ${esc(clsOf(p.classId).name)}</span></span></label>`).join('')}<span class="err" data-e="pids" hidden></span></div>
+  <div class="box stack"><span class="lbl">Status: ${v.status==='published'?'Terbit':v.status==='archived'?'Arsip':'Draft'}</span><div class="btns"><button class="btn" name="act" value="publish">Terbitkan</button><button class="btn sec" name="act" value="draft">Simpan draft</button></div>${a&&a.status!=='archived'?`<button type="button" class="btn bad" data-act="archiveArticle" data-id="${a.id}">Arsipkan artikel</button>`:''}${a?`<a class="btn line" href="#/artikel/${a.id}">Lihat preview</a>`:''}</div></aside></div></form>`);
 }
 function viewAdminProducts(){
   return shell('admin','/admin/produk','Manajemen produk',`
@@ -1097,6 +1187,10 @@ function resolve(){
   if(k==='keranjang')return viewCart();
   if(k==='bantuan')return viewFaq();
   if(k==='masuk')return viewLogin();
+  if(k==='otp')return viewOtp();
+  if(k==='verifikasi')return viewEmailVerification();
+  if(k==='lupa-password')return viewForgotPassword();
+  if(k==='reset-password')return viewResetPassword();
   if(k==='daftar')return viewRegister();
   if(k==='checkout'){if(g=need(['buyer','seller','admin']))return g;return viewCheckout()}
   if(k==='bayar'){if(g=need(['buyer','admin','seller']))return g;return viewPay(p[1])}
@@ -1134,6 +1228,29 @@ function showErr(f,map){
 }
 const isEmail=s=>/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(s);
 const role=r=>{const u=cur();return u&&u.role===r};
+async function hashPassword(password,userId){
+  if(!window.crypto||!window.crypto.subtle)throw new Error('Penyimpanan kata sandi demo membutuhkan browser dengan Web Crypto.');
+  const bytes=new TextEncoder().encode('fortexiv-demo:'+userId+':'+password);
+  const digest=await window.crypto.subtle.digest('SHA-256',bytes);
+  return Array.from(new Uint8Array(digest),b=>b.toString(16).padStart(2,'0')).join('');
+}
+const demoCode=()=>String(Math.floor(Math.random()*1e6)).padStart(6,'0');
+function issueAuthCode(kind,user){
+  const now=Date.now();
+  const previous=S.auth.pending;
+  S.auth.pending={kind,userId:user.id,code:demoCode(),expiresAt:now+AUTH_TTL,attempts:0,lastSentAt:now};
+  if(!save()){S.auth.pending=previous;return false}
+  return true;
+}
+function authError(selector,message){
+  const el=$(selector);if(el){el.hidden=false;el.textContent=message}
+}
+function verifyCode(record,code){
+  if(!record||Date.now()>record.expiresAt)return'Kedaluwarsa';
+  if(record.attempts>=AUTH_MAX_ATTEMPTS)return'Batas percobaan';
+  if(code!==record.code){record.attempts++;save();return record.attempts>=AUTH_MAX_ATTEMPTS?'Batas percobaan':'Kode salah'}
+  return'Valid';
+}
 
 /* ====== actions ====== */
 const A={};
@@ -1143,7 +1260,26 @@ A.confirmOk=()=>{
   if(o.reason){const t=$('#cf-reason');reason=(t.value||'').trim();if(reason.length<5){$('#cf-err').hidden=false;t.classList.add('bad');t.focus();return}}
   closeModal();o.onOk(reason);
 };
-A.logout=()=>{S.session=null;save();toast('Kamu sudah keluar.');go('/')};
+A.logout=()=>{S.session=null;S.auth.pending=null;if(!save()){go('/');return}toast('Kamu sudah keluar.');go('/')};
+A.resendCode=el=>{
+  const p=S.auth.pending,now=Date.now();
+  if(!p||p.kind!==el.dataset.kind)return toast('Permintaan kode tidak ditemukan. Mulai kembali dari halaman login.','bad');
+  if(now-p.lastSentAt<AUTH_RESEND_WAIT)return toast('Tunggu '+Math.ceil((AUTH_RESEND_WAIT-(now-p.lastSentAt))/1000)+' detik sebelum meminta kode baru.','bad');
+  const previous={...p};
+  p.code=demoCode();p.expiresAt=now+AUTH_TTL;p.attempts=0;p.lastSentAt=now;
+  if(!save()){Object.assign(p,previous);return}
+  toast('Kode demo baru dibuat. Gunakan kode terbaru pada inbox simulasi.');render();
+};
+A.archiveArticle=el=>{
+  if(!role('admin'))return toast('Aksi hanya tersedia untuk Admin.','bad');
+  const a=artOf(el.dataset.id);if(!a)return toast('Artikel tidak ditemukan.','bad');
+  confirmBox({title:'Arsipkan konten?',body:'Konten <b>'+esc(a.title)+'</b> tidak lagi tampil di halaman publik. Data dan relasi produk tetap disimpan.',label:'Arsipkan',tone:'bad',onOk:()=>{
+    const oldStatus=a.status,oldUpdatedAt=a.updatedAt,oldActivity=S.activity.slice(),oldSeq=S.aseq;
+    a.status='archived';a.updatedAt=Date.now();log('Konten "'+a.title+'" diarsipkan.');
+    if(!save()){a.status=oldStatus;a.updatedAt=oldUpdatedAt;S.activity=oldActivity;S.aseq=oldSeq;return}
+    toast('Konten diarsipkan.');go('/admin/konten'+(a.type==='product'?'?jenis=product':''));
+  }});
+};
 A.resetDemo=()=>confirmBox({title:'Atur ulang data demo?',body:'Semua pesanan, perubahan produk, refund, dan payout yang kamu buat akan dikembalikan ke data awal. Kamu juga akan keluar dari akun.',label:'Atur ulang',onOk:()=>{resetDemo();toast('Data demo dikembalikan ke awal.');go('/')}});
 A.wish=el=>{const id=el.dataset.id,i=S.wish.indexOf(id);if(i>=0)S.wish.splice(i,1);else S.wish.push(id);save();render()};
 function cartErrors(pid,qty){
@@ -1175,11 +1311,14 @@ A.cartq=el=>{
   l.qty=n;save();render();
 };
 A.cartdel=el=>{S.cart=S.cart.filter(c=>c.pid!==el.dataset.id);save();toast('Produk dihapus dari keranjang.');render()};
-A.quickLogin=el=>{const u=S.users.find(x=>x.role===el.dataset.r&&x.pw);doLogin(u)};
 function doLogin(u){
-  S.session=u.id;save();toast('Masuk sebagai '+u.name+'.');
+  if(!u||!S.auth.pending||S.auth.pending.kind!=='login'||S.auth.pending.userId!==u.id)return toast('Selesaikan verifikasi OTP untuk masuk.','bad');
+  const pending=S.auth.pending;S.auth.pending=null;S.session=u.id;
+  if(!save()){S.session=null;S.auth.pending=pending;return false}
+  toast('Masuk sebagai '+u.name+'.');
   const n=nextPath;nextPath=null;
   if(u.role==='buyer')go(n&&!n.startsWith('/seller')&&!n.startsWith('/admin')?n:'/pesanan');else go(dashHome(u));
+  return true;
 }
 A.pay=el=>{
   const o=orderOf(el.dataset.id),u=cur();if(!o||!u||o.userId!==u.id)return toast('Aksi tidak diizinkan.','bad');
@@ -1189,6 +1328,14 @@ A.pay=el=>{
 A.copy=el=>{
   const t=el.dataset.t;
   try{navigator.clipboard.writeText(t).then(()=>toast('Kode disalin.'),()=>toast('Salin manual: '+t))}catch(e){toast('Salin manual: '+t)}
+};
+A.quickLogin=el=>{
+  const email=el.dataset.r==='admin'?'admin@fortexiv.test':el.dataset.r==='seller'?'seller@fortexiv.test':'buyer@fortexiv.test';
+  const form=$('form[data-form="login"]'),user=S.users.find(u=>u.email===email);
+  if(!form||!user||!user.active)return toast('Akun shortcut tidak tersedia atau tidak aktif.','bad');
+  form.elements.email.value=email;
+  form.elements.pw.value=DEMO_CREDENTIALS[email];
+  form.requestSubmit();
 };
 A.refundOpen=el=>{
   const o=orderOf(el.dataset.o),u=cur();if(!o||o.userId!==u.id)return;
@@ -1203,8 +1350,9 @@ A.prodEdit=el=>{const p=prodOf(el.dataset.id);if(!p||!role('seller')||p.classId!
 A.prodDel=el=>{
   const p=prodOf(el.dataset.id);if(!p||!role('seller')||p.classId!==cur().classId)return toast('Kamu hanya bisa menghapus produk kelasmu.','bad');
   if(S.orders.some(o=>o.items.some(i=>i.pid===p.id)))return toast('Produk sudah ada di pesanan. Set stok ke 0 daripada menghapusnya.','bad');
+  if(S.articles.some(a=>(a.type==='product'&&a.productId===p.id)||(a.type==='project'&&a.productIds.includes(p.id))))return toast('Produk masih terhubung ke artikel. Set stok ke 0 daripada menghapusnya.','bad');
   confirmBox({title:'Hapus produk?',body:'Produk <b>'+esc(p.name)+'</b> akan dihapus permanen dari katalog dan keranjang.',label:'Hapus',tone:'bad',onOk:()=>{
-    S.products=S.products.filter(x=>x.id!==p.id);S.cart=S.cart.filter(c=>c.pid!==p.id);S.wish=S.wish.filter(x=>x!==p.id);S.articles.forEach(a=>a.productIds=a.productIds.filter(x=>x!==p.id));
+    S.products=S.products.filter(x=>x.id!==p.id);S.cart=S.cart.filter(c=>c.pid!==p.id);S.wish=S.wish.filter(x=>x!==p.id);
     log('Produk '+p.name+' dihapus oleh seller.');save();toast('Produk dihapus.');render()}});
 };
 A.sPrep=el=>{
@@ -1274,23 +1422,95 @@ A.pyDo=el=>{
 /* ====== forms ====== */
 const F={};
 F.hsearch=(f,d)=>{const v=(d.get('q')||'').trim();CF.q=v;CF.kelas='';CF.kat='';CF.stok='';go('/produk?q='+encodeURIComponent(v));return false};
-F.login=(f,d)=>{
+F.login=async(f,d)=>{
   const email=(d.get('email')||'').trim().toLowerCase(),pw=d.get('pw')||'',e={};
   if(!email)e.email='Email wajib diisi.';else if(!isEmail(email))e.email='Format email belum benar.';
   if(!pw)e.pw='Kata sandi wajib diisi.';
   if(Object.keys(e).length)return showErr(f,e);
-  const u=S.users.find(x=>x.email===email&&x.pw&&x.pw===pw);
-  if(!u){clearErr(f);const b=$('#l-err');b.hidden=false;b.innerHTML=ico('alert',18)+'<div>Email atau kata sandi salah. Periksa lagi atau pakai tombol masuk cepat.</div>';return false}
+  const b=f.querySelector('button[type="submit"],button:not([type])');if(b){b.disabled=true;b.innerHTML='<span class="spin"></span> Memeriksa akun';}
+  try{
+    const u=S.users.find(x=>x.email===email),storedHash=u&&S.auth.passwordHashes[u.id];
+    const valid=!!u&&(storedHash?await hashPassword(pw,u.id)===storedHash:DEMO_CREDENTIALS[email]===pw);
+    if(!valid){authError('#l-err','Email atau kata sandi salah. Periksa kembali kredensial demo.');if(b){b.disabled=false;b.textContent='Masuk dan minta kode OTP';}return false}
+    if(!u.active){authError('#l-err','Akun tidak aktif. Hubungi Admin demo.');if(b){b.disabled=false;b.textContent='Masuk dan minta kode OTP';}return false}
+    if(!u.emailVerified){if(!issueAuthCode('email',u))return false;toast('Akun belum terverifikasi. Kode verifikasi demo sudah dibuat.');go('/verifikasi');return false}
+    if(!issueAuthCode('login',u))return false;
+    toast('Kredensial benar. Masukkan OTP dari inbox simulasi.');go('/otp');return false;
+  }catch(err){console.error(err);authError('#l-err','Verifikasi kata sandi tidak dapat dilakukan di browser ini.');if(b){b.disabled=false;b.textContent='Masuk dan minta kode OTP';}return false}
+};
+F.otp=(f,d)=>{
+  const p=S.auth.pending,code=(d.get('code')||'').trim();
+  if(!/^\d{6}$/.test(code))return showErr(f,{code:'Masukkan kode OTP 6 digit.'});
+  const result=verifyCode(p&&p.kind==='login'?p:null,code);
+  if(result!=='Valid'){
+    authError('#otp-err',result==='Kedaluwarsa'?'Kode OTP sudah kedaluwarsa. Silakan login kembali.':result==='Batas percobaan'?'Batas percobaan tercapai. Silakan mulai login kembali.':'Kode OTP salah.');
+    if(result==='Kedaluwarsa'||result==='Batas percobaan'){S.auth.pending=null;save();setTimeout(()=>go('/masuk'),900)}
+    return false;
+  }
+  const u=S.users.find(x=>x.id===p.userId);
+  if(!u){S.auth.pending=null;save();toast('Akun tidak ditemukan. Silakan mulai login kembali.','bad');go('/masuk');return false}
   doLogin(u);return false;
 };
-F.register=(f,d)=>{
+F.verifyEmail=(f,d)=>{
+  const p=S.auth.pending,code=(d.get('code')||'').trim();
+  if(!/^\d{6}$/.test(code))return showErr(f,{code:'Masukkan kode verifikasi 6 digit.'});
+  const result=verifyCode(p&&p.kind==='email'?p:null,code);
+  if(result!=='Valid'){
+    authError('#verify-err',result==='Kedaluwarsa'?'Kode verifikasi sudah kedaluwarsa. Mulai login kembali.':result==='Batas percobaan'?'Batas percobaan tercapai. Mulai login kembali.':'Kode verifikasi salah.');
+    if(result==='Kedaluwarsa'||result==='Batas percobaan'){S.auth.pending=null;save();setTimeout(()=>go('/masuk'),900)}
+    return false;
+  }
+  const u=S.users.find(x=>x.id===p.userId);
+  if(!u){S.auth.pending=null;save();toast('Akun tidak ditemukan.','bad');go('/masuk');return false}
+  const previousPending=S.auth.pending,wasVerified=u.emailVerified;
+  u.emailVerified=true;S.auth.pending=null;
+  if(!issueAuthCode('login',u)){u.emailVerified=wasVerified;S.auth.pending=previousPending;return false}
+  toast('Email terverifikasi. Masukkan OTP login yang baru dibuat.');go('/otp');return false;
+};
+F.forgot=(f,d)=>{
+  const email=(d.get('email')||'').trim().toLowerCase();
+  if(!isEmail(email))return showErr(f,{email:'Masukkan alamat email yang valid.'});
+  const u=S.users.find(x=>x.email===email);
+  if(!u){authError('#forgot-err','Jika akun tersedia, instruksi reset akan dikirim melalui mekanisme demo.');return false}
+  const now=Date.now();
+  const previous=S.auth.reset;
+  S.auth.reset={userId:u.id,email:u.email,code:demoCode(),expiresAt:now+10*MIN,attempts:0,lastSentAt:now,used:false};
+  if(!save()){S.auth.reset=previous;return false}
+  toast('Token reset demo dibuat. Tidak ada email sungguhan yang dikirim.');go('/reset-password');return false;
+};
+F.resetPassword=async(f,d)=>{
+  const r=S.auth.reset,pw=d.get('pw')||'',pw2=d.get('pw2')||'',code=(d.get('code')||'').trim(),e={};
+  if(!/^\d{6}$/.test(code))e.code='Masukkan token reset 6 digit.';
+  if(pw.length<8)e.pw='Kata sandi minimal 8 karakter.';
+  if(pw2!==pw)e.pw2='Konfirmasi kata sandi tidak sama.';
+  if(Object.keys(e).length)return showErr(f,e);
+  if(!r||r.used||Date.now()>r.expiresAt){authError('#reset-err','Token reset tidak valid atau sudah kedaluwarsa.');return false}
+  const result=verifyCode(r,code);
+  if(result!=='Valid'){
+    authError('#reset-err',result==='Kedaluwarsa'?'Token reset sudah kedaluwarsa.':'Token reset salah atau batas percobaan tercapai.');
+    if(result==='Batas percobaan'){r.used=true;r.code=null;save()}
+    return false;
+  }
+  try{
+    const userId=r.userId,hash=await hashPassword(pw,userId),previousHash=S.auth.passwordHashes[userId],previousReset={...r};
+    S.auth.passwordHashes[userId]=hash;r.used=true;r.code=null;S.auth.reset=null;
+    if(!save()){if(previousHash)S.auth.passwordHashes[userId]=previousHash;else delete S.auth.passwordHashes[userId];S.auth.reset=previousReset;return false}
+    toast('Kata sandi diperbarui. Silakan login dan verifikasi OTP.');go('/masuk');return false;
+  }catch(err){console.error(err);authError('#reset-err','Kata sandi tidak dapat disimpan pada browser ini.');return false}
+};
+F.register=async(f,d)=>{
   const name=(d.get('name')||'').trim(),email=(d.get('email')||'').trim().toLowerCase(),pw=d.get('pw')||'',pw2=d.get('pw2')||'',e={};
   if(name.length<3)e.name='Nama minimal 3 karakter.';
   if(!isEmail(email))e.email='Format email belum benar.';else if(S.users.some(u=>u.email===email))e.email='Email ini sudah terdaftar. Silakan masuk.';
   if(pw.length<8)e.pw='Kata sandi minimal 8 karakter.';
   if(pw2!==pw)e.pw2='Kata sandi tidak sama.';
   if(Object.keys(e).length)return showErr(f,e);
-  const u={id:'u'+(S.users.length+1)+Date.now().toString(36),name,email,pw,role:'buyer'};S.users.push(u);log('Akun Buyer baru: '+name+'.');doLogin(u);return false;
+  const u={id:'u'+(S.users.length+1)+Date.now().toString(36),name,email,role:'buyer',active:true,emailVerified:false};
+  try{S.auth.passwordHashes[u.id]=await hashPassword(pw,u.id)}catch(err){console.error(err);toast('Kata sandi tidak dapat disimpan di browser ini.','bad');return false}
+  S.users.push(u);
+  log('Akun Buyer baru: '+name+'.');
+  if(!issueAuthCode('email',u)){S.users.pop();delete S.auth.passwordHashes[u.id];S.activity.shift();return false}
+  toast('Akun demo dibuat. Verifikasi email untuk melanjutkan.');go('/verifikasi');return false;
 };
 F.checkout=(f,d)=>{
   const name=(d.get('name')||'').trim(),phone=(d.get('phone')||'').replace(/[\s-]/g,''),e={};
@@ -1317,23 +1537,22 @@ F.refund=(f,d)=>{
 };
 F.product=(f,d)=>{
   const u=cur();if(!u||u.role!=='seller')return false;
-  const id=d.get('id'),name=(d.get('name')||'').trim(),price=parseInt(d.get('price'),10),stock=parseInt(d.get('stock'),10),desc=(d.get('desc')||'').trim(),story=(d.get('story')||'').trim(),e={};
+  const id=d.get('id'),name=(d.get('name')||'').trim(),price=parseInt(d.get('price'),10),stock=parseInt(d.get('stock'),10),desc=(d.get('desc')||'').trim(),e={};
   if(name.length<3)e.name='Nama minimal 3 karakter.';
   if(!(price>=1000))e.price='Harga minimal Rp 1.000.';
   if(!(stock>=0)||isNaN(stock))e.stock='Stok harus 0 atau lebih.';
   if(desc.length<10)e.desc='Deskripsi minimal 10 karakter.';
-  if(story.length<20)e.story='Ceritakan produk minimal 20 karakter.';
   if(Object.keys(e).length)return showErr(f,e);
   const art={m:d.get('m'),p:d.get('pal')};
   if(id){
     const p=prodOf(id);if(!p||p.classId!==u.classId)return false;
     if(price!==p.price)p.log.push({t:Date.now(),text:'Harga '+rp(p.price)+' menjadi '+rp(price)});
     if(stock!==p.stock)p.log.push({t:Date.now(),text:'Stok '+p.stock+' menjadi '+stock});
-    Object.assign(p,{name,cat:d.get('cat'),price,stock,desc,story,art});
+    Object.assign(p,{name,cat:d.get('cat'),price,stock,desc,art});
     if(p.status==='rejected'){p.status='pending';p.note=''}
     log('Produk '+name+' diperbarui oleh seller.');toast('Perubahan disimpan.');
   }else{
-    S.products.push({id:'p'+(++S.pseq),classId:u.classId,name,cat:d.get('cat'),price,stock,art,desc,story,status:'pending',note:'',log:[]});
+    S.products.push({id:'p'+(++S.pseq),classId:u.classId,name,cat:d.get('cat'),price,stock,art,desc,status:'pending',note:'',log:[]});
     log('Produk baru '+name+' diajukan, menunggu moderasi.');toast('Produk diajukan. Menunggu persetujuan Admin.');
   }
   save();setTimeout(render,0);return true;
@@ -1341,14 +1560,40 @@ F.product=(f,d)=>{
 F.scan=(f,d)=>{const c=(d.get('code')||'').trim();if(!c){toast('Masukkan kode QR terlebih dahulu.','bad');return false}go('/seller/scan'+q({kode:c}));return false};
 F.article=(f,d,ev)=>{
   if(!role('admin'))return false;
-  const id=d.get('id'),title=(d.get('title')||'').trim(),summary=(d.get('summary')||'').trim(),e={};
+  const id=d.get('id'),type=d.get('type')==='product'?'product':'project',title=(d.get('title')||'').trim(),summary=(d.get('summary')||'').trim(),e={};
   if(title.length<5)e.title='Judul minimal 5 karakter.';
   if(summary.length<20)e.summary='Ringkasan minimal 20 karakter.';
   if(Object.keys(e).length)return showErr(f,e);
   const st=(ev.submitter&&ev.submitter.value)==='publish'?'published':'draft';
-  const obj={title,summary,classId:d.get('classId'),background:(d.get('background')||'').trim(),goal:(d.get('goal')||'').trim(),process:(d.get('process')||'').split('\n').map(s=>s.trim()).filter(Boolean),result:(d.get('result')||'').trim(),productIds:d.getAll('pids'),cover:{p:d.get('cp'),s:+d.get('cs')},status:st};
-  if(id){Object.assign(artOf(id),obj)}else S.articles.push({id:'a'+(S.articles.length+1)+Date.now().toString(36).slice(-3),date:Date.now(),...obj});
-  log('Artikel "'+title+'" '+(st==='published'?'diterbitkan':'disimpan sebagai draft')+'.');save();toast(st==='published'?'Artikel diterbitkan.':'Draft disimpan.');go('/admin/konten');return false;
+  let obj;
+  if(type==='product'){
+    const content=(d.get('content')||'').trim(),product=prodOf(d.get('productId'));
+    if(content.length<20)e.content='Cerita produk minimal 20 karakter.';
+    if(!product)e.productId='Pilih produk yang masih tersedia.';
+    if(Object.keys(e).length)return showErr(f,e);
+    obj={type:'product',title,summary,content,productId:product.id,classId:product.classId,productIds:[product.id],cover:product.art,status:st};
+  }else{
+    const classId=d.get('classId'),background=(d.get('background')||'').trim(),goal=(d.get('goal')||'').trim(),process=(d.get('process')||'').split('\n').map(s=>s.trim()).filter(Boolean),result=(d.get('result')||'').trim(),productIds=d.getAll('pids');
+    if(background.length<10)e.background='Latar belakang minimal 10 karakter.';
+    if(goal.length<10)e.goal='Tujuan minimal 10 karakter.';
+    if(!process.length)e.process='Tambahkan minimal satu langkah proses.';
+    if(result.length<10)e.result='Hasil atau target minimal 10 karakter.';
+    if(productIds.some(pid=>{const p=prodOf(pid);return !p||p.classId!==classId}))e.pids='Pilih hanya produk dari kelas pemilik artikel.';
+    if(Object.keys(e).length)return showErr(f,e);
+    obj={type:'project',title,summary,classId,background,goal,process,result,productIds,cover:{p:d.get('cp'),s:+d.get('cs')},status:st};
+  }
+  const existing=id?artOf(id):null;
+  if(id&&(!existing||existing.type!==type))return toast('Jenis konten tidak sesuai atau konten tidak ditemukan.','bad'),false;
+  const previous=existing?JSON.stringify(existing):null,activityBefore=S.activity.slice(),seqBefore=S.aseq;
+  if(existing)Object.assign(existing,obj,{updatedAt:Date.now()});
+  else S.articles.push({id:(type==='product'?'story-':'a')+Date.now().toString(36),date:Date.now(),updatedAt:Date.now(),...obj});
+  const kind=type==='project'?'Artikel Proyek':'Cerita Produk';
+  log(kind+' "'+title+'" '+(st==='published'?'diterbitkan':'disimpan sebagai draft')+'.');
+  if(!save()){
+    if(existing)Object.assign(existing,JSON.parse(previous));else S.articles.pop();
+    S.activity=activityBefore;S.aseq=seqBefore;return false;
+  }
+  toast(st==='published'?'Konten diterbitkan.':'Draft disimpan.');go('/admin/konten'+(type==='product'?'?jenis=product':''));return false;
 };
 F.cat=(f,d)=>{if(!role('admin'))return false;const n=(d.get('name')||'').trim();if(n.length<3)return toast('Nama kategori minimal 3 karakter.','bad'),false;if(S.cats.some(c=>c.toLowerCase()===n.toLowerCase()))return toast('Kategori sudah ada.','bad'),false;S.cats.push(n);save();toast('Kategori ditambahkan.');render();return false};
 F.po=(f,d)=>{
@@ -1385,10 +1630,10 @@ document.addEventListener('change',ev=>{
   l.qty=n;save();render();
 });
 document.addEventListener('keydown',ev=>{if(ev.key==='Escape'&&$('#modal-root').firstChild)closeModal()});
-window.addEventListener('hashchange',()=>{const h=location.hash.slice(1)||'/';if(h!==current){current=h;render()}});
+window.addEventListener('hashchange',()=>{const h=location.hash.slice(1)||'/';if(h!==current){current=h;closeModal();render()}});
 current=location.hash.slice(1)||S.lastRoute||'/';
-try{if(!location.hash&&current!=='/')history.replaceState(null,'','#'+current)}catch(e){}
-render();
+try{if(!location.hash&&current!=='/')history.replaceState(null,'','#'+current)}catch(e){console.error('Could not restore the previous demo route.',e)}
+migrateDemo().then(()=>render()).catch(e=>{console.error('Demo initialization failed.',e);toast('Data demo gagal dimuat. Muat ulang halaman.','bad')});
 
 })();
 </script>
