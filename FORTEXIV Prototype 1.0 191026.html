@@ -700,7 +700,6 @@ function heroHtml(){
 }
 function viewHome(){
   const pubA=S.articles.filter(a=>a.type==='project'&&a.status==='published');
-  const feat=S.products.filter(p=>p.status==='approved'&&p.stock>0).slice(0,4);
   const ps=poStatus();
   const quotes=[['“Kami hitung ulang kebutuhan daun pisang supaya tidak ada yang terbuang.”','Tim XI Agribisnis 1','Catatan lapangan (contoh)','c1'],['“Dua belas botol kaca pertama berasal dari kantin sekolah kami sendiri.”','Tim XI Tata Boga 2','Catatan lapangan (contoh)','c2'],['“Setiap buku catatan sedikit berbeda, dan itu justru yang kami suka.”','Tim X Desain Grafis','Catatan lapangan (contoh)','c3']];
   return pub(`<div class="wrap" style="padding-top:6px"><div id="hero">${heroHtml()}</div>
@@ -710,7 +709,6 @@ function viewHome(){
   <section class="sec-b"><div class="wrap split"><div><h2>Kelas yang berpartisipasi</h2><div class="subs">${S.classes.map(c=>`<div><h3>${esc(c.name)}</h3><p>${esc(c.project)}. ${S.products.filter(p=>p.classId===c.id&&p.status==='approved').length} produk dalam katalog.</p></div>`).join('')}</div>
   <div class="btns"><a class="btn" href="#/artikel">Baca proyek</a><a class="btn sec" href="#/produk">Buka katalog</a></div></div>
   <div class="big">${img(scene({p:'sun',s:1}),'Ilustrasi kebun sekolah')}</div></div></section>
-  <section class="sec-b"><div class="wrap"><div class="sec-h"><h2>Produk pilihan dari proyek</h2><a class="btn sec sm" href="#/produk">Lihat semua</a></div><div class="grid4">${feat.map(p=>pcard(p,{add:true})).join('')}</div></div></section>
   <section class="sec-b"><div class="wrap"><div class="sec-h"><h2>Cara pre-order dan pengambilan</h2></div>
   <ol class="steps"><li><h3>Pilih produk</h3><p>Boleh dari beberapa kelas sekaligus dalam satu pesanan.</p></li><li><h3>Bayar sebelum tenggat</h3><p>Batas pembayaran ${fdt(S.po.pay)}. Pembayaran di prototype ini simulasi.</p></li><li><h3>Terima QR per kelas</h3><p>Tiap kelas yang kamu pesan punya QR pengambilan sendiri.</p></li><li><h3>Ambil di acara</h3><p>${fdate(S.po.event)}, ${esc(S.po.place.split(',')[0])}. Tanpa ekspedisi.</p></li></ol></div></section>
   <section class="sec-b"><div class="wrap"><div class="sec-h"><h2>Catatan dari tim kelas</h2></div><div class="grid3">${quotes.map(x=>`<figure class="qcard" style="margin:0"><q>${esc(x[0])}</q><figcaption><b>${esc(x[1])}</b><div class="muted small">${esc(x[2])}</div></figcaption></figure>`).join('')}</div></div></section>
@@ -1115,7 +1113,7 @@ function viewAdminEditor(id){
   <aside class="stack"><div class="box stack"><div class="fld"><label for="ae-c">Kelas</label><select id="ae-c" name="classId">${S.classes.map(c=>`<option value="${c.id}" ${v.classId===c.id?'selected':''}>${esc(c.name)}</option>`).join('')}</select></div>
   <div class="frm2"><div class="fld"><label for="ae-cp">Warna sampul</label><select id="ae-cp" name="cp">${Object.keys(PAL).map(k=>`<option value="${k}" ${v.cover.p===k?'selected':''}>${PALNAMES[k]}</option>`).join('')}</select></div>
   <div class="fld"><label for="ae-cs">Gambar sampul</label><select id="ae-cs" name="cs">${['Perbukitan','Bedengan','Kertas','Gelombang'].map((n,i)=>`<option value="${i}" ${+v.cover.s===i?'selected':''}>${n}</option>`).join('')}</select></div></div></div>
-  <div class="box stack"><span class="lbl">Produk terkait</span>${S.products.filter(p=>p.status==='approved').map(p=>`<label class="chk"><input type="checkbox" name="pids" value="${p.id}" ${v.productIds.includes(p.id)?'checked':''}><span>${esc(p.name)} <span class="muted small">· ${esc(clsOf(p.classId).name)}</span></span></label>`).join('')}<span class="err" data-e="pids" hidden></span></div>
+  <div class="box stack"><span class="lbl">Produk terkait</span>${S.products.filter(p=>p.status==='approved'||v.productIds.includes(p.id)).map(p=>`<label class="chk"><input type="checkbox" name="pids" value="${p.id}" ${v.productIds.includes(p.id)?'checked':''}><span>${esc(p.name)} <span class="muted small">· ${esc(clsOf(p.classId).name)}${p.status!=='approved'?' · '+(p.status==='pending'?'menunggu moderasi':'tidak disetujui')+' · relasi dipertahankan':''}</span></span></label>`).join('')}<span class="err" data-e="pids" hidden></span></div>
   <div class="box stack"><span class="lbl">Status: ${v.status==='published'?'Terbit':v.status==='archived'?'Arsip':'Draft'}</span><div class="btns"><button class="btn" name="act" value="publish">Terbitkan</button><button class="btn sec" name="act" value="draft">Simpan draft</button></div>${a&&a.status!=='archived'?`<button type="button" class="btn bad" data-act="archiveArticle" data-id="${a.id}">Arsipkan artikel</button>`:''}${a?`<a class="btn line" href="#/artikel/${a.id}">Lihat preview</a>`:''}</div></aside></div></form>`);
 }
 function viewAdminProducts(){
