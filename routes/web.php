@@ -13,13 +13,24 @@ Route::get('/projects/{project}', [MarketplaceController::class, 'project'])->na
 Route::middleware('guest')->group(function () {
     Route::get('/login', [AuthController::class, 'loginForm'])->name('login');
     Route::post('/login', [AuthController::class, 'login'])->name('login.store');
+    Route::get('/forgot-password', [AuthController::class, 'forgotPasswordForm'])->name('password.request');
+    Route::post('/forgot-password', [AuthController::class, 'sendPasswordResetLink'])->middleware('throttle:6,1')->name('password.email');
+    Route::get('/reset-password/{token}', [AuthController::class, 'resetPasswordForm'])->name('password.reset');
+    Route::post('/reset-password', [AuthController::class, 'resetPassword'])->middleware('throttle:6,1')->name('password.update');
     Route::get('/register', [AuthController::class, 'registerForm'])->name('register');
     Route::post('/register', [AuthController::class, 'register'])->name('register.store');
 });
 Route::post('/logout', [AuthController::class, 'logout'])->middleware('auth')->name('logout');
-Route::get('/account', [MarketplaceController::class, 'account'])->middleware('auth')->name('account');
+Route::get('/email/verify', [AuthController::class, 'verificationNotice'])->middleware('auth')->name('verification.notice');
+Route::get('/email/verify/{id}/{hash}', [AuthController::class, 'verifyEmail'])
+    ->middleware(['auth', 'signed', 'throttle:6,1'])
+    ->name('verification.verify');
+Route::post('/email/verification-notification', [AuthController::class, 'resendEmailVerification'])
+    ->middleware(['auth', 'throttle:6,1'])
+    ->name('verification.send');
+Route::get('/account', [MarketplaceController::class, 'account'])->middleware(['auth', 'verified'])->name('account');
 
-Route::middleware(['auth', 'role:buyer'])->group(function () {
+Route::middleware(['auth', 'verified', 'role:buyer'])->group(function () {
     Route::get('/cart', [MarketplaceController::class, 'cart'])->name('cart.index');
     Route::post('/cart', [MarketplaceController::class, 'addToCart'])->name('cart.store');
     Route::patch('/cart/{cartItem}', [MarketplaceController::class, 'updateCart'])->name('cart.update');
@@ -31,7 +42,7 @@ Route::middleware(['auth', 'role:buyer'])->group(function () {
     Route::get('/orders/{order:order_code}/ticket', [MarketplaceController::class, 'ticket'])->name('tickets.show');
 });
 
-Route::prefix('seller')->name('seller.')->middleware(['auth', 'role:seller'])->group(function () {
+Route::prefix('seller')->name('seller.')->middleware(['auth', 'verified', 'role:seller'])->group(function () {
     Route::get('/', [SellerController::class, 'dashboard'])->name('dashboard');
     Route::get('/products', [SellerController::class, 'products'])->name('products.index');
     Route::get('/products/create', [SellerController::class, 'create'])->name('products.create');
@@ -43,7 +54,7 @@ Route::prefix('seller')->name('seller.')->middleware(['auth', 'role:seller'])->g
     Route::get('/orders', [SellerController::class, 'orders'])->name('orders');
 });
 
-Route::prefix('admin')->name('admin.')->middleware(['auth', 'role:admin'])->group(function () {
+Route::prefix('admin')->name('admin.')->middleware(['auth', 'verified', 'role:admin'])->group(function () {
     Route::get('/', [AdminController::class, 'dashboard'])->name('dashboard');
     Route::get('/payments', [AdminController::class, 'payments'])->name('payments');
     Route::get('/payments/{payment}/proof', [AdminController::class, 'paymentProof'])->name('payments.proof');

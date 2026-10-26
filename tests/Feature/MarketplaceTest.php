@@ -6,8 +6,10 @@ use App\Models\Order;
 use App\Models\Product;
 use App\Models\Seller;
 use App\Models\User;
+use Illuminate\Auth\Notifications\VerifyEmail;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Http\UploadedFile;
+use Illuminate\Support\Facades\Notification;
 use Illuminate\Support\Facades\Storage;
 use Tests\TestCase;
 
@@ -40,6 +42,8 @@ class MarketplaceTest extends TestCase
 
     public function test_seller_registration_creates_a_seller_profile_without_exposing_admin_role(): void
     {
+        Notification::fake();
+
         $this->post(route('register.store'), [
             'name' => 'Student Seller',
             'email' => 'seller@example.test',
@@ -47,11 +51,13 @@ class MarketplaceTest extends TestCase
             'store_name' => 'Class 3 Makers',
             'password' => 'secure-password',
             'password_confirmation' => 'secure-password',
-        ])->assertRedirect(route('seller.dashboard'));
+        ])->assertRedirect(route('verification.notice'));
 
         $seller = User::where('email', 'seller@example.test')->firstOrFail();
         $this->assertSame('seller', $seller->role);
         $this->assertSame('Class 3 Makers', $seller->seller->store_name);
+        $this->assertNull($seller->email_verified_at);
+        Notification::assertSentTo($seller, VerifyEmail::class);
         $this->assertTrue(password_verify('secure-password', $seller->password));
 
         $this->post(route('logout'));
