@@ -25,6 +25,7 @@ class CreateAdmin extends Command
         $user->password = $password;
         $user->role = 'admin';
         $user->is_active = true;
+        $user->email_verified_at = now();
         $user->save();
 
         $this->info("Administrator account ready for {$user->email}.");
