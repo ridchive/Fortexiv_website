@@ -29,7 +29,6 @@ class MarketplaceController extends Controller
                 ->where('is_published', true)
                 ->withCount(['products as published_products_count' => fn (Builder $query) => $query->where('status', 'published')])
                 ->orderBy('id')
-                ->limit(4)
                 ->get(),
             'products' => $this->availableProducts()->where('stock', '>', 0)->limit(8)->get(),
             'window' => $purchaseWindow->details(),

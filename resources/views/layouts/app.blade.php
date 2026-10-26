@@ -302,6 +302,8 @@
     .sec-b { padding-block: 44px; border-top: 1px solid var(--line); }
     .sec-h { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: end; gap: 16px; margin-bottom: 22px; }
     .grid3 { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 20px; }
+    .story-strip { display: grid; grid-auto-columns: minmax(240px, 280px); grid-auto-flow: column; gap: 20px; padding: 2px 2px 14px; overflow-x: auto; overscroll-behavior-inline: contain; scroll-snap-type: x mandatory; scrollbar-color: var(--line) transparent; }
+    .story-strip > .story { min-width: 0; scroll-snap-align: start; }
     .story { display: flex; flex-direction: column; gap: 10px; color: var(--ink); text-decoration: none; }
     .story .im { aspect-ratio: 1; overflow: hidden; border-radius: 6px; background: var(--soft); }
     .story .im svg { display: block; width: 100%; height: 100%; transition: transform .4s; }
@@ -354,6 +356,7 @@
     .main-nav { grid-column: 1 / -1; }
     @media (max-width: 960px) {
       .grid3, .steps { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+      .story-strip { grid-auto-columns: minmax(240px, 42vw); }
       .ft .cols { grid-template-columns: repeat(2, minmax(0, 1fr)); }
     }
     @media (max-width: 720px) {
@@ -364,6 +367,7 @@
       .hero .tx { padding-bottom: 50px; }
       .split { grid-template-columns: minmax(0, 1fr); }
       .grid3, .steps { grid-template-columns: minmax(0, 1fr); }
+      .story-strip { grid-auto-columns: minmax(240px, min(82vw, 320px)); }
       .ft .cols { grid-template-columns: repeat(2, minmax(0, 1fr)); }
     }
     @media (max-width: 480px) {

@@ -77,8 +77,8 @@
 <section class="sec-b" style="margin-top:28px">
   <div class="wrap">
     <div class="sec-h"><h2>Cerita dari kelas</h2><a class="btn sec sm" href="{{ route('projects.index') }}">Semua proyek</a></div>
-    <div class="grid3">
-      @forelse($projects->take(3) as $project)
+    <div class="story-strip" role="region" aria-label="Cerita proyek kelas" tabindex="0">
+      @forelse($projects as $project)
         <a class="story" href="{{ route('projects.show', $project) }}">
           <div class="im">@include('marketplace.partials.project-art', ['project' => $project])</div>
           <span class="chip">{{ $project->class_name }}</span>

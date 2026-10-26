@@ -53,6 +53,43 @@ class MarketplaceTest extends TestCase
             ->assertSee('Masuk untuk memesan');
     }
 
+    public function test_homepage_shows_all_published_project_stories(): void
+    {
+        foreach (range(1, 5) as $number) {
+            Project::create([
+                'class_name' => "Class 12{$number}",
+                'grade' => 12,
+                'title' => "Project Story {$number}",
+                'introduction' => "Introduction {$number}.",
+                'story' => "Story {$number}.",
+                'outcome' => "Outcome {$number}.",
+                'is_published' => true,
+            ]);
+        }
+
+        Project::create([
+            'class_name' => 'Unpublished class',
+            'grade' => 12,
+            'title' => 'Unpublished project story',
+            'introduction' => 'This project is not published.',
+            'story' => 'Draft story.',
+            'outcome' => 'Draft outcome.',
+            'is_published' => false,
+        ]);
+
+        $this->get(route('home'))
+            ->assertOk()
+            ->assertSee('Project Story 1')
+            ->assertSee('Project Story 2')
+            ->assertSee('Project Story 3')
+            ->assertSee('Project Story 4')
+            ->assertSee('Project Story 5')
+            ->assertSee('story-strip', false)
+            ->assertSee('Introduction 1.')
+            ->assertSee('Baca proyek')
+            ->assertDontSee('Unpublished project story');
+    }
+
     public function test_project_back_to_showcase_link_uses_a_relative_url(): void
     {
         $project = Project::create([
