@@ -86,6 +86,9 @@ img{display:block}
 .grid3{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:20px}
 .grid4{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:20px}
 .grid2{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:20px}
+.story-strip{display:flex;gap:20px;overflow-x:auto;scroll-snap-type:x mandatory;scrollbar-width:none}
+.story-strip::-webkit-scrollbar{display:none}
+.story-strip>.story{flex:0 0 calc((100% - 40px)/3);scroll-snap-align:start}
 .story{display:flex;flex-direction:column;gap:10px;text-decoration:none}
 .story .im{aspect-ratio:1/1;border-radius:6px;overflow:hidden;background:var(--soft)}
 .story .im img{width:100%;height:100%;object-fit:cover;transition:transform .4s}
@@ -260,6 +263,7 @@ details.faq p{margin-top:8px;color:var(--muted);max-width:70ch}
   .hero .pic{min-height:200px;order:-1}
   .hero .tx{padding-bottom:50px}
   .grid3,.grid2,.split,.pd,.loginwrap,.rolecards,.frm2{grid-template-columns:minmax(0,1fr)}
+  .story-strip>.story{flex-basis:100%}
   .cart-i{grid-template-columns:64px 1fr}
   .cart-i img{width:64px;height:64px}
   .cart-i .ac{grid-column:1/-1}
@@ -705,7 +709,7 @@ function viewHome(){
   return pub(`<div class="wrap" style="padding-top:6px"><div id="hero">${heroHtml()}</div>
   <div class="band"><span>${esc(S.po.banner)}</span>${chip(ps.label,ps.tone)}<span class="small">PO ${fdate(S.po.start)} – ${fdate(S.po.end)} · Pengambilan ${fdate(S.po.event)}</span></div></div>
   <section class="sec-b" style="margin-top:28px"><div class="wrap"><div class="sec-h"><h2>Cerita dari kelas</h2><a class="btn sec sm" href="#/artikel">Semua proyek</a></div>
-  <div class="grid3">${pubA.slice(0,3).map(acard).join('')}</div></div></section>
+  <div class="story-strip">${pubA.map(acard).join('')}</div></div></section>
   <section class="sec-b"><div class="wrap split"><div><h2>Kelas yang berpartisipasi</h2><div class="subs">${S.classes.map(c=>`<div><h3>${esc(c.name)}</h3><p>${esc(c.project)}. ${S.products.filter(p=>p.classId===c.id&&p.status==='approved').length} produk dalam katalog.</p></div>`).join('')}</div>
   <div class="btns"><a class="btn" href="#/artikel">Baca proyek</a><a class="btn sec" href="#/produk">Buka katalog</a></div></div>
   <div class="big">${img(scene({p:'sun',s:1}),'Ilustrasi kebun sekolah')}</div></div></section>
