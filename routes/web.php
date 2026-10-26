@@ -7,6 +7,10 @@ use App\Http\Controllers\SellerController;
 use Illuminate\Support\Facades\Route;
 
 Route::get('/', [MarketplaceController::class, 'home'])->name('home');
+Route::get('/projects', [MarketplaceController::class, 'projects'])->name('projects.index');
+Route::get('/catalog', [MarketplaceController::class, 'catalog'])->name('catalog.index');
+Route::get('/help', [MarketplaceController::class, 'help'])->name('help');
+Route::get('/terms', [MarketplaceController::class, 'terms'])->name('terms');
 Route::get('/products/{product:slug}', [MarketplaceController::class, 'product'])->name('products.show');
 Route::get('/projects/{project}', [MarketplaceController::class, 'project'])->name('projects.show');
 
@@ -24,6 +28,7 @@ Route::middleware(['auth', 'role:buyer'])->group(function () {
     Route::post('/cart', [MarketplaceController::class, 'addToCart'])->name('cart.store');
     Route::patch('/cart/{cartItem}', [MarketplaceController::class, 'updateCart'])->name('cart.update');
     Route::delete('/cart/{cartItem}', [MarketplaceController::class, 'removeCart'])->name('cart.destroy');
+    Route::get('/checkout', [MarketplaceController::class, 'checkoutShow'])->name('checkout.show');
     Route::post('/checkout', [MarketplaceController::class, 'checkout'])->name('checkout');
     Route::get('/orders', [MarketplaceController::class, 'orders'])->name('orders.index');
     Route::get('/orders/{order:order_code}', [MarketplaceController::class, 'order'])->name('orders.show');
@@ -41,6 +46,7 @@ Route::prefix('seller')->name('seller.')->middleware(['auth', 'role:seller'])->g
     Route::patch('/products/{product}/publish', [SellerController::class, 'publish'])->name('products.publish');
     Route::delete('/products/{product}', [SellerController::class, 'destroy'])->name('products.destroy');
     Route::get('/orders', [SellerController::class, 'orders'])->name('orders');
+    Route::post('/pickup', [SellerController::class, 'pickup'])->name('pickup');
 });
 
 Route::prefix('admin')->name('admin.')->middleware(['auth', 'role:admin'])->group(function () {

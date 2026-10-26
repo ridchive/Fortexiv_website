@@ -2,7 +2,9 @@
 
 namespace App\Http\Controllers;
 
+use App\Actions\CompleteOrderFulfillment;
 use App\Models\Category;
+use App\Models\OrderFulfillment;
 use App\Models\OrderItem;
 use App\Models\Product;
 use App\Models\Project;
@@ -109,12 +111,32 @@ class SellerController extends Controller
 
     public function orders(Request $request): View
     {
-        $items = OrderItem::where('seller_id', $request->user()->seller->id)
+        $seller = $request->user()->seller;
+        $items = OrderItem::where('seller_id', $seller->id)
             ->with(['order.buyer', 'order.payment', 'order.ticket'])
             ->latest()
             ->paginate(20);
+        $fulfillments = OrderFulfillment::query()
+            ->whereIn('order_id', $items->pluck('order_id'))
+            ->where('seller_id', $seller->id)
+            ->get()
+            ->keyBy('order_id');
+
+        foreach ($items as $item) {
+            $item->setRelation('fulfillment', $fulfillments->get($item->order_id));
+        }
 
         return view('seller.orders', compact('items'));
+    }
+
+    public function pickup(Request $request, CompleteOrderFulfillment $completeOrderFulfillment): RedirectResponse
+    {
+        $data = $request->validate(['pickup_code' => ['required', 'string', 'max:32']]);
+        $seller = $request->user()->seller;
+
+        $fulfillment = $completeOrderFulfillment->handle($data['pickup_code'], $seller, $request->user());
+
+        return back()->with('status', "Grup {$fulfillment->seller->store_name} pada pesanan {$fulfillment->order->order_code} berhasil diserahkan.");
     }
 
     private function validatedProduct(Request $request): array

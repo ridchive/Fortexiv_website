@@ -2,18 +2,18 @@
 
 namespace App\Http\Controllers;
 
+use App\Actions\CompleteOrderFulfillment;
 use App\Models\Order;
 use App\Models\OrderItem;
 use App\Models\Payment;
 use App\Models\Product;
-use App\Models\Ticket;
+use App\Models\Seller;
 use App\Models\User;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
-use Illuminate\Validation\ValidationException;
 use Illuminate\View\View;
 
 class AdminController extends Controller
@@ -24,7 +24,7 @@ class AdminController extends Controller
             'ordersCount' => Order::count(),
             'pendingPayments' => Payment::where('status', 'pending')->count(),
             'buyersCount' => User::where('role', 'buyer')->count(),
-            'productsSold' => OrderItem::whereHas('order', fn ($query) => $query->whereIn('status', ['paid', 'picked_up']))->sum('quantity'),
+            'productsSold' => OrderItem::whereHas('order', fn ($query) => $query->whereIn('status', ['paid', 'partially_picked_up', 'picked_up']))->sum('quantity'),
             'payments' => Payment::with('order.buyer')->where('status', 'pending')->latest()->limit(6)->get(),
         ]);
     }
@@ -107,31 +107,27 @@ class AdminController extends Controller
 
     public function pickupForm(): View
     {
-        return view('admin.pickup');
+        return view('admin.pickup', [
+            'sellers' => Seller::query()->with('project')->orderBy('store_name')->get(['id', 'store_name', 'project_id']),
+        ]);
     }
 
-    public function pickup(Request $request): RedirectResponse
+    public function pickup(Request $request, CompleteOrderFulfillment $completeOrderFulfillment): RedirectResponse
     {
-        $data = $request->validate(['ticket_code' => ['required', 'string', 'max:32']]);
-        $order = DB::transaction(function () use ($request, $data) {
-            $ticket = Ticket::where('ticket_code', Str::upper(trim($data['ticket_code'])))->lockForUpdate()->first();
-            if (! $ticket || $ticket->picked_up_at) {
-                throw ValidationException::withMessages(['ticket_code' => 'Ticket tidak valid atau sudah pernah dipakai.']);
-            }
-            $order = Order::whereKey($ticket->order_id)->lockForUpdate()->firstOrFail();
-            if ($order->status !== 'paid') {
-                throw ValidationException::withMessages(['ticket_code' => 'Pesanan ini belum lunas atau sudah selesai diambil.']);
-            }
-            $ticket->update(['picked_up_at' => now(), 'picked_up_by' => $request->user()->id]);
-            $order->update(['status' => 'picked_up']);
+        $data = $request->validate([
+            'pickup_code' => ['required', 'string', 'max:32'],
+            'seller_id' => ['required', 'integer', 'exists:sellers,id'],
+        ]);
+        $seller = Seller::query()->findOrFail($data['seller_id']);
+        $fulfillment = $completeOrderFulfillment->handle($data['pickup_code'], $seller, $request->user());
 
-            return $order;
-        });
-
-        // Sessions are JSON-serialized, so flash plain values rather than an Eloquent model.
         return back()
-            ->with('pickup_order', ['order_code' => $order->order_code, 'buyer_name' => $order->buyer->name])
-            ->with('status', 'Ticket valid. Pesanan berhasil ditandai sudah diambil.');
+            ->with('pickup_group', [
+                'order_code' => $fulfillment->order->order_code,
+                'buyer_name' => $fulfillment->order->buyer->name,
+                'seller_name' => $fulfillment->seller->store_name,
+            ])
+            ->with('status', 'Grup kelas berhasil ditandai sudah diserahkan.');
     }
 
     public function report(Request $request): View
@@ -144,9 +140,9 @@ class AdminController extends Controller
             'date' => $date,
             'totalOrders' => (clone $orders)->count(),
             'cancelledOrders' => (clone $orders)->where('status', 'cancelled')->count(),
-            'paidOrders' => (clone $orders)->whereIn('status', ['paid', 'picked_up'])->count(),
-            'revenue' => (clone $orders)->whereIn('status', ['paid', 'picked_up'])->sum('total_price'),
-            'productsSold' => OrderItem::whereHas('order', fn ($query) => $query->whereDate('created_at', $date)->whereIn('status', ['paid', 'picked_up']))->sum('quantity'),
+            'paidOrders' => (clone $orders)->whereIn('status', ['paid', 'partially_picked_up', 'picked_up'])->count(),
+            'revenue' => (clone $orders)->whereIn('status', ['paid', 'partially_picked_up', 'picked_up'])->sum('total_price'),
+            'productsSold' => OrderItem::whereHas('order', fn ($query) => $query->whereDate('created_at', $date)->whereIn('status', ['paid', 'partially_picked_up', 'picked_up']))->sum('quantity'),
             'pickedUpOrders' => (clone $orders)->where('status', 'picked_up')->count(),
         ]);
     }

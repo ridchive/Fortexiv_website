@@ -1,39 +1,84 @@
 @extends('layouts.app')
 
-@section('title', 'Your cart — FORTEXIV')
+@section('title', 'Keranjang — FORTEXIV')
 
 @section('content')
-<h1>Your cart</h1>
-<p class="muted">Confirm your items and choose a pickup date.</p>
-@if($items->isEmpty())
-  <div class="empty">Your cart is empty. <a href="{{ route('home') }}">Explore the marketplace</a>.</div>
-@else
-  <div class="table-wrap"><table>
-    <thead><tr><th>Product</th><th>Seller</th><th>Price</th><th>Quantity</th><th>Subtotal</th><th></th></tr></thead>
-    <tbody>
-    @foreach($items as $item)
-      <tr>
-        <td><a href="{{ route('products.show', $item->product) }}">{{ $item->product->name }}</a></td>
-        <td>{{ $item->product->seller->store_name }}</td>
-        <td>{{ \App\Support\Money::format($item->product->price) }}</td>
-        <td><form class="inline-form" method="post" action="{{ route('cart.update', $item) }}">@csrf @method('PATCH')<input class="input" style="width:82px" name="quantity" type="number" min="1" max="100" value="{{ $item->quantity }}" aria-label="Quantity"><button class="btn btn-outline btn-small">Update</button></form></td>
-        <td>{{ \App\Support\Money::format($item->product->price * $item->quantity) }}</td>
-        <td><form method="post" action="{{ route('cart.destroy', $item) }}">@csrf @method('DELETE')<button class="btn btn-danger btn-small">Remove</button></form></td>
-      </tr>
+<div class="wrap">
+  <nav class="crumb"><a href="{{ route('home') }}">Beranda</a> / <span>Keranjang</span></nav>
+  <div class="pgh">
+    <h1>Keranjang</h1>
+    <p>Pesanan dari beberapa kelas digabung saat checkout, lalu diserahkan per grup kelas saat acara.</p>
+  </div>
+  @include('marketplace.partials.po-notice', ['window' => $window])
+
+  @if($items->isEmpty())
+    <div class="empty">
+      <h3>Keranjangmu masih kosong</h3>
+      <p>Temukan karya siswa lewat cerita proyek atau katalog produk.</p>
+      <div class="section-actions" style="justify-content:center">
+        <a class="btn" href="{{ route('projects.index') }}">Jelajahi proyek</a>
+        <a class="btn sec" href="{{ route('catalog.index') }}">Lihat katalog</a>
+      </div>
+    </div>
+  @else
+    @php($cartTotal = $items->sum(fn ($item) => $item->product->price * $item->quantity))
+    @foreach($groups as $groupItems)
+      @php($firstProduct = $groupItems->first()->product)
+      <section class="panel">
+        <div class="section-head" style="margin-top:0">
+          <div>
+            <span class="eyebrow">GRUP KELAS</span>
+            <h2>{{ $firstProduct->project?->class_name ?? $firstProduct->seller->project?->class_name ?? $firstProduct->seller->store_name }}</h2>
+          </div>
+          @if($firstProduct->project)
+            <a href="{{ route('projects.show', $firstProduct->project) }}">Baca cerita proyek →</a>
+          @endif
+        </div>
+        @foreach($groupItems as $item)
+          @php($product = $item->product)
+          <article class="cart-i">
+            @if($product->image)
+              <img src="{{ Storage::disk('public')->url($product->image) }}" alt="{{ $product->name }}">
+            @else
+              <div class="product-image" style="min-height:74px;padding:8px">{{ $product->category?->name ?? 'Produk' }}</div>
+            @endif
+            <div>
+              <h3><a href="{{ route('products.show', $product) }}">{{ $product->name }}</a></h3>
+              <div class="muted">{{ $product->category?->name ?? 'Produk kelas' }} · {{ \App\Support\Money::format($product->price) }} / buah</div>
+              @if($product->stock < $item->quantity || $product->status !== 'published')
+                <p class="errors">Stok atau ketersediaan berubah. Perbarui jumlah sebelum checkout.</p>
+              @endif
+            </div>
+            <div class="cart-actions row">
+              <form class="inline-form" method="post" action="{{ route('cart.update', $item) }}">
+                @csrf
+                @method('PATCH')
+                <label class="sr-only" for="quantity-{{ $item->id }}">Jumlah {{ $product->name }}</label>
+                <input class="input" id="quantity-{{ $item->id }}" name="quantity" type="number" min="1" max="100" value="{{ $item->quantity }}" required>
+                <button class="btn sec sm" type="submit">Perbarui</button>
+              </form>
+              <strong>{{ \App\Support\Money::format($product->price * $item->quantity) }}</strong>
+              <form method="post" action="{{ route('cart.destroy', $item) }}">
+                @csrf
+                @method('DELETE')
+                <button class="btn bad sm" type="submit">Hapus</button>
+              </form>
+            </div>
+          </article>
+        @endforeach
+      </section>
     @endforeach
-    </tbody>
-    <tfoot><tr><td colspan="4"><strong>Total</strong></td><td colspan="2"><strong>{{ \App\Support\Money::format($items->sum(fn ($item) => $item->product->price * $item->quantity)) }}</strong></td></tr></tfoot>
-  </table></div>
-  <section class="panel">
-    <h2>Checkout &amp; pickup</h2>
-    @if(config('marketplace.bank_name') && config('marketplace.account_name') && config('marketplace.account_number'))
-      <form method="post" action="{{ route('checkout') }}" class="stack" style="margin-top:14px">@csrf
-        <label for="pickup_date">Pickup date</label><input class="input" style="max-width:220px" id="pickup_date" name="pickup_date" type="date" min="{{ now()->toDateString() }}" value="{{ old('pickup_date', now()->addDay()->toDateString()) }}" required>
-        <button class="btn" type="submit">Place order</button>
-      </form>
-    @else
-      <p class="muted">Checkout is temporarily unavailable while the marketplace admin configures manual transfer details.</p>
-    @endif
-  </section>
-@endif
+
+    <section class="panel">
+      <div class="kv"><span>Total pesanan</span><strong>{{ \App\Support\Money::format($cartTotal) }}</strong></div>
+      <p class="muted">Tidak ada pengiriman. Setiap grup kelas diserahkan secara terpisah di lokasi acara.</p>
+      @if($checkoutAvailable)
+        <a class="btn" href="{{ route('checkout.show', ['mode' => 'cart']) }}">Lanjut ke checkout</a>
+      @else
+        <p class="note warn">Keranjang tetap tersimpan. Checkout tersedia saat jendela PO dibuka.</p>
+      @endif
+      <a class="btn sec" href="{{ route('catalog.index') }}">Lanjut belanja</a>
+    </section>
+  @endif
+</div>
 @endsection
