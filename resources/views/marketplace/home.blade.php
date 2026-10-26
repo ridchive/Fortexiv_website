@@ -11,7 +11,7 @@
 
 <div class="project-strip" aria-label="Student projects">
   @forelse($projects as $project)
-    <a class="project-card" href="{{ route('projects.show', $project) }}">
+    <a class="project-card" href="{{ route('projects.show', $project, absolute: false) }}">
       <div class="class">GRADE {{ $project->grade }} · {{ $project->class_name }}</div>
       <h3>{{ $project->title }}</h3>
       <p class="project-meta">{{ Str::limit($project->introduction, 95) }}</p>

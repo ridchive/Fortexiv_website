@@ -3,7 +3,7 @@
 @section('title', $project->title.' — FORTEXIV')
 
 @section('content')
-<a href="{{ route('home') }}">&larr; Back to showcase</a>
+<a href="{{ route('home', absolute: false) }}">&larr; Back to showcase</a>
 <article class="detail-card" style="margin-top:18px">
   <div class="detail-image">
     @if($project->image)

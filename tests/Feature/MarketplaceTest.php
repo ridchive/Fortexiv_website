@@ -4,6 +4,7 @@ namespace Tests\Feature;
 
 use App\Models\Order;
 use App\Models\Product;
+use App\Models\Project;
 use App\Models\Seller;
 use App\Models\User;
 use Illuminate\Auth\Notifications\VerifyEmail;
@@ -19,6 +20,14 @@ class MarketplaceTest extends TestCase
 
     public function test_homepage_shows_project_showcase_without_product_catalog(): void
     {
+        $project = Project::create([
+            'class_name' => 'Class 12A',
+            'grade' => 12,
+            'title' => 'Green Economy',
+            'introduction' => 'A project introduction.',
+            'story' => 'A project story.',
+            'outcome' => 'A project outcome.',
+        ]);
         $seller = $this->seller();
         Product::create(['seller_id' => $seller->id, 'name' => 'Published tote', 'slug' => 'published-tote', 'description' => 'Handmade tote', 'price' => 14000, 'stock' => 2, 'status' => 'published']);
         Product::create(['seller_id' => $seller->id, 'name' => 'Draft mug', 'slug' => 'draft-mug', 'description' => 'Handmade mug', 'price' => 9000, 'stock' => 2, 'status' => 'draft']);
@@ -27,6 +36,7 @@ class MarketplaceTest extends TestCase
         $this->get(route('home'))
             ->assertOk()
             ->assertSee('What students are building this term')
+            ->assertSee('<a class="project-card" href="/projects/'.$project->id.'"', false)
             ->assertDontSee('Product marketplace')
             ->assertDontSee('Search products')
             ->assertDontSee('<a class="product-card"', false)
@@ -38,6 +48,23 @@ class MarketplaceTest extends TestCase
             ->assertOk()
             ->assertSee('Published tote')
             ->assertSee('Sign in to add to cart');
+    }
+
+    public function test_project_back_to_showcase_link_uses_a_relative_url(): void
+    {
+        $project = Project::create([
+            'class_name' => 'Class 12A',
+            'grade' => 12,
+            'title' => 'Green Economy',
+            'introduction' => 'A project introduction.',
+            'story' => 'A project story.',
+            'outcome' => 'A project outcome.',
+        ]);
+
+        $this->get(route('projects.show', $project))
+            ->assertOk()
+            ->assertSee('<a href="/">', false)
+            ->assertSee('&larr; Back to showcase', false);
     }
 
     public function test_seller_registration_creates_a_seller_profile_without_exposing_admin_role(): void
@@ -56,9 +83,9 @@ class MarketplaceTest extends TestCase
         $seller = User::where('email', 'seller@example.test')->firstOrFail();
         $this->assertSame('seller', $seller->role);
         $this->assertSame('Class 3 Makers', $seller->seller->store_name);
+        $this->assertTrue(password_verify('secure-password', $seller->password));
         $this->assertNull($seller->email_verified_at);
         Notification::assertSentTo($seller, VerifyEmail::class);
-        $this->assertTrue(password_verify('secure-password', $seller->password));
 
         $this->post(route('logout'));
         $this->post(route('register.store'), [
