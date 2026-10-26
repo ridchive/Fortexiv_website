@@ -49,7 +49,7 @@ PAYMENT_ACCOUNT_NUMBER=1234567890
 
 Checkout remains disabled until all three bank-transfer settings are filled in.
 
-Buyers upload a JPG, PNG, or PDF receipt (up to 5 MB). Receipts remain on Laravel's private local disk and can only be downloaded from the authenticated admin review page. Admin verification issues a pickup ticket; rejection returns reserved stock. Each ticket can only be used once.
+Buyers upload a JPG, PNG, or PDF receipt (up to 5 MB). Receipts remain on Laravel's private local disk and can only be downloaded from the authenticated admin review page. Admin verification issues one pickup ticket for the buyer order; rejection returns reserved stock. A paid order is split into class/seller groups, and each group can be handed over independently by its seller or an admin. The order is marked picked up only after every class group has been handed over; repeat handovers are rejected.
 
 ## Tests
 

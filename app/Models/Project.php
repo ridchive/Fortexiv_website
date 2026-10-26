@@ -9,6 +9,11 @@ class Project extends Model
 {
     protected $guarded = [];
 
+    protected function casts(): array
+    {
+        return ['process' => 'array'];
+    }
+
     public function products(): HasMany
     {
         return $this->hasMany(Product::class);

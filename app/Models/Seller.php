@@ -24,4 +24,9 @@ class Seller extends Model
     {
         return $this->hasMany(Product::class);
     }
+
+    public function fulfillments(): HasMany
+    {
+        return $this->hasMany(OrderFulfillment::class);
+    }
 }

@@ -13,7 +13,10 @@ class Order extends Model
 
     protected function casts(): array
     {
-        return ['pickup_date' => 'date'];
+        return [
+            'pickup_date' => 'date',
+            'terms_accepted_at' => 'datetime',
+        ];
     }
 
     public function buyer(): BelongsTo
@@ -24,6 +27,11 @@ class Order extends Model
     public function items(): HasMany
     {
         return $this->hasMany(OrderItem::class);
+    }
+
+    public function fulfillments(): HasMany
+    {
+        return $this->hasMany(OrderFulfillment::class);
     }
 
     public function payment(): HasOne
