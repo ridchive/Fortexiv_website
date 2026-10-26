@@ -15,7 +15,7 @@ class MarketplaceTest extends TestCase
 {
     use RefreshDatabase;
 
-    public function test_homepage_uses_fortexiv_project_showcase_and_only_published_in_stock_products(): void
+    public function test_homepage_shows_project_showcase_without_product_catalog(): void
     {
         $seller = $this->seller();
         Product::create(['seller_id' => $seller->id, 'name' => 'Published tote', 'slug' => 'published-tote', 'description' => 'Handmade tote', 'price' => 14000, 'stock' => 2, 'status' => 'published']);
@@ -25,8 +25,10 @@ class MarketplaceTest extends TestCase
         $this->get(route('home'))
             ->assertOk()
             ->assertSee('What students are building this term')
-            ->assertSee('Published tote')
-            ->assertSee('Rp 14.000')
+            ->assertDontSee('Product marketplace')
+            ->assertDontSee('Search products')
+            ->assertDontSee('<a class="product-card"', false)
+            ->assertDontSee('Published tote')
             ->assertDontSee('Draft mug')
             ->assertDontSee('Sold out card');
 

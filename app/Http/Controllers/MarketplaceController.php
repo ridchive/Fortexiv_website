@@ -3,7 +3,6 @@
 namespace App\Http\Controllers;
 
 use App\Models\CartItem;
-use App\Models\Category;
 use App\Models\Order;
 use App\Models\Product;
 use App\Models\Project;
@@ -16,22 +15,10 @@ use Illuminate\View\View;
 
 class MarketplaceController extends Controller
 {
-    public function home(Request $request): View
+    public function home(): View
     {
-        $products = Product::query()
-            ->with(['seller', 'category', 'project'])
-            ->where('status', 'published')
-            ->where('stock', '>', 0)
-            ->when($request->string('search')->trim()->toString(), fn ($query, $search) => $query->where('name', 'like', "%{$search}%"))
-            ->when($request->integer('category'), fn ($query, $category) => $query->where('category_id', $category))
-            ->latest()
-            ->paginate(12)
-            ->withQueryString();
-
         return view('marketplace.home', [
             'projects' => Project::query()->where('is_published', true)->orderBy('id')->get(),
-            'products' => $products,
-            'categories' => Category::orderBy('name')->get(),
         ]);
     }
 
