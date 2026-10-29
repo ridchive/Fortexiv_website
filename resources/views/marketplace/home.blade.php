@@ -165,15 +165,17 @@
   let autoPlayId = null;
 
   const renderSlide = (nextIndex) => {
+    const direction = nextIndex >= activeIndex ? 'forward' : 'backward';
+    const hasChanged = nextIndex !== activeIndex;
     activeIndex = nextIndex;
 
     slides.forEach((slide, index) => {
-      slide.classList.remove('is-entering');
+      slide.classList.remove('is-entering-forward', 'is-entering-backward');
       slide.hidden = index !== activeIndex;
 
-      if (index === activeIndex) {
+      if (index === activeIndex && hasChanged) {
         void slide.offsetWidth;
-        slide.classList.add('is-entering');
+        slide.classList.add(`is-entering-${direction}`);
       }
     });
 

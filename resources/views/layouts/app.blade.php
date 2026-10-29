@@ -306,13 +306,18 @@
     .hero-carousel { position: relative; display: grid; grid-template-areas: "slide"; height: 460px; }
     .hero { grid-area: slide; height: 100%; min-height: 0; }
     .hero[hidden] { display: none; }
-    .hero.is-entering { animation: hero-enter .45s ease-out both; }
-    @keyframes hero-enter {
-      from { opacity: 0; transform: translateX(18px); }
+    .hero.is-entering-forward { animation: hero-enter-forward .65s ease-out both; }
+    .hero.is-entering-backward { animation: hero-enter-backward .65s ease-out both; }
+    @keyframes hero-enter-forward {
+      from { opacity: 0; transform: translateX(72px); }
+      to { opacity: 1; transform: translateX(0); }
+    }
+    @keyframes hero-enter-backward {
+      from { opacity: 0; transform: translateX(-72px); }
       to { opacity: 1; transform: translateX(0); }
     }
     @media (prefers-reduced-motion: reduce) {
-      .hero.is-entering { animation: none; }
+      .hero.is-entering-forward, .hero.is-entering-backward { animation: none; }
     }
     .hero .tx { display: flex; flex-direction: column; justify-content: center; gap: 16px; padding: clamp(24px, 4vw, 48px); }
     .hero .tx p { max-width: 46ch; color: inherit; font-size: 1.05rem; }
