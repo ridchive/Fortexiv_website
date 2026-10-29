@@ -77,7 +77,8 @@
 <section class="sec-b" style="margin-top:28px">
   <div class="wrap">
     <div class="sec-h"><h2>Cerita dari kelas</h2><a class="btn sec sm" href="{{ route('projects.index') }}">Semua proyek</a></div>
-    <div class="grid3">
+    <p class="story-scroll-hint">Geser ke samping untuk melihat cerita lainnya</p>
+    <div class="grid3 story-carousel" role="region" aria-label="Cerita dari kelas, geser ke samping untuk melihat proyek lain" tabindex="0">
       @forelse($projects->take(3) as $project)
         <a class="story" href="{{ route('projects.show', $project) }}">
           <div class="im">@include('marketplace.partials.project-art', ['project' => $project])</div>
@@ -160,19 +161,63 @@
 
   const slides = [...carousel.querySelectorAll('[data-hero-slide]')];
   const controls = [...carousel.querySelectorAll('[data-hero-index]')];
+  let activeIndex = 0;
+  let autoPlayId = null;
+
+  const renderSlide = (nextIndex) => {
+    activeIndex = nextIndex;
+
+    slides.forEach((slide, index) => {
+      slide.classList.remove('is-entering');
+      slide.hidden = index !== activeIndex;
+
+      if (index === activeIndex) {
+        void slide.offsetWidth;
+        slide.classList.add('is-entering');
+      }
+    });
+
+    controls.forEach((button, index) => {
+      button.setAttribute('aria-pressed', index === activeIndex ? 'true' : 'false');
+    });
+  };
+
+  const stopAutoPlay = () => {
+    if (!autoPlayId) {
+      return;
+    }
+
+    window.clearInterval(autoPlayId);
+    autoPlayId = null;
+  };
+
+  const startAutoPlay = () => {
+    if (slides.length <= 1 || autoPlayId) {
+      return;
+    }
+
+    autoPlayId = window.setInterval(() => {
+      const nextIndex = (activeIndex + 1) % slides.length;
+      renderSlide(nextIndex);
+    }, 4500);
+  };
 
   controls.forEach((control) => {
     control.addEventListener('click', () => {
-      const activeIndex = Number(control.dataset.heroIndex);
-
-      slides.forEach((slide, index) => {
-        slide.hidden = index !== activeIndex;
-      });
-      controls.forEach((button, index) => {
-        button.setAttribute('aria-pressed', index === activeIndex ? 'true' : 'false');
-      });
+      const nextIndex = Number(control.dataset.heroIndex);
+      renderSlide(nextIndex);
+      stopAutoPlay();
+      startAutoPlay();
     });
   });
+
+  carousel.addEventListener('mouseenter', stopAutoPlay);
+  carousel.addEventListener('mouseleave', startAutoPlay);
+  carousel.addEventListener('focusin', stopAutoPlay);
+  carousel.addEventListener('focusout', startAutoPlay);
+
+  renderSlide(activeIndex);
+  startAutoPlay();
 })();
 </script>
 @endpush
