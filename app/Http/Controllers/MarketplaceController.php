@@ -106,9 +106,13 @@ class MarketplaceController extends Controller
         ]);
     }
 
-    public function help(): View
+    public function help(Request $request): View
     {
-        return view('marketplace.help');
+        return view('marketplace.help', [
+            'activeSection' => in_array($request->query('section'), ['cara-memesan', 'pengambilan-barang'], true)
+                ? $request->query('section')
+                : 'cara-memesan',
+        ]);
     }
 
     public function terms(): View

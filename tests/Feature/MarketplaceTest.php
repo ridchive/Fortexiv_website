@@ -545,7 +545,7 @@ class MarketplaceTest extends TestCase
     public function test_buyer_seller_and_admin_pages_render_for_their_own_roles(): void
     {
         $buyer = User::factory()->create();
-        $this->get(route('help'))->assertOk()->assertSee('pertanyaan umum');
+        $this->get(route('help'))->assertOk()->assertSee('pertanyaan umum')->assertSee('Cara memesan')->assertSee('Pengambilan barang');
         $this->get(route('terms'))->assertOk()->assertSee('Terms of Service');
         $this->actingAs($buyer)->get(route('account'))->assertOk()->assertSee('Account information');
         $this->actingAs($buyer)->get(route('cart.index'))->assertOk();
@@ -558,7 +558,7 @@ class MarketplaceTest extends TestCase
         $this->actingAs($seller->user)->get(route('seller.orders'))->assertOk();
 
         $admin = User::factory()->create(['role' => 'admin']);
-        $this->actingAs($admin)->get(route('admin.dashboard'))->assertOk();
+        $this->actingAs($admin)->get(route('admin.dashboard'))->assertOk()->assertSee('Daftar Order');
         $this->actingAs($admin)->get(route('admin.payments'))->assertOk();
         $this->actingAs($admin)->get(route('admin.users'))->assertOk();
         $this->actingAs($admin)->get(route('admin.pickup'))->assertOk();

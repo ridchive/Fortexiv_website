@@ -26,6 +26,7 @@ class AdminController extends Controller
             'buyersCount' => User::where('role', 'buyer')->count(),
             'productsSold' => OrderItem::whereHas('order', fn ($query) => $query->whereIn('status', ['paid', 'partially_picked_up', 'picked_up']))->sum('quantity'),
             'payments' => Payment::with('order.buyer')->where('status', 'pending')->latest()->limit(6)->get(),
+            'orders' => Order::query()->with(['buyer', 'payment', 'items.seller.project'])->latest()->limit(12)->get(),
         ]);
     }
 

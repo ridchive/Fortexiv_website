@@ -77,6 +77,7 @@
 <section class="sec-b" style="margin-top:28px">
   <div class="wrap">
     <div class="sec-h"><h2>Cerita dari kelas</h2><a class="btn sec sm" href="{{ route('projects.index') }}">Semua proyek</a></div>
+    <p class="story-scroll-hint">Geser ke samping untuk melihat cerita lainnya</p>
     <div class="story-strip" role="region" aria-label="Cerita proyek kelas" tabindex="0">
       @forelse($projects as $project)
         <a class="story" href="{{ route('projects.show', $project) }}">
@@ -160,19 +161,100 @@
 
   const slides = [...carousel.querySelectorAll('[data-hero-slide]')];
   const controls = [...carousel.querySelectorAll('[data-hero-index]')];
+  const reducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)');
+  const slideDuration = 4500;
+  let activeIndex = Math.max(slides.findIndex((slide) => !slide.hidden), 0);
+  let autoPlayId = null;
+  let pointerInside = false;
+  let focusInside = false;
 
+  const stopAutoPlay = () => {
+    if (autoPlayId !== null) {
+      window.clearInterval(autoPlayId);
+      autoPlayId = null;
+    }
+  };
+
+  const startAutoPlay = () => {
+    if (slides.length < 2 || reducedMotion.matches || document.hidden || pointerInside || focusInside || autoPlayId !== null) {
+      return;
+    }
+
+    autoPlayId = window.setInterval(() => {
+      renderSlide((activeIndex + 1) % slides.length, true, 'forward');
+    }, slideDuration);
+  };
+
+  const renderSlide = (nextIndex, animate = true, requestedDirection = null) => {
+    const hasChanged = nextIndex !== activeIndex;
+    const direction = requestedDirection ?? (nextIndex > activeIndex ? 'forward' : 'backward');
+    activeIndex = nextIndex;
+
+    slides.forEach((slide, index) => {
+      slide.classList.remove('is-entering-forward', 'is-entering-backward');
+      slide.hidden = index !== activeIndex;
+
+      if (index === activeIndex && hasChanged && animate && !reducedMotion.matches) {
+        void slide.offsetWidth;
+        slide.classList.add(`is-entering-${direction}`);
+      }
+    });
+
+    controls.forEach((button, index) => {
+      button.setAttribute('aria-pressed', index === activeIndex ? 'true' : 'false');
+    });
+  };
   controls.forEach((control) => {
     control.addEventListener('click', () => {
-      const activeIndex = Number(control.dataset.heroIndex);
+      const nextIndex = Number(control.dataset.heroIndex);
+      if (!Number.isInteger(nextIndex) || nextIndex < 0 || nextIndex >= slides.length) {
+        return;
+      }
 
-      slides.forEach((slide, index) => {
-        slide.hidden = index !== activeIndex;
-      });
-      controls.forEach((button, index) => {
-        button.setAttribute('aria-pressed', index === activeIndex ? 'true' : 'false');
-      });
+      renderSlide(nextIndex);
+      stopAutoPlay();
+      startAutoPlay();
     });
   });
+
+  carousel.addEventListener('mouseenter', () => {
+    pointerInside = true;
+    stopAutoPlay();
+  });
+  carousel.addEventListener('mouseleave', () => {
+    pointerInside = false;
+    startAutoPlay();
+  });
+  carousel.addEventListener('focusin', () => {
+    focusInside = true;
+    stopAutoPlay();
+  });
+  carousel.addEventListener('focusout', (event) => {
+    if (!carousel.contains(event.relatedTarget)) {
+      focusInside = false;
+      startAutoPlay();
+    }
+  });
+
+  document.addEventListener('visibilitychange', () => {
+    if (document.hidden) {
+      stopAutoPlay();
+    } else {
+      startAutoPlay();
+    }
+  });
+
+  reducedMotion.addEventListener('change', () => {
+    if (reducedMotion.matches) {
+      stopAutoPlay();
+      slides.forEach((slide) => slide.classList.remove('is-entering-forward', 'is-entering-backward'));
+    } else {
+      startAutoPlay();
+    }
+  });
+
+  renderSlide(activeIndex, false);
+  startAutoPlay();
 })();
 </script>
 @endpush

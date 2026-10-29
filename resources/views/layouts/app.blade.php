@@ -1,5 +1,5 @@
 <!doctype html>
-<html lang="id">
+<html lang="id" data-theme="dark">
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
@@ -95,7 +95,7 @@
     .seller { margin-top: 2px; font-size: 13px; }
     .product-row { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-top: auto; padding-top: 14px; }
     .price { color: #315B2D; font-weight: 800; }
-    .btn { display: inline-flex; min-height: 42px; justify-content: center; align-items: center; gap: 8px; padding: 10px 18px; border: 1px solid var(--dark); border-radius: 999px; background: var(--dark); color: var(--dark-ink); text-decoration: none; font-size: 14px; font-weight: 700; cursor: pointer; }
+    .btn { display: inline-flex; min-height: 36px; justify-content: center; align-items: center; gap: 8px; padding: 8px 12px; border: 1px solid var(--dark); border-radius: 999px; background: var(--dark); color: var(--dark-ink); text-decoration: none; font-size: 13px; font-weight: 700; cursor: pointer; }
     .btn:hover { background: #2C3A2C; }
     .btn:disabled, .btn.off { opacity: .48; cursor: not-allowed; }
     .btn.sec { border-color: var(--line); background: var(--soft); color: var(--ink); }
@@ -178,16 +178,37 @@
     .receipt { white-space: pre-wrap; word-break: break-word; }
     .inline-form { display: inline-flex; align-items: center; gap: 7px; }
     .inline-form .input { width: auto; }
-    .steps { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; }
+    .steps { display: grid; grid-template-columns: 1fr; gap: 12px; }
     .step { padding: 18px; border: 1px solid var(--line); border-radius: var(--radius); background: var(--surface); }
     .step-number { display: grid; width: 32px; height: 32px; place-items: center; margin-bottom: 10px; border-radius: 50%; background: var(--lime); color: var(--lime-ink); font-weight: 800; }
+    .group-status { display: flex; flex-direction: column; gap: 2px; padding: 4px 0; }
+    .group-status strong { font-size: 11px; }
+    .group-status span { color: var(--muted); font-size: 11px; }
     .project-story { max-width: 760px; }
     .project-story ol { padding-left: 24px; }
     .project-story li { margin: 9px 0; padding-left: 4px; }
-    @media (min-width: 760px) {
+    .help-steps { margin-top: 18px; counter-reset: help-step; }
+    .help-steps li { padding-top: 12px; border-top: 2px solid var(--ink); list-style: none; counter-increment: help-step; }
+    .help-steps li::before { display: block; margin-bottom: 8px; color: var(--good); content: counter(help-step); font: 800 1.6rem var(--fd); }
+    .help-steps h3 { margin-bottom: 6px; }
+    @media (min-width: 768px) {
       .nav-inner { grid-template-columns: auto minmax(200px, 1fr) auto; }
       .nav-search { grid-column: 2; grid-row: 1; }
       .nav-actions { grid-column: 3; grid-row: 1; }
+      .hero { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); }
+      .hero .pic { order: 0; }
+      .grid3 { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+      .split { grid-template-columns: minmax(0, 1fr) minmax(0, 1.15fr); }
+      .steps, .help-steps { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+      .ft .cols { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+      .btn { padding: 10px 16px; font-size: .95rem; }
+    }
+    @media (min-width: 1024px) {
+      .grid3 { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+      .steps, .help-steps { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+      .ft .cols { grid-template-columns: 1.6fr repeat(3, minmax(0, 1fr)); }
+      .hero { min-height: 430px; }
+    }
       .nav-links { grid-column: 1 / -1; }
     }
     @media (max-width: 700px) {
@@ -281,17 +302,33 @@
     .umenu .pop a, .umenu .pop button { display: flex; width: 100%; align-items: center; gap: 8px; padding: 9px 10px; border: 0; border-radius: 6px; background: transparent; color: var(--ink); text-align: left; text-decoration: none; cursor: pointer; }
     .umenu .pop a:hover, .umenu .pop button:hover { background: var(--soft); }
     .umenu .who { margin-bottom: 6px; padding: 8px 10px; border-bottom: 1px solid var(--line); }
-    .hero { position: relative; display: grid; min-height: 340px; grid-template-columns: 1.05fr 1fr; gap: 0; margin: 0; padding: 0; overflow: hidden; border-radius: 12px; background: var(--lime); color: var(--lime-ink); }
-    .hero-carousel { position: relative; }
+    .hero { position: relative; display: grid; grid-area: slide; height: 100%; min-width: 0; min-height: 0; grid-template-columns: minmax(0, 1.05fr) minmax(0, 1fr); align-items: stretch; gap: 0; margin: 0; padding: 0; overflow: hidden; border-radius: 12px; background: var(--lime); color: var(--lime-ink); }
+    .hero-carousel { position: relative; display: grid; height: clamp(430px, 32vw, 460px); grid-template-areas: "slide"; overflow: hidden; border-radius: 12px; }
     .hero[hidden] { display: none; }
+    .hero.is-entering-forward { animation: hero-enter-forward .65s ease-out both; }
+    .hero.is-entering-backward { animation: hero-enter-backward .65s ease-out both; }
+    @keyframes hero-enter-forward {
+      from { opacity: 0; transform: translateX(48px); }
+      to { opacity: 1; transform: translateX(0); }
+    }
+    @keyframes hero-enter-backward {
+      from { opacity: 0; transform: translateX(-48px); }
+      to { opacity: 1; transform: translateX(0); }
+    }
+    @media (prefers-reduced-motion: reduce) {
+      .hero.is-entering-forward, .hero.is-entering-backward { animation: none; }
+    }
     .hero .tx { display: flex; flex-direction: column; justify-content: center; gap: 16px; padding: clamp(24px, 4vw, 48px); }
-    .hero .tx p { max-width: 46ch; color: inherit; font-size: 1.05rem; }
+    .hero .tx h1 { line-height: 1.06; }
+    .hero .tx p { max-width: 46ch; margin: 0; color: inherit; font-size: 1.05rem; line-height: 1.45; }
     .hero .kick { font-size: .9rem; font-weight: 600; }
-    .hero .pic { position: relative; min-height: 260px; overflow: hidden; background: var(--soft); }
+    .hero .pic { position: relative; min-width: 0; min-height: 260px; overflow: hidden; background: var(--soft); }
     .hero .main-scene { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; }
     .hero .feature-art { position: absolute; z-index: 1; width: 34%; aspect-ratio: 1; right: 6%; bottom: 9%; overflow: hidden; border: 4px solid var(--lime); border-radius: 10px; background: var(--surface); box-shadow: 0 8px 24px rgba(10,40,10,.25); }
     .hero .feature-art.secondary { width: 26%; top: 10%; right: auto; bottom: auto; left: 8%; }
     .hero .feature-art svg { width: 100%; height: 100%; }
+    .hero .btns { gap: 8px; }
+    .hero .btn { min-height: 42px; padding: 9px 13px; font-size: .9rem; }
     .hero .dots { position: absolute; bottom: 16px; left: clamp(24px, 4vw, 48px); z-index: 2; display: flex; gap: 8px; }
     .hero .dots button { width: 26px; height: 6px; padding: 0; border: 0; border-radius: 3px; background: rgba(22,48,26,.3); cursor: pointer; }
     .hero .dots button[aria-pressed="true"] { background: var(--lime-ink); }
@@ -310,6 +347,7 @@
     .story:hover .im svg { transform: scale(1.03); }
     .story h3 { font-size: 1.05rem; }
     .story p { color: var(--muted); }
+    .story-scroll-hint { display: none; }
     .split { display: grid; grid-template-columns: 1fr 1.15fr; align-items: center; gap: clamp(24px, 5vw, 64px); }
     .split .big { aspect-ratio: 4/3; overflow: hidden; border-radius: 6px; background: var(--soft); }
     .split .big svg { display: block; width: 100%; height: 100%; }
@@ -355,6 +393,7 @@
     .ft a:hover { color: var(--ink); }
     .main-nav { grid-column: 1 / -1; }
     @media (max-width: 960px) {
+      .hero-carousel { height: clamp(380px, 50vw, 460px); }
       .grid3, .steps { grid-template-columns: repeat(2, minmax(0, 1fr)); }
       .story-strip { grid-auto-columns: minmax(240px, 42vw); }
       .ft .cols { grid-template-columns: repeat(2, minmax(0, 1fr)); }
@@ -362,12 +401,19 @@
     @media (max-width: 720px) {
       .hd { grid-template-columns: 1fr auto; }
       .hsearch { grid-column: 1 / -1; order: 3; max-width: none; }
-      .hero { grid-template-columns: minmax(0, 1fr); }
-      .hero .pic { min-height: 200px; order: -1; }
-      .hero .tx { padding-bottom: 50px; }
+      .hero-carousel { height: clamp(482px, 116vw, 520px); }
+      .hero { grid-template-columns: minmax(0, 1fr); grid-template-rows: clamp(145px, 43vw, 180px) minmax(0, 1fr); }
+      .hero .pic { grid-row: 1; min-height: 0; }
+      .hero .tx { grid-row: 2; align-items: flex-start; gap: 10px; padding: 16px 18px 42px; }
+      .hero .tx h1 { font-size: clamp(1.65rem, 7vw, 2rem); line-height: 1.04; }
+      .hero .tx p { max-width: 42ch; font-size: .94rem; line-height: 1.42; }
+      .hero .kick { font-size: .8rem; }
+      .hero .btn { min-height: 40px; padding: 8px 12px; font-size: .84rem; }
+      .hero-dots { bottom: 14px; left: 18px; }
       .split { grid-template-columns: minmax(0, 1fr); }
       .grid3, .steps { grid-template-columns: minmax(0, 1fr); }
       .story-strip { grid-auto-columns: minmax(240px, min(82vw, 320px)); }
+      .story-scroll-hint { display: block; margin: -10px 0 14px; color: var(--muted); font-size: .85rem; }
       .ft .cols { grid-template-columns: repeat(2, minmax(0, 1fr)); }
     }
     @media (max-width: 480px) {
@@ -447,7 +493,7 @@
         <p class="small muted" style="margin-top:10px">Kontak contoh: <span class="code">bantuan-contoh@fortexiv.test</span></p>
       </div>
       <div><h4>Jelajahi</h4><ul><li><a href="{{ route('projects.index') }}">Proyek kelas</a></li><li><a href="{{ route('catalog.index') }}">Katalog produk</a></li><li><a href="{{ route('home') }}">Beranda</a></li></ul></div>
-      <div><h4>Bantuan</h4><ul><li><a href="{{ route('help') }}">Cara memesan</a></li><li><a href="{{ route('help') }}">Pengambilan barang</a></li><li><a href="{{ route('terms') }}">Terms of Service</a></li></ul></div>
+      <div><h4>Bantuan</h4><ul><li><a href="{{ route('help', ['section' => 'cara-memesan']) }}#cara-memesan">Cara memesan</a></li><li><a href="{{ route('help', ['section' => 'pengambilan-barang']) }}#pengambilan-barang">Pengambilan barang</a></li><li><a href="{{ route('terms') }}">Terms of Service</a></li></ul></div>
       <div><h4>Akun</h4><ul><li><a href="{{ route('login') }}">Masuk</a></li><li><a href="{{ route('register') }}">Daftar</a></li>@auth @if(auth()->user()->role === 'buyer')<li><a href="{{ route('orders.index') }}">Pesanan saya</a></li>@endif @endauth</ul></div>
     </div>
   </div>
