@@ -7,6 +7,7 @@ use App\Http\Controllers\SellerController;
 use Illuminate\Support\Facades\Route;
 
 Route::get('/', [MarketplaceController::class, 'home'])->name('home');
+Route::view('/preview/mobile', 'preview.mobile')->name('preview.mobile');
 Route::get('/projects', [MarketplaceController::class, 'projects'])->name('projects.index');
 Route::get('/catalog', [MarketplaceController::class, 'catalog'])->name('catalog.index');
 Route::get('/help', [MarketplaceController::class, 'help'])->name('help');
