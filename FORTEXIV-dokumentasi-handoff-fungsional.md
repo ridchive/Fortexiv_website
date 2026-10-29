@@ -1,6 +1,6 @@
 # FORTEXIV — Handoff Kebutuhan Fungsional Website & Operasional
 
-**Versi:** 1.1  
+**Versi:** 1.2  
 **Tujuan dokumen:** arahan bersama untuk tim produk, desain, developer, admin operasional, seller/kelas, dan finance sebelum menentukan solusi teknis.  
 **Bahasa operasional:** Bahasa Indonesia.  
 **Batas dokumen:** kebutuhan pengalaman pengguna, konten, aturan bisnis, dan alur operasional. Dokumen ini sengaja **tidak** menetapkan database, API, framework, penyedia pembayaran, atau arsitektur teknis.
@@ -21,6 +21,63 @@ Semua kelas yang ikut memakai **satu jendela PO bersama**. Tidak ada pengiriman.
 - Operasional Hari H mengutamakan penyerahan yang akurat per buyer dan per kelas, bukan sekadar satu kali pemindaian QR.
 - Dana buyer, refund, dan payout seller diperlakukan sebagai proses yang berbeda.
 - Semua keputusan material dan override harus dapat ditelusuri oleh pihak yang berwenang.
+
+### Prinsip Utama: Mobile-First
+
+FORTEXIV dikembangkan dengan pendekatan **mobile-first**, karena perangkat mobile merupakan perangkat utama yang digunakan oleh target pengguna untuk mengakses website. Oleh karena itu, seluruh perancangan antarmuka, pengalaman pengguna (UX), navigasi, dan interaksi harus memprioritaskan penggunaan pada layar ponsel sebelum disesuaikan untuk tablet dan desktop.
+
+Mobile bukan sekadar versi responsif dari tampilan desktop. Pengalaman utama website harus dirancang agar nyaman, intuitif, dan berfungsi dengan baik sejak awal pada perangkat mobile.
+
+#### 1. Prioritas Pengembangan Antarmuka
+
+- **Mobile sebagai prioritas utama:** Rancang dan evaluasi setiap halaman terlebih dahulu pada layar ponsel, kemudian sesuaikan untuk layar yang lebih besar.
+- **Navigasi sederhana:** Menu, tombol, dan perpindahan halaman harus mudah dipahami serta diakses melalui layar sentuh.
+- **Konten mudah dibaca:** Artikel proyek dan cerita produk harus memiliki tipografi, jarak antarparagraf, serta tata letak yang nyaman untuk dibaca pada layar kecil.
+- **Interaksi yang nyaman:** Tombol, tautan, filter, formulir, dan kontrol kuantitas harus mudah digunakan tanpa memerlukan presisi sentuhan yang berlebihan.
+- **Alur pembelian yang ringkas:** Buyer harus dapat menjelajahi produk, menambahkan barang ke keranjang, melakukan checkout, dan memeriksa pesanan tanpa navigasi yang membingungkan.
+- **Pengambilan barang yang praktis:** Informasi pesanan dan QR pengambilan harus mudah ditemukan dan ditampilkan saat Buyer berada di lokasi acara.
+- **Dashboard yang responsif:** Seller dan Admin juga harus dapat menjalankan fungsi utama melalui perangkat mobile, meskipun pengelolaan data yang kompleks dapat lebih nyaman dilakukan melalui desktop.
+- **Performa yang diperhatikan:** Gambar, artikel, dan elemen antarmuka harus dioptimalkan agar halaman tetap nyaman digunakan pada koneksi internet yang terbatas.
+
+#### 2. Penerapan pada Setiap Bagian Website
+
+| Bagian | Persyaratan Mobile-First |
+|---|---|
+| Landing Page | Artikel dan proyek unggulan mudah ditemukan; CTA terlihat jelas; konten tersusun secara vertikal dan nyaman dibaca. |
+| Artikel/Proyek | Judul, gambar, isi artikel, dokumentasi, dan tautan produk tersusun dengan baik pada layar kecil. |
+| Katalog Produk | Kartu produk mudah dipindai; filter kelas dan kategori mudah dibuka dan digunakan; informasi harga dan stok mudah terlihat. |
+| Detail Produk | Foto, deskripsi, harga, informasi kelas, dan tombol pembelian memiliki hierarki visual yang jelas. |
+| Keranjang dan Checkout | Ringkasan pesanan, jumlah produk, total pembayaran, persetujuan ToS, dan tombol konfirmasi mudah digunakan tanpa harus melakukan zoom. |
+| My Orders | Status pembayaran dan pengambilan mudah dibedakan; detail pesanan dan QR mudah diakses. |
+| Seller Dashboard | Seller dapat melihat pesanan, memperbarui informasi produk, memeriksa stok, dan mengakses fitur pickup melalui ponsel. |
+| Admin Dashboard | Admin dapat mengakses fungsi penting seperti review produk, pengelolaan artikel, pemantauan transaksi, dan pengaturan acara melalui ponsel. |
+| Hari H | QR pickup, detail kelompok pesanan, daftar barang, dan konfirmasi penyerahan mudah digunakan melalui layar sentuh. |
+
+#### 3. Perilaku Responsif
+
+- Tata letak harus menyesuaikan ukuran layar tanpa menyebabkan konten terpotong atau meluber secara horizontal.
+- Navigasi desktop dapat disederhanakan menjadi menu mobile selama seluruh fungsi utama tetap dapat ditemukan.
+- Tabel atau data yang lebar harus disesuaikan agar tetap terbaca, misalnya dengan tampilan kartu atau pengguliran horizontal pada komponen yang memang memerlukannya.
+- Tombol dan kontrol interaktif harus dapat digunakan melalui sentuhan, bukan bergantung pada efek hover.
+- Formulir, dialog konfirmasi, dropdown, dan filter harus tetap nyaman digunakan pada layar kecil.
+- Elemen yang melekat pada layar (*sticky elements*) tidak boleh menutupi konten atau tombol penting.
+- QR pengambilan harus dapat ditampilkan dengan ukuran yang memadai untuk dipindai dari layar ponsel.
+
+#### 4. Kriteria Penerimaan
+
+Website dinyatakan memenuhi prinsip mobile-first apabila:
+
+1. Seluruh halaman utama telah dirancang dan diuji pada layar ponsel sebelum penyempurnaan desktop.
+2. Tidak terdapat *horizontal overflow* yang mengganggu penggunaan halaman pada ukuran layar kecil.
+3. Buyer dapat menyelesaikan alur utama dari menjelajahi proyek hingga melihat detail pesanan melalui ponsel.
+4. Seller dapat mengakses produk, pesanan, dan fungsi pengambilan barang melalui ponsel.
+5. Admin dapat mengakses fungsi pengelolaan utama melalui ponsel.
+6. Semua tombol dan kontrol utama dapat digunakan melalui layar sentuh tanpa bergantung pada hover.
+7. Formulir, dialog, navigasi, dan informasi status tetap terbaca serta mudah digunakan pada layar kecil.
+8. QR pengambilan dan informasi kelompok pesanan dapat ditampilkan dengan jelas pada perangkat mobile.
+9. Pengujian mencakup alur Buyer, Seller, dan Admin pada perangkat mobile serta pemeriksaan tampilan pada layar desktop.
+
+**Prinsip akhir:** Desktop tetap didukung, tetapi prioritas perancangan, pengujian pengalaman pengguna, dan penyempurnaan antarmuka FORTEXIV adalah perangkat mobile.
 
 ---
 
