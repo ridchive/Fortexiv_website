@@ -161,19 +161,40 @@
 
   const slides = [...carousel.querySelectorAll('[data-hero-slide]')];
   const controls = [...carousel.querySelectorAll('[data-hero-index]')];
-  let activeIndex = 0;
+  const reducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)');
+  const slideDuration = 4500;
+  let activeIndex = Math.max(slides.findIndex((slide) => !slide.hidden), 0);
   let autoPlayId = null;
+  let pointerInside = false;
+  let focusInside = false;
 
-  const renderSlide = (nextIndex) => {
-    const direction = nextIndex >= activeIndex ? 'forward' : 'backward';
+  const stopAutoPlay = () => {
+    if (autoPlayId !== null) {
+      window.clearInterval(autoPlayId);
+      autoPlayId = null;
+    }
+  };
+
+  const startAutoPlay = () => {
+    if (slides.length < 2 || reducedMotion.matches || document.hidden || pointerInside || focusInside || autoPlayId !== null) {
+      return;
+    }
+
+    autoPlayId = window.setInterval(() => {
+      renderSlide((activeIndex + 1) % slides.length, true, 'forward');
+    }, slideDuration);
+  };
+
+  const renderSlide = (nextIndex, animate = true, requestedDirection = null) => {
     const hasChanged = nextIndex !== activeIndex;
+    const direction = requestedDirection ?? (nextIndex > activeIndex ? 'forward' : 'backward');
     activeIndex = nextIndex;
 
     slides.forEach((slide, index) => {
       slide.classList.remove('is-entering-forward', 'is-entering-backward');
       slide.hidden = index !== activeIndex;
 
-      if (index === activeIndex && hasChanged) {
+      if (index === activeIndex && hasChanged && animate && !reducedMotion.matches) {
         void slide.offsetWidth;
         slide.classList.add(`is-entering-${direction}`);
       }
@@ -183,42 +204,56 @@
       button.setAttribute('aria-pressed', index === activeIndex ? 'true' : 'false');
     });
   };
-
-  const stopAutoPlay = () => {
-    if (!autoPlayId) {
-      return;
-    }
-
-    window.clearInterval(autoPlayId);
-    autoPlayId = null;
-  };
-
-  const startAutoPlay = () => {
-    if (slides.length <= 1 || autoPlayId) {
-      return;
-    }
-
-    autoPlayId = window.setInterval(() => {
-      const nextIndex = (activeIndex + 1) % slides.length;
-      renderSlide(nextIndex);
-    }, 4500);
-  };
-
   controls.forEach((control) => {
     control.addEventListener('click', () => {
       const nextIndex = Number(control.dataset.heroIndex);
+      if (!Number.isInteger(nextIndex) || nextIndex < 0 || nextIndex >= slides.length) {
+        return;
+      }
+
       renderSlide(nextIndex);
       stopAutoPlay();
       startAutoPlay();
     });
   });
 
-  carousel.addEventListener('mouseenter', stopAutoPlay);
-  carousel.addEventListener('mouseleave', startAutoPlay);
-  carousel.addEventListener('focusin', stopAutoPlay);
-  carousel.addEventListener('focusout', startAutoPlay);
+  carousel.addEventListener('mouseenter', () => {
+    pointerInside = true;
+    stopAutoPlay();
+  });
+  carousel.addEventListener('mouseleave', () => {
+    pointerInside = false;
+    startAutoPlay();
+  });
+  carousel.addEventListener('focusin', () => {
+    focusInside = true;
+    stopAutoPlay();
+  });
+  carousel.addEventListener('focusout', (event) => {
+    if (!carousel.contains(event.relatedTarget)) {
+      focusInside = false;
+      startAutoPlay();
+    }
+  });
 
-  renderSlide(activeIndex);
+  document.addEventListener('visibilitychange', () => {
+    if (document.hidden) {
+      stopAutoPlay();
+    } else {
+      startAutoPlay();
+    }
+  });
+
+  reducedMotion.addEventListener('change', () => {
+    if (reducedMotion.matches) {
+      stopAutoPlay();
+      slides.forEach((slide) => slide.classList.remove('is-entering-forward', 'is-entering-backward'));
+    } else {
+      startAutoPlay();
+    }
+  });
+
+  renderSlide(activeIndex, false);
   startAutoPlay();
 })();
 </script>

@@ -302,31 +302,33 @@
     .umenu .pop a, .umenu .pop button { display: flex; width: 100%; align-items: center; gap: 8px; padding: 9px 10px; border: 0; border-radius: 6px; background: transparent; color: var(--ink); text-align: left; text-decoration: none; cursor: pointer; }
     .umenu .pop a:hover, .umenu .pop button:hover { background: var(--soft); }
     .umenu .who { margin-bottom: 6px; padding: 8px 10px; border-bottom: 1px solid var(--line); }
-    .hero { position: relative; display: grid; min-height: 340px; grid-template-columns: 1.05fr 1fr; gap: 0; margin: 0; padding: 0; overflow: hidden; border-radius: 12px; background: var(--lime); color: var(--lime-ink); }
-    .hero-carousel { position: relative; display: grid; grid-template-areas: "slide"; height: 460px; }
-    .hero { grid-area: slide; height: 100%; min-height: 0; }
+    .hero { position: relative; display: grid; grid-area: slide; height: 100%; min-width: 0; min-height: 0; grid-template-columns: minmax(0, 1.05fr) minmax(0, 1fr); align-items: stretch; gap: 0; margin: 0; padding: 0; overflow: hidden; border-radius: 12px; background: var(--lime); color: var(--lime-ink); }
+    .hero-carousel { position: relative; display: grid; height: clamp(430px, 32vw, 460px); grid-template-areas: "slide"; overflow: hidden; border-radius: 12px; }
     .hero[hidden] { display: none; }
     .hero.is-entering-forward { animation: hero-enter-forward .65s ease-out both; }
     .hero.is-entering-backward { animation: hero-enter-backward .65s ease-out both; }
     @keyframes hero-enter-forward {
-      from { opacity: 0; transform: translateX(72px); }
+      from { opacity: 0; transform: translateX(48px); }
       to { opacity: 1; transform: translateX(0); }
     }
     @keyframes hero-enter-backward {
-      from { opacity: 0; transform: translateX(-72px); }
+      from { opacity: 0; transform: translateX(-48px); }
       to { opacity: 1; transform: translateX(0); }
     }
     @media (prefers-reduced-motion: reduce) {
       .hero.is-entering-forward, .hero.is-entering-backward { animation: none; }
     }
     .hero .tx { display: flex; flex-direction: column; justify-content: center; gap: 16px; padding: clamp(24px, 4vw, 48px); }
-    .hero .tx p { max-width: 46ch; color: inherit; font-size: 1.05rem; }
+    .hero .tx h1 { line-height: 1.06; }
+    .hero .tx p { max-width: 46ch; margin: 0; color: inherit; font-size: 1.05rem; line-height: 1.45; }
     .hero .kick { font-size: .9rem; font-weight: 600; }
-    .hero .pic { position: relative; min-height: 260px; overflow: hidden; background: var(--soft); }
+    .hero .pic { position: relative; min-width: 0; min-height: 260px; overflow: hidden; background: var(--soft); }
     .hero .main-scene { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; }
     .hero .feature-art { position: absolute; z-index: 1; width: 34%; aspect-ratio: 1; right: 6%; bottom: 9%; overflow: hidden; border: 4px solid var(--lime); border-radius: 10px; background: var(--surface); box-shadow: 0 8px 24px rgba(10,40,10,.25); }
     .hero .feature-art.secondary { width: 26%; top: 10%; right: auto; bottom: auto; left: 8%; }
     .hero .feature-art svg { width: 100%; height: 100%; }
+    .hero .btns { gap: 8px; }
+    .hero .btn { min-height: 42px; padding: 9px 13px; font-size: .9rem; }
     .hero .dots { position: absolute; bottom: 16px; left: clamp(24px, 4vw, 48px); z-index: 2; display: flex; gap: 8px; }
     .hero .dots button { width: 26px; height: 6px; padding: 0; border: 0; border-radius: 3px; background: rgba(22,48,26,.3); cursor: pointer; }
     .hero .dots button[aria-pressed="true"] { background: var(--lime-ink); }
@@ -389,17 +391,22 @@
     .ft a:hover { color: var(--ink); }
     .main-nav { grid-column: 1 / -1; }
     @media (max-width: 960px) {
-      .hero-carousel { height: 560px; }
+      .hero-carousel { height: clamp(380px, 50vw, 460px); }
       .grid3, .steps { grid-template-columns: repeat(2, minmax(0, 1fr)); }
       .ft .cols { grid-template-columns: repeat(2, minmax(0, 1fr)); }
     }
     @media (max-width: 720px) {
       .hd { grid-template-columns: 1fr auto; }
       .hsearch { grid-column: 1 / -1; order: 3; max-width: none; }
-      .hero-carousel { height: 700px; }
-      .hero { grid-template-columns: minmax(0, 1fr); grid-template-rows: 200px minmax(0, 1fr); }
-      .hero .pic { min-height: 200px; order: -1; }
-      .hero .tx { padding-bottom: 50px; }
+      .hero-carousel { height: clamp(482px, 116vw, 520px); }
+      .hero { grid-template-columns: minmax(0, 1fr); grid-template-rows: clamp(145px, 43vw, 180px) minmax(0, 1fr); }
+      .hero .pic { grid-row: 1; min-height: 0; }
+      .hero .tx { grid-row: 2; align-items: flex-start; gap: 10px; padding: 16px 18px 42px; }
+      .hero .tx h1 { font-size: clamp(1.65rem, 7vw, 2rem); line-height: 1.04; }
+      .hero .tx p { max-width: 42ch; font-size: .94rem; line-height: 1.42; }
+      .hero .kick { font-size: .8rem; }
+      .hero .btn { min-height: 40px; padding: 8px 12px; font-size: .84rem; }
+      .hero-dots { bottom: 14px; left: 18px; }
       .split { grid-template-columns: minmax(0, 1fr); }
       .grid3, .steps { grid-template-columns: minmax(0, 1fr); }
       .story-scroll-hint { display: block; margin: -10px 0 14px; color: var(--muted); font-size: .85rem; }
