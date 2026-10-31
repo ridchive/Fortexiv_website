@@ -416,6 +416,10 @@
       .story-scroll-hint { display: block; margin: -10px 0 14px; color: var(--muted); font-size: .85rem; }
       .ft .cols { grid-template-columns: repeat(2, minmax(0, 1fr)); }
     }
+    @media (max-width: 600px) {
+      .pcard .pim { height: clamp(128px, 40vw, 160px); aspect-ratio: auto; }
+      .pcard .pim > img { object-fit: contain; }
+    }
     @media (max-width: 480px) {
       .ft .cols { grid-template-columns: minmax(0, 1fr); }
     }
