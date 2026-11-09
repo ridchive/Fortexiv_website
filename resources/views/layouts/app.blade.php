@@ -417,7 +417,8 @@
       .ft .cols { grid-template-columns: repeat(2, minmax(0, 1fr)); }
     }
     @media (max-width: 600px) {
-      .pcard .pim { height: clamp(128px, 40vw, 160px); aspect-ratio: auto; }
+      .grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+      .pcard .pim { height: clamp(96px, 32vw, 128px); aspect-ratio: auto; }
       .pcard .pim > img { object-fit: contain; }
     }
     @media (max-width: 480px) {
