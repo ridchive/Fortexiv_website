@@ -27,10 +27,10 @@
     <p class="preview-label">PRATINJAU RESPONSIF</p>
     <h1>Tampilan FORTEXIV di HP</h1>
     <p class="preview-copy">Situs ditampilkan pada lebar layar ponsel. Gunakan navigasi di dalam bingkai untuk melihat halaman lain.</p>
-    <a class="preview-link" href="{{ route('home') }}" target="_blank" rel="noopener">Buka situs di tab baru</a>
+    <a class="preview-link" href="{{ route('catalog.index') }}" target="_blank" rel="noopener">Buka katalog di tab baru</a>
   </header>
   <div class="phone-frame">
-    <iframe src="{{ route('home') }}" title="Pratinjau situs FORTEXIV pada layar ponsel"></iframe>
+      <iframe src="{{ route('catalog.index') }}" title="Pratinjau katalog FORTEXIV pada layar ponsel"></iframe>
   </div>
 </main>
 </body>

@@ -56,7 +56,7 @@
     @endif
   </div>
 
-  <div class="grid">
+  <div class="grid catalog-grid">
     @forelse($products as $product)
       @include('marketplace.partials.product-card', ['product' => $product, 'window' => $window])
     @empty

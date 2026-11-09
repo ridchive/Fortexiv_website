@@ -209,8 +209,6 @@
       .ft .cols { grid-template-columns: 1.6fr repeat(3, minmax(0, 1fr)); }
       .hero { min-height: 430px; }
     }
-      .nav-links { grid-column: 1 / -1; }
-    }
     @media (max-width: 700px) {
       .nav-inner { padding: 13px 16px; }
       .app { width: min(100% - 28px, 1200px); padding-top: 20px; }
@@ -417,9 +415,9 @@
       .ft .cols { grid-template-columns: repeat(2, minmax(0, 1fr)); }
     }
     @media (max-width: 600px) {
-      .grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
-      .pcard .pim { height: clamp(96px, 32vw, 128px); aspect-ratio: auto; }
-      .pcard .pim > img { object-fit: contain; }
+      .catalog-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+      .catalog-grid .pcard .pim { height: clamp(88px, 28vw, 112px); aspect-ratio: auto; }
+      .catalog-grid .pcard .pim > img { object-fit: contain; }
     }
     @media (max-width: 480px) {
       .ft .cols { grid-template-columns: minmax(0, 1fr); }
