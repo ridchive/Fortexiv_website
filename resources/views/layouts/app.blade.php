@@ -416,8 +416,8 @@
     }
     @media (max-width: 600px) {
       .catalog-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
-      .catalog-grid .pcard .pim { height: clamp(88px, 28vw, 112px); aspect-ratio: auto; }
-      .catalog-grid .pcard .pim > img { object-fit: contain; }
+      .pcard .pim { height: clamp(88px, 28vw, 112px); aspect-ratio: auto; }
+      .pcard .pim > img { object-fit: contain; }
     }
     @media (max-width: 480px) {
       .ft .cols { grid-template-columns: minmax(0, 1fr); }
