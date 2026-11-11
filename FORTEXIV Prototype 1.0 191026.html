@@ -263,6 +263,11 @@ details.faq p{margin-top:8px;color:var(--muted);max-width:70ch}
   .hero .pic{min-height:200px;order:-1}
   .hero .tx{padding-bottom:50px}
   .grid3,.grid2,.split,.pd,.loginwrap,.rolecards,.frm2{grid-template-columns:minmax(0,1fr)}
+  .catalog-grid{grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}
+  .catalog-grid .pcard{gap:8px}
+  .catalog-grid .pcard .pim{height:clamp(100px,28vw,130px);aspect-ratio:auto}
+  .catalog-grid .pcard .pim img{object-fit:contain}
+  .catalog-grid .pcard h3{font-size:1rem}
   .story-strip>.story{flex-basis:100%}
   .cart-i{grid-template-columns:64px 1fr}
   .cart-i img{width:64px;height:64px}
@@ -271,6 +276,7 @@ details.faq p{margin-top:8px;color:var(--muted);max-width:70ch}
 }
 @media (max-width:480px){
   .grid4{grid-template-columns:minmax(0,1fr)}
+  .grid4.catalog-grid{grid-template-columns:repeat(2,minmax(0,1fr))}
   .steps{grid-template-columns:minmax(0,1fr)}
   .ft .cols{grid-template-columns:minmax(0,1fr)}
 }
@@ -752,7 +758,7 @@ function filterProducts(){
 }
 function productGrid(){
   const l=filterProducts();
-  return `<p class="muted small" style="margin-bottom:12px">${l.length} produk ditemukan</p>`+(l.length?`<div class="grid4">${l.map(p=>pcard(p,{add:true})).join('')}</div>`:emptyBox('Tidak ada produk yang cocok','Ubah kata kunci atau filter untuk melihat produk lain.',`<button class="btn" data-act="clearFilters">Reset filter</button>`));
+  return `<p class="muted small" style="margin-bottom:12px">${l.length} produk ditemukan</p>`+(l.length?`<div class="grid4 catalog-grid">${l.map(p=>pcard(p,{add:true})).join('')}</div>`:emptyBox('Tidak ada produk yang cocok','Ubah kata kunci atau filter untuk melihat produk lain.',`<button class="btn" data-act="clearFilters">Reset filter</button>`));
 }
 function viewCatalog(){
   if(freshNav){CF.q='';CF.kelas='';CF.kat='';CF.stok=''}
