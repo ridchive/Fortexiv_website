@@ -413,11 +413,9 @@
       .story-strip { grid-auto-columns: minmax(240px, min(82vw, 320px)); }
       .story-scroll-hint { display: block; margin: -10px 0 14px; color: var(--muted); font-size: .85rem; }
       .ft .cols { grid-template-columns: repeat(2, minmax(0, 1fr)); }
-    }
-    @media (max-width: 720px) {
       .catalog-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; }
       .catalog-grid .pcard { gap: 8px; }
-      .catalog-grid .pcard .pim { height: clamp(88px, 24vw, 120px); aspect-ratio: auto; }
+      .catalog-grid .pcard .pim { height: clamp(100px, 28vw, 130px); aspect-ratio: auto; }
       .catalog-grid .pcard .pim > img { object-fit: contain; }
       .catalog-grid .pcard h3 { font-size: 1rem; }
       .catalog-grid .pcard h3 a,
