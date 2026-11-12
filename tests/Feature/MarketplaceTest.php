@@ -33,9 +33,9 @@ class MarketplaceTest extends TestCase
             'outcome' => 'A project outcome.',
         ]);
         $seller = $this->seller();
-        Product::create(['seller_id' => $seller->id, 'name' => 'Published tote', 'slug' => 'published-tote', 'description' => 'Handmade tote', 'price' => 14000, 'stock' => 2, 'status' => 'published']);
+        Product::create(['seller_id' => $seller->id, 'name' => 'Published tote', 'slug' => 'published-tote', 'description' => 'Handmade tote', 'price' => 14000, 'stock' => 2, 'review_status' => 'approved', 'status' => 'published']);
         Product::create(['seller_id' => $seller->id, 'name' => 'Draft mug', 'slug' => 'draft-mug', 'description' => 'Handmade mug', 'price' => 9000, 'stock' => 2, 'status' => 'draft']);
-        Product::create(['seller_id' => $seller->id, 'name' => 'Sold out card', 'slug' => 'sold-out-card', 'description' => 'Handmade card', 'price' => 9000, 'stock' => 0, 'status' => 'published']);
+        Product::create(['seller_id' => $seller->id, 'name' => 'Sold out card', 'slug' => 'sold-out-card', 'description' => 'Handmade card', 'price' => 9000, 'stock' => 0, 'review_status' => 'approved', 'status' => 'published']);
 
         $this->get(route('home'))
             ->assertOk()
@@ -197,6 +197,7 @@ class MarketplaceTest extends TestCase
             'description' => 'Lilin dalam gelas kaca bekas.',
             'price' => 22000,
             'stock' => 2,
+            'review_status' => 'approved',
             'status' => 'published',
         ]);
         $otherProduct = Product::create([
@@ -206,6 +207,7 @@ class MarketplaceTest extends TestCase
             'description' => 'Kertas daur ulang.',
             'price' => 12000,
             'stock' => 2,
+            'review_status' => 'approved',
             'status' => 'published',
         ]);
         $soldOutProduct = Product::create([
@@ -217,6 +219,7 @@ class MarketplaceTest extends TestCase
             'description' => 'Stok sudah habis.',
             'price' => 9000,
             'stock' => 0,
+            'review_status' => 'approved',
             'status' => 'published',
         ]);
 
@@ -256,6 +259,7 @@ class MarketplaceTest extends TestCase
             'description' => 'Tidak ikut checkout langsung.',
             'price' => 7000,
             'stock' => 3,
+            'review_status' => 'approved',
             'status' => 'published',
         ]);
         $buyNowProduct = Product::create([
@@ -265,6 +269,7 @@ class MarketplaceTest extends TestCase
             'description' => 'Produk yang dipilih langsung.',
             'price' => 14000,
             'stock' => 3,
+            'review_status' => 'approved',
             'status' => 'published',
         ]);
         $buyer->cartItems()->create(['product_id' => $cartProduct->id, 'quantity' => 1]);
@@ -311,6 +316,7 @@ class MarketplaceTest extends TestCase
             'description' => 'Kartu daur ulang.',
             'price' => 5000,
             'stock' => 2,
+            'review_status' => 'approved',
             'status' => 'published',
         ]);
         $buyer->cartItems()->create(['product_id' => $product->id, 'quantity' => 1]);
@@ -344,6 +350,7 @@ class MarketplaceTest extends TestCase
             'description' => 'Akan tersedia saat PO buka.',
             'price' => 8000,
             'stock' => 2,
+            'review_status' => 'approved',
             'status' => 'published',
         ]);
 
@@ -372,6 +379,7 @@ class MarketplaceTest extends TestCase
             'description' => 'Tetap tampil sebagai informasi.',
             'price' => 8000,
             'stock' => 2,
+            'review_status' => 'approved',
             'status' => 'published',
         ]);
 
@@ -391,7 +399,7 @@ class MarketplaceTest extends TestCase
         ]);
         $buyer = User::factory()->create();
         $seller = $this->seller();
-        $product = Product::create(['seller_id' => $seller->id, 'name' => 'Recycled Tote Bag', 'slug' => 'recycled-tote', 'description' => 'Made from upcycled fabric', 'price' => 14000, 'stock' => 3, 'status' => 'published']);
+        $product = Product::create(['seller_id' => $seller->id, 'name' => 'Recycled Tote Bag', 'slug' => 'recycled-tote', 'description' => 'Made from upcycled fabric', 'price' => 14000, 'stock' => 3, 'review_status' => 'approved', 'status' => 'published']);
 
         $this->actingAs($buyer)->get(route('products.show', $product))->assertOk()->assertSee('Tambah ke Keranjang');
         $this->actingAs($buyer)->post(route('cart.store'), ['product_id' => $product->id, 'quantity' => 2])->assertRedirect(route('cart.index'));
@@ -470,8 +478,8 @@ class MarketplaceTest extends TestCase
         $buyer = User::factory()->create();
         $firstSeller = $this->seller('class-a@example.test');
         $secondSeller = $this->seller('class-b@example.test');
-        $firstProduct = Product::create(['seller_id' => $firstSeller->id, 'name' => 'Class A tote', 'slug' => 'class-a-tote', 'description' => 'Tote bag', 'price' => 14000, 'stock' => 2, 'status' => 'published']);
-        $secondProduct = Product::create(['seller_id' => $secondSeller->id, 'name' => 'Class B card', 'slug' => 'class-b-card', 'description' => 'Greeting card', 'price' => 5000, 'stock' => 2, 'status' => 'published']);
+        $firstProduct = Product::create(['seller_id' => $firstSeller->id, 'name' => 'Class A tote', 'slug' => 'class-a-tote', 'description' => 'Tote bag', 'price' => 14000, 'stock' => 2, 'review_status' => 'approved', 'status' => 'published']);
+        $secondProduct = Product::create(['seller_id' => $secondSeller->id, 'name' => 'Class B card', 'slug' => 'class-b-card', 'description' => 'Greeting card', 'price' => 5000, 'stock' => 2, 'review_status' => 'approved', 'status' => 'published']);
         $buyer->cartItems()->createMany([
             ['product_id' => $firstProduct->id, 'quantity' => 1],
             ['product_id' => $secondProduct->id, 'quantity' => 1],
@@ -544,7 +552,7 @@ class MarketplaceTest extends TestCase
     public function test_rejecting_a_manual_payment_returns_reserved_stock_once(): void
     {
         $seller = $this->seller();
-        $product = Product::create(['seller_id' => $seller->id, 'name' => 'Seed kit', 'slug' => 'seed-kit', 'description' => 'Seeds', 'price' => 7000, 'stock' => 0, 'status' => 'published']);
+        $product = Product::create(['seller_id' => $seller->id, 'name' => 'Seed kit', 'slug' => 'seed-kit', 'description' => 'Seeds', 'price' => 7000, 'stock' => 0, 'review_status' => 'approved', 'status' => 'published']);
         $buyer = User::factory()->create();
         $order = Order::create(['order_code' => 'FX-TEST0001', 'buyer_id' => $buyer->id, 'status' => 'waiting_verification', 'total_price' => 7000, 'pickup_date' => now()->addDay()]);
         $order->items()->create(['product_id' => $product->id, 'seller_id' => $seller->id, 'product_name' => $product->name, 'quantity' => 1, 'price_at_order' => 7000, 'subtotal' => 7000]);
@@ -611,7 +619,7 @@ class MarketplaceTest extends TestCase
         ]);
         $buyer = User::factory()->create();
         $seller = $this->seller();
-        $product = Product::create(['seller_id' => $seller->id, 'name' => 'Low stock item', 'slug' => 'low-stock-item', 'description' => 'Limited stock', 'price' => 14000, 'stock' => 1, 'status' => 'published']);
+        $product = Product::create(['seller_id' => $seller->id, 'name' => 'Low stock item', 'slug' => 'low-stock-item', 'description' => 'Limited stock', 'price' => 14000, 'stock' => 1, 'review_status' => 'approved', 'status' => 'published']);
         $buyer->cartItems()->create(['product_id' => $product->id, 'quantity' => 2]);
 
         $this->actingAs($buyer)->from(route('cart.index'))->post(route('checkout'), [
@@ -635,7 +643,7 @@ class MarketplaceTest extends TestCase
         ]);
         $buyer = User::factory()->create();
         $seller = $this->seller();
-        $product = Product::create(['seller_id' => $seller->id, 'name' => 'Seed kit', 'slug' => 'seed-kit', 'description' => 'Seeds', 'price' => 7000, 'stock' => 2, 'status' => 'published']);
+        $product = Product::create(['seller_id' => $seller->id, 'name' => 'Seed kit', 'slug' => 'seed-kit', 'description' => 'Seeds', 'price' => 7000, 'stock' => 2, 'review_status' => 'approved', 'status' => 'published']);
         $buyer->cartItems()->create(['product_id' => $product->id, 'quantity' => 1]);
 
         $this->actingAs($buyer)->get(route('cart.index'))
@@ -730,7 +738,7 @@ class MarketplaceTest extends TestCase
         ]);
         $buyer = User::factory()->create();
         $seller = $this->seller();
-        $product = Product::create(['seller_id' => $seller->id, 'name' => 'Recycled Tote Bag', 'slug' => 'midtrans-tote', 'description' => 'Made from upcycled fabric', 'price' => 14000, 'stock' => 2, 'status' => 'published']);
+        $product = Product::create(['seller_id' => $seller->id, 'name' => 'Recycled Tote Bag', 'slug' => 'midtrans-tote', 'description' => 'Made from upcycled fabric', 'price' => 14000, 'stock' => 2, 'review_status' => 'approved', 'status' => 'published']);
         $buyer->cartItems()->create(['product_id' => $product->id, 'quantity' => 1]);
 
         $this->actingAs($buyer)
@@ -775,7 +783,7 @@ class MarketplaceTest extends TestCase
         ]);
         $buyer = User::factory()->create();
         $seller = $this->seller();
-        $product = Product::create(['seller_id' => $seller->id, 'name' => 'Seed kit', 'slug' => 'unconfigured-midtrans-seed', 'description' => 'Seeds', 'price' => 7000, 'stock' => 2, 'status' => 'published']);
+        $product = Product::create(['seller_id' => $seller->id, 'name' => 'Seed kit', 'slug' => 'unconfigured-midtrans-seed', 'description' => 'Seeds', 'price' => 7000, 'stock' => 2, 'review_status' => 'approved', 'status' => 'published']);
         $buyer->cartItems()->create(['product_id' => $product->id, 'quantity' => 1]);
 
         $this->actingAs($buyer)->get(route('checkout.show', ['mode' => 'cart']))->assertOk();
@@ -808,7 +816,7 @@ class MarketplaceTest extends TestCase
         ]);
         $buyer = User::factory()->create();
         $seller = $this->seller();
-        $product = Product::create(['seller_id' => $seller->id, 'name' => 'Recycled Tote Bag', 'slug' => 'midtrans-api-failure-tote', 'description' => 'Made from upcycled fabric', 'price' => 14000, 'stock' => 2, 'status' => 'published']);
+        $product = Product::create(['seller_id' => $seller->id, 'name' => 'Recycled Tote Bag', 'slug' => 'midtrans-api-failure-tote', 'description' => 'Made from upcycled fabric', 'price' => 14000, 'stock' => 2, 'review_status' => 'approved', 'status' => 'published']);
         $buyer->cartItems()->create(['product_id' => $product->id, 'quantity' => 1]);
 
         $this->actingAs($buyer)->get(route('checkout.show', ['mode' => 'cart']))->assertOk();
@@ -847,7 +855,7 @@ class MarketplaceTest extends TestCase
         ]);
         $buyer = User::factory()->create();
         $seller = $this->seller();
-        $product = Product::create(['seller_id' => $seller->id, 'name' => 'Recycled Tote Bag', 'slug' => 'unsafe-midtrans-tote', 'description' => 'Made from upcycled fabric', 'price' => 14000, 'stock' => 2, 'status' => 'published']);
+        $product = Product::create(['seller_id' => $seller->id, 'name' => 'Recycled Tote Bag', 'slug' => 'unsafe-midtrans-tote', 'description' => 'Made from upcycled fabric', 'price' => 14000, 'stock' => 2, 'review_status' => 'approved', 'status' => 'published']);
         $buyer->cartItems()->create(['product_id' => $product->id, 'quantity' => 1]);
 
         $this->actingAs($buyer)->get(route('checkout.show', ['mode' => 'cart']))->assertOk();
@@ -927,7 +935,7 @@ class MarketplaceTest extends TestCase
         config(['services.midtrans.server_key' => 'sandbox-server-key']);
         $buyer = User::factory()->create();
         $seller = $this->seller();
-        $product = Product::create(['seller_id' => $seller->id, 'name' => 'Seed kit', 'slug' => 'midtrans-seed-kit', 'description' => 'Seeds', 'price' => 14000, 'stock' => 0, 'status' => 'published']);
+        $product = Product::create(['seller_id' => $seller->id, 'name' => 'Seed kit', 'slug' => 'midtrans-seed-kit', 'description' => 'Seeds', 'price' => 14000, 'stock' => 0, 'review_status' => 'approved', 'status' => 'published']);
         $order = $this->midtransOrder($buyer);
         $order->items()->create(['product_id' => $product->id, 'seller_id' => $seller->id, 'product_name' => $product->name, 'quantity' => 1, 'price_at_order' => 14000, 'subtotal' => 14000]);
         $notification = $this->midtransNotification($order, ['transaction_status' => 'expire']);
