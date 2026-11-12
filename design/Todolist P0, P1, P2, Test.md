@@ -1,3 +1,5 @@
+File ini hanya berdasarkan dari TODO.md, rencana-fitur-admin-seller-buyer.md dan FORTEXIV-dokumentasi-handoff-fungsional.md, Hanya perubahan struktur text agar bisa dimasukkan ke Notion
+
 ## Legenda
 
 - **[TEMUAN]**: terbukti dari E2E/UAT atau audit kode pada dokumen `TODO.md`.
