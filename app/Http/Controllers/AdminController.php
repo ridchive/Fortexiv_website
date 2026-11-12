@@ -24,6 +24,7 @@ class AdminController extends Controller
             'ordersCount' => Order::count(),
             'pendingPayments' => Payment::where('gateway', Payment::GATEWAY_MANUAL)->where('status', 'pending')->count(),
             'buyersCount' => User::where('role', 'buyer')->count(),
+            'pendingProducts' => Product::where('review_status', 'pending_review')->count(),
             'productsSold' => OrderItem::whereHas('order', fn ($query) => $query->whereIn('status', ['paid', 'partially_picked_up', 'picked_up']))->sum('quantity'),
             'payments' => Payment::with('order.buyer')
                 ->where('gateway', Payment::GATEWAY_MANUAL)

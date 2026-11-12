@@ -142,6 +142,10 @@
     .detail-card { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 28px; }
     .detail-image { display: grid; min-height: 320px; place-items: center; padding: 20px; border-radius: 8px; background: linear-gradient(135deg, #DDE9C9, #F1DCC0); color: #395633; font: 800 22px var(--fd); text-align: center; }
     .detail-image img { width: 100%; height: 100%; max-height: 500px; object-fit: cover; }
+    .product-detail-card { align-items: start; }
+    .product-detail-card .detail-image { aspect-ratio: 1; min-height: 0; }
+    .product-detail-card .detail-image img { object-fit: contain; }
+    .product-detail-card .detail-image > svg { min-height: 0; }
     .detail-copy { align-self: center; }
     .detail-copy h1 { margin: 8px 0 14px; }
     .detail-copy p { color: var(--muted); }
@@ -177,8 +181,21 @@
     .footer { padding: 26px 20px; background: #101810; color: #D8E0D5; text-align: center; font-size: 13px; }
     .footer a { color: #EAF1E6; }
     .footer-links { display: flex; justify-content: center; flex-wrap: wrap; gap: 16px; margin-bottom: 10px; }
-    .ticket { width: min(100%, 720px); margin: 22px auto; padding: clamp(18px, 4vw, 32px); border: 2px dashed #7F9C69; border-radius: 12px; background: #FFF; text-align: center; }
+    .ticket { width: min(100%, 720px); margin: 22px auto; padding: clamp(18px, 4vw, 32px); border: 2px dashed #7F9C69; border-radius: 12px; background: #FFF; color: #14291A; text-align: center; }
+    .ticket h1 { color: #245A2B; }
+    .ticket > .eyebrow { color: #3D7746; }
+    .ticket > p { color: #38553B; }
+    .ticket > p strong { color: #1E4B26; }
+    .ticket .panel { background: #102519; border-color: #315F3A; color: #F1FAED; }
+    .ticket .panel .eyebrow { color: #C7E4BC; }
+    .ticket .panel h2 { color: #F0FAEB; }
+    .ticket .panel p { color: #D8ECD2; }
     .ticket-code { margin: 12px 0; color: #315B2D; font: 800 clamp(22px, 6vw, 34px) var(--fd); letter-spacing: .08em; }
+    .ticket .qrbox { color: #14291A; }
+    .ticket .qrbox .eyebrow { color: #4F8758; }
+    .ticket .qrbox p { color: #38553B; }
+    .ticket-downloads { margin-top: 14px; }
+    .ticket-downloads .btn { white-space: nowrap; }
     .qrbox { display: flex; align-items: center; justify-content: center; gap: 20px; padding: 16px; border: 1px solid var(--line); border-radius: 8px; background: #FFF; }
     .qr-demo { width: 150px; height: 150px; flex: 0 0 150px; padding: 8px; border: 1px solid #DDD; background: #FFF; }
     .qr-demo { position: relative; display: grid; place-items: center; }
@@ -286,6 +303,7 @@
     body { font-size: 15px; }
     .prototype-note { background: var(--ink); color: var(--bg); font-size: 12px; }
     .app { width: 100%; padding: 0 0 56px; }
+    .app.admin-app { width: min(100%, 1240px); margin-inline: auto; padding: 24px max(16px, env(safe-area-inset-right, 0px)) 56px max(16px, env(safe-area-inset-left, 0px)); }
     .wrap { width: 100%; max-width: 1180px; padding-right: max(16px, env(safe-area-inset-right, 0px)); padding-left: max(16px, env(safe-area-inset-left, 0px)); }
     .site-header { background: var(--bg); color: var(--ink); }
     .hd { display: grid; grid-template-columns: auto minmax(180px, 1fr) auto; gap: 20px; align-items: center; padding-block: 18px; }

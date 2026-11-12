@@ -6,7 +6,7 @@
 <div class="wrap">
   <nav class="crumb"><a href="{{ route('home') }}">Beranda</a> / <a href="{{ route('catalog.index') }}">Katalog</a> / <span>{{ $product->name }}</span></nav>
   @include('marketplace.partials.po-notice', ['window' => $window])
-  <article class="detail-card">
+  <article class="detail-card product-detail-card">
     <div class="detail-image">
       @if($product->image)
         <img src="{{ Storage::disk('public')->url($product->image) }}" alt="{{ $product->name }}">
