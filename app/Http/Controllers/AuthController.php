@@ -11,6 +11,8 @@ use Illuminate\Foundation\Auth\EmailVerificationRequest;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Password;
 use Illuminate\Support\Str;
 use Illuminate\Validation\Rule;
@@ -18,6 +20,8 @@ use Illuminate\View\View;
 
 class AuthController extends Controller
 {
+    private const EMAIL_VERIFICATION_CODE_MAX_ATTEMPTS = 5;
+
     public function loginForm(): View
     {
         return view('auth.login');
@@ -89,6 +93,11 @@ class AuthController extends Controller
         }
 
         $request->fulfill();
+        $request->user()->forceFill([
+            'email_verification_code_hash' => null,
+            'email_verification_code_expires_at' => null,
+            'email_verification_code_attempts' => 0,
+        ])->save();
 
         return redirect()->to($this->dashboardUrl($request->user()))->with('status', 'Your email address has been verified.');
     }
@@ -104,6 +113,80 @@ class AuthController extends Controller
         $emailService->sendEmailVerificationLink($user);
 
         return back()->with('status', 'A new email verification link has been sent.');
+    }
+
+    public function sendEmailVerificationCode(Request $request, EmailService $emailService): RedirectResponse
+    {
+        $user = $request->user();
+
+        if ($user->hasVerifiedEmail()) {
+            return redirect()->to($this->dashboardUrl($user));
+        }
+
+        $code = (string) random_int(100000, 999999);
+
+        $user->forceFill([
+            'email_verification_code_hash' => Hash::make($code),
+            'email_verification_code_expires_at' => now()->addMinutes(10),
+            'email_verification_code_attempts' => 0,
+        ])->save();
+
+        $emailService->sendEmailVerificationCode($user, $code);
+
+        return back()->with('status', 'A verification code has been sent to your email address.');
+    }
+
+    public function verifyEmailCode(Request $request): RedirectResponse
+    {
+        $data = $request->validate([
+            'code' => ['required', 'digits:6'],
+        ]);
+
+        $result = DB::transaction(function () use ($request, $data): string {
+            $user = User::query()->lockForUpdate()->findOrFail($request->user()->id);
+
+            if ($user->hasVerifiedEmail()) {
+                return 'verified';
+            }
+
+            if ($user->email_verification_code_attempts >= self::EMAIL_VERIFICATION_CODE_MAX_ATTEMPTS) {
+                return 'too_many_attempts';
+            }
+
+            if (
+                ! $user->email_verification_code_hash
+                || ! $user->email_verification_code_expires_at
+                || $user->email_verification_code_expires_at->isPast()
+            ) {
+                return 'invalid';
+            }
+
+            if (! Hash::check($data['code'], $user->email_verification_code_hash)) {
+                $user->increment('email_verification_code_attempts');
+
+                return 'invalid';
+            }
+
+            $user->forceFill([
+                'email_verification_code_hash' => null,
+                'email_verification_code_expires_at' => null,
+                'email_verification_code_attempts' => 0,
+            ])->save();
+            $user->markEmailAsVerified();
+
+            return 'verified';
+        });
+
+        if ($result === 'verified') {
+            return redirect()->to($this->dashboardUrl($request->user()))
+                ->with('status', 'Your email address has been verified.');
+        }
+
+        $message = $result === 'too_many_attempts'
+            ? 'Too many incorrect codes. Request a new code to try again.'
+            : 'The verification code is invalid or has expired.';
+
+        return back()->withErrors(['code' => $message]);
     }
 
     public function login(Request $request): RedirectResponse

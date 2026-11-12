@@ -2,6 +2,8 @@
 
 namespace App\Services;
 
+use App\Models\User;
+use App\Notifications\VerifyEmailCode;
 use Illuminate\Contracts\Auth\MustVerifyEmail;
 use Illuminate\Contracts\Mail\Factory as MailFactory;
 use Illuminate\Mail\Mailable;
@@ -27,5 +29,10 @@ class EmailService
     public function sendEmailVerificationLink(MustVerifyEmail $user): void
     {
         $user->sendEmailVerificationNotification();
+    }
+
+    public function sendEmailVerificationCode(User $user, string $code): void
+    {
+        $user->notify(new VerifyEmailCode($code));
     }
 }

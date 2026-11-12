@@ -33,6 +33,12 @@ Route::get('/email/verify/{id}/{hash}', [AuthController::class, 'verifyEmail'])
 Route::post('/email/verification-notification', [AuthController::class, 'resendEmailVerification'])
     ->middleware(['auth', 'throttle:6,1'])
     ->name('verification.send');
+Route::post('/email/verification-code', [AuthController::class, 'sendEmailVerificationCode'])
+    ->middleware(['auth', 'throttle:3,1'])
+    ->name('verification.code.send');
+Route::post('/email/verify-code', [AuthController::class, 'verifyEmailCode'])
+    ->middleware(['auth', 'throttle:6,1'])
+    ->name('verification.code.verify');
 Route::get('/account', [MarketplaceController::class, 'account'])->middleware(['auth', 'verified'])->name('account');
 
 Route::middleware(['auth', 'verified', 'role:buyer'])->group(function () {

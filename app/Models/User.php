@@ -12,7 +12,13 @@ use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
 
 #[Fillable(['name', 'email', 'password', 'phone', 'role', 'is_active'])]
-#[Hidden(['password', 'remember_token'])]
+#[Hidden([
+    'password',
+    'remember_token',
+    'email_verification_code_hash',
+    'email_verification_code_expires_at',
+    'email_verification_code_attempts',
+])]
 class User extends Authenticatable implements MustVerifyEmail
 {
     /** @use HasFactory<UserFactory> */
@@ -33,6 +39,7 @@ class User extends Authenticatable implements MustVerifyEmail
         return [
             'is_active' => 'boolean',
             'email_verified_at' => 'datetime',
+            'email_verification_code_expires_at' => 'datetime',
             'password' => 'hashed',
         ];
     }
