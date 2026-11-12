@@ -1,6 +1,6 @@
 # Dokumentasi Pengembang — FORTEXIV Marketplace
 
-FORTEXIV adalah marketplace sekolah untuk produk hasil proyek kelas. Aplikasi memakai Laravel 13 dengan Blade, SQLite, dan Vite + Tailwind 4. Pembayaran memakai **transfer bank manual** yang diverifikasi admin. Barang diambil di lokasi dengan **ticket pickup** sekali pakai.
+FORTEXIV adalah marketplace sekolah untuk produk hasil proyek kelas. Aplikasi memakai Laravel 13 dengan Blade, SQLite, dan Vite + Tailwind 4. Pembayaran mendukung **Midtrans Snap** dan **transfer bank manual**. Barang diambil di lokasi dengan **ticket pickup** sekali pakai.
 
 Panduan untuk pengguna akhir ada di [PANDUAN_PEMBELI.md](PANDUAN_PEMBELI.md), [PANDUAN_PENJUAL.md](PANDUAN_PENJUAL.md), [PANDUAN_ADMIN.md](PANDUAN_ADMIN.md), dan [PANDUAN_ADMIN_CS.md](PANDUAN_ADMIN_CS.md) (customer service). Panduan deploy ke server production ada di [PANDUAN_DEVOPS.md](PANDUAN_DEVOPS.md). Cara menjalankan e2e test ada di bagian 9.
 
@@ -27,13 +27,22 @@ npm run build          # atau `npm run dev` saat mengubah CSS/JS
 php artisan serve      # http://localhost:8000
 ```
 
-Agar checkout bisa berjalan, isi rekening tujuan di `.env`:
+Agar checkout tersedia, konfigurasi minimal satu metode pembayaran. Untuk transfer bank manual, isi rekening tujuan di `.env`:
 
 ```env
 PAYMENT_BANK_NAME=
 PAYMENT_ACCOUNT_NAME=
 PAYMENT_ACCOUNT_NUMBER=
 ```
+
+Untuk Midtrans Snap Sandbox, isi Server Key dan pertahankan mode production `false`:
+
+```env
+MIDTRANS_SERVER_KEY=
+MIDTRANS_IS_PRODUCTION=false
+```
+
+Saat go-live, gunakan Server Key Production dan ubah `MIDTRANS_IS_PRODUCTION=true`. Atur Payment Notification URL di dashboard Midtrans ke `https://<domain-publik>/api/midtrans/notifications`. Endpoint mengambil status transaksi langsung dari Midtrans sebelum mengubah status pesanan; gunakan URL HTTPS publik yang dapat dijangkau Midtrans.
 
 Buat akun admin (password minimal 12 karakter, dimasukkan secara interaktif):
 
@@ -45,7 +54,7 @@ php artisan marketplace:create-admin "Nama Admin" admin@example.com
 
 | Perintah | Fungsi |
 |---|---|
-| `php artisan test --compact` | Menjalankan test (saat ini 12 test, semua lulus). |
+| `php artisan test --compact` | Menjalankan seluruh test suite PHPUnit. |
 | `php artisan migrate:fresh --seed` | Reset database dan isi ulang kategori + 12 proyek kelas. |
 | `vendor/bin/pint` | Merapikan format kode PHP. |
 | `php artisan route:list --except-vendor` | Daftar route aplikasi. |
@@ -69,27 +78,31 @@ app/
   Http/Controllers/
     AuthController.php               # login, register (buyer/seller), logout
     MarketplaceController.php        # katalog, keranjang, checkout, pesanan, bukti bayar, ticket
+    MidtransNotificationController.php # callback Midtrans
     SellerController.php             # CRUD produk, publish, pesanan penjual
     AdminController.php              # verifikasi bayar, akun, pickup, laporan
+  Services/MidtransService.php       # Snap API, signature, dan sinkronisasi status
   Http/Middleware/EnsureRole.php     # alias `role:` — cek peran + is_active
   Models/                            # User, Seller, Project, Category, Product, CartItem,
                                      # Order, OrderItem, Payment, Ticket
   Support/Money.php                  # Money::format(int) → "Rp 25.000"
 config/marketplace.php               # data rekening transfer (dari env PAYMENT_*)
+config/services.php                  # Server Key dan endpoint Midtrans
 database/migrations/2026_10_07_000001_create_marketplace_tables.php
 database/seeders/MarketplaceSeeder.php
 resources/views/{layouts,auth,marketplace,seller,admin}/
 routes/web.php
+routes/api.php                       # callback Midtrans stateless
 tests/Feature/MarketplaceTest.php
 ```
 
 Pola yang dipakai:
 
-- **Controller tebal, tanpa service layer.** Logika bisnis ditulis langsung di controller. Otorisasi kepemilikan memakai `abort_unless(...)` di controller, belum memakai Policy. Validasi memakai `$request->validate()` inline, belum memakai Form Request.
+- **Controller mengatur alur HTTP.** Sebagian besar logika marketplace tetap di controller; integrasi Midtrans dipisahkan ke `MidtransService` untuk komunikasi API dan pemrosesan status pembayaran. Otorisasi kepemilikan memakai `abort_unless(...)` di controller, belum memakai Policy. Validasi memakai `$request->validate()` inline, belum memakai Form Request.
 - **Peran** disimpan di kolom string `users.role`: `buyer`, `seller`, atau `admin`. Route dilindungi dengan `middleware(['auth', 'role:<peran>'])`. `EnsureRole` juga menolak akun nonaktif, serta penjual yang belum punya baris `sellers`.
 - **Status** (pesanan, produk, pembayaran) disimpan sebagai string biasa, belum memakai Enum.
 - **Uang** disimpan sebagai `unsignedInteger` dalam rupiah bulat. Ada batas total 4.294.967.295 saat checkout.
-- **Konkurensi**: checkout, unggah bukti, verify, reject, dan pickup berjalan di dalam `DB::transaction` dengan `lockForUpdate()`.
+- **Konkurensi**: checkout, unggah bukti, verify, reject, pickup, dan pemrosesan callback Midtrans berjalan di dalam `DB::transaction` dengan `lockForUpdate()`. Request jaringan ke Midtrans dilakukan di luar transaksi database.
 - **File**:
   - gambar produk disimpan di disk `public` (`storage/app/public/products`),
   - bukti transfer disimpan di disk `local` yang privat (`storage/app/private/payment-proofs`) dan hanya bisa diunduh admin lewat route `admin.payments.proof`.
@@ -118,19 +131,21 @@ users(buyer) 1─* orders 1─* order_items *─1 products (nullable), *─1 sel
 | `cart_items` | `user_id` + `product_id` (unique), `quantity` | |
 | `orders` | `order_code` (`FX-00000001`), `status`, `total_price`, `pickup_date` | |
 | `order_items` | `product_name`, `price_at_order`, `subtotal`, `seller_id` | Snapshot nama dan harga saat dipesan. |
-| `payments` | `proof_image`, `method`, `status`, `verified_by`, `verified_at`, `notes` | `status`: `pending`, `verified`, atau `rejected`. Satu per pesanan. |
+| `payments` | `gateway`, `proof_image`, `method`, `transaction_id`, Snap token/URL, `status`, `verified_at`, `notes` | `gateway`: `manual` atau `midtrans`; bukti manual nullable untuk Midtrans. Status manual: `pending`, `verified`, `rejected`; Midtrans: `pending`, `verified`, `failed`. Satu per pesanan. |
 | `tickets` | `ticket_code` (`FXT-` + 12 karakter), `issued_at`, `picked_up_at`, `picked_up_by` | Satu per pesanan, sekali pakai. |
 
 ### Siklus status pesanan
 
 ```
-pending_payment ──(buyer upload bukti)──► waiting_verification
+pending_payment ──(buyer upload bukti manual)──► waiting_verification
 waiting_verification ──(admin verify)──► paid  (+ ticket dibuat)
 waiting_verification ──(admin reject)──► cancelled  (+ stok dikembalikan)
+pending_payment ──(Midtrans settlement/capture accept)──► paid  (+ ticket dibuat)
+pending_payment ──(Midtrans cancel/deny/expire/failure/refund/chargeback)──► cancelled  (+ stok dikembalikan)
 paid ──(admin validasi ticket)──► picked_up
 ```
 
-Stok dikurangi saat **checkout**, dan dikembalikan hanya saat pembayaran **ditolak**.
+Stok dikurangi saat **checkout**, dan dikembalikan saat pembayaran manual ditolak atau transaksi Midtrans gagal, dibatalkan, atau kedaluwarsa.
 
 ---
 
@@ -151,8 +166,9 @@ Stok dikurangi saat **checkout**, dan dikembalikan hanya saat pembayaran **ditol
 ### Pembeli
 
 - Keranjang: tambah, ubah jumlah, hapus, dengan validasi stok.
-- Checkout dengan tanggal pickup (≥ hari ini). Pesanan baru dibuat dengan status `pending_payment`.
-- Checkout dan unggah bukti dinonaktifkan (HTTP 503) bila rekening belum dikonfigurasi.
+- Checkout dengan tanggal pickup (≥ hari ini), melalui Midtrans Snap atau transfer manual.
+- Checkout dinonaktifkan (HTTP 503) bila tidak ada metode pembayaran yang dikonfigurasi.
+- Callback Midtrans diverifikasi dengan signature dan status API server-to-server; pembayaran sukses menerbitkan ticket, transaksi gagal/kedaluwarsa mengembalikan stok.
 - Unggah bukti transfer (JPG/PNG/PDF, maks 5 MB) dan metode transfer.
 - Riwayat dan detail pesanan, termasuk catatan penolakan dari admin.
 - Ticket pickup setelah pembayaran diverifikasi.

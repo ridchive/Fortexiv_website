@@ -4,13 +4,16 @@ namespace Tests\Feature;
 
 use App\Models\Category;
 use App\Models\Order;
+use App\Models\Payment;
 use App\Models\Product;
 use App\Models\Project;
 use App\Models\Seller;
 use App\Models\User;
 use Illuminate\Auth\Notifications\VerifyEmail;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Http\Client\Request as ClientRequest;
 use Illuminate\Http\UploadedFile;
+use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Notification;
 use Illuminate\Support\Facades\Storage;
 use Tests\TestCase;
@@ -51,6 +54,17 @@ class MarketplaceTest extends TestCase
             ->assertOk()
             ->assertSee('Published tote')
             ->assertSee('Masuk untuk memesan');
+    }
+
+    public function test_homepage_links_use_the_forwarded_https_host_in_local_environments(): void
+    {
+        $this->get('/', [
+            'X-Forwarded-Host' => 'fortexiv.example.test',
+            'X-Forwarded-Port' => '443',
+            'X-Forwarded-Proto' => 'https',
+        ])
+            ->assertOk()
+            ->assertSee('href="https://fortexiv.example.test/projects"', false);
     }
 
     public function test_homepage_shows_all_published_project_stories(): void
@@ -594,6 +608,7 @@ class MarketplaceTest extends TestCase
             'marketplace.bank_name' => null,
             'marketplace.account_name' => null,
             'marketplace.account_number' => null,
+            'services.midtrans.server_key' => null,
         ]);
         $buyer = User::factory()->create();
         $seller = $this->seller();
@@ -673,6 +688,359 @@ class MarketplaceTest extends TestCase
             'status' => 'pending',
             'handed_over_by' => null,
         ]);
+    }
+
+    public function test_buyer_can_create_a_midtrans_snap_checkout(): void
+    {
+        config([
+            'services.midtrans.server_key' => 'sandbox-server-key',
+            'services.midtrans.base_url' => 'https://app.sandbox.midtrans.com',
+            'marketplace.po_start' => null,
+            'marketplace.po_end' => null,
+        ]);
+        Http::preventStrayRequests();
+        Http::fake([
+            'https://app.sandbox.midtrans.com/snap/v1/transactions' => Http::response([
+                'token' => 'snap-token',
+                'redirect_url' => 'https://app.sandbox.midtrans.com/snap/v4/redirection/snap-token',
+            ], 201),
+        ]);
+        $buyer = User::factory()->create();
+        $seller = $this->seller();
+        $product = Product::create(['seller_id' => $seller->id, 'name' => 'Recycled Tote Bag', 'slug' => 'midtrans-tote', 'description' => 'Made from upcycled fabric', 'price' => 14000, 'stock' => 2, 'status' => 'published']);
+        $buyer->cartItems()->create(['product_id' => $product->id, 'quantity' => 1]);
+
+        $this->actingAs($buyer)
+            ->get(route('checkout.show', ['mode' => 'cart']))
+            ->assertOk()
+            ->assertSee('value="midtrans"', false);
+
+        $response = $this->actingAs($buyer)->post(route('checkout'), [
+            '_token' => csrf_token(),
+            'mode' => 'cart',
+            'payment_method' => 'midtrans',
+            'pickup_contact_name' => $buyer->name,
+            'pickup_contact_phone' => '081234567890',
+            'accepted_terms' => '1',
+        ]);
+
+        $response->assertRedirect('https://app.sandbox.midtrans.com/snap/v4/redirection/snap-token');
+        $order = Order::with('payment')->firstOrFail();
+        $this->assertSame('pending_payment', $order->status);
+        $this->assertSame(1, $product->fresh()->stock);
+        $this->assertSame(Payment::GATEWAY_MIDTRANS, $order->payment->gateway);
+        $this->assertSame('snap-token', $order->payment->snap_token);
+        $this->assertDatabaseHas('payments', [
+            'order_id' => $order->id,
+            'gateway' => Payment::GATEWAY_MIDTRANS,
+            'snap_redirect_url' => 'https://app.sandbox.midtrans.com/snap/v4/redirection/snap-token',
+        ]);
+        Http::assertSent(fn (ClientRequest $request): bool => $request->url() === 'https://app.sandbox.midtrans.com/snap/v1/transactions'
+            && $request['transaction_details']['order_id'] === $order->order_code
+            && $request['transaction_details']['gross_amount'] === 14000);
+    }
+
+    public function test_midtrans_checkout_is_unavailable_without_a_server_key(): void
+    {
+        config([
+            'services.midtrans.server_key' => null,
+            'marketplace.bank_name' => '',
+            'marketplace.account_name' => '',
+            'marketplace.account_number' => '',
+            'marketplace.po_start' => null,
+            'marketplace.po_end' => null,
+        ]);
+        $buyer = User::factory()->create();
+        $seller = $this->seller();
+        $product = Product::create(['seller_id' => $seller->id, 'name' => 'Seed kit', 'slug' => 'unconfigured-midtrans-seed', 'description' => 'Seeds', 'price' => 7000, 'stock' => 2, 'status' => 'published']);
+        $buyer->cartItems()->create(['product_id' => $product->id, 'quantity' => 1]);
+
+        $this->actingAs($buyer)->get(route('checkout.show', ['mode' => 'cart']))->assertOk();
+
+        $this->actingAs($buyer)->post(route('checkout'), [
+            '_token' => csrf_token(),
+            'mode' => 'cart',
+            'payment_method' => 'midtrans',
+            'pickup_contact_name' => $buyer->name,
+            'pickup_contact_phone' => '081234567890',
+            'accepted_terms' => '1',
+        ])->assertStatus(503);
+
+        $this->assertDatabaseCount('orders', 0);
+        $this->assertSame(2, $product->fresh()->stock);
+        $this->assertDatabaseHas('cart_items', ['user_id' => $buyer->id, 'product_id' => $product->id, 'quantity' => 1]);
+    }
+
+    public function test_midtrans_api_failure_keeps_the_order_pending_and_shows_a_warning(): void
+    {
+        config([
+            'services.midtrans.server_key' => 'sandbox-server-key',
+            'services.midtrans.base_url' => 'https://app.sandbox.midtrans.com',
+            'marketplace.po_start' => null,
+            'marketplace.po_end' => null,
+        ]);
+        Http::preventStrayRequests();
+        Http::fake([
+            'https://app.sandbox.midtrans.com/snap/v1/transactions' => Http::response(['message' => 'Unavailable'], 500),
+        ]);
+        $buyer = User::factory()->create();
+        $seller = $this->seller();
+        $product = Product::create(['seller_id' => $seller->id, 'name' => 'Recycled Tote Bag', 'slug' => 'midtrans-api-failure-tote', 'description' => 'Made from upcycled fabric', 'price' => 14000, 'stock' => 2, 'status' => 'published']);
+        $buyer->cartItems()->create(['product_id' => $product->id, 'quantity' => 1]);
+
+        $this->actingAs($buyer)->get(route('checkout.show', ['mode' => 'cart']))->assertOk();
+
+        $response = $this->actingAs($buyer)->post(route('checkout'), [
+            '_token' => csrf_token(),
+            'mode' => 'cart',
+            'payment_method' => 'midtrans',
+            'pickup_contact_name' => $buyer->name,
+            'pickup_contact_phone' => '081234567890',
+            'accepted_terms' => '1',
+        ]);
+
+        $order = Order::with('payment')->firstOrFail();
+        $response->assertRedirect(route('orders.show', $order))->assertSessionHas('error');
+        $this->assertSame('pending_payment', $order->status);
+        $this->assertSame('pending', $order->payment->status);
+        $this->assertNull($order->payment->snap_redirect_url);
+        $this->assertSame(1, $product->fresh()->stock);
+    }
+
+    public function test_midtrans_checkout_does_not_redirect_to_an_untrusted_payment_url(): void
+    {
+        config([
+            'services.midtrans.server_key' => 'sandbox-server-key',
+            'services.midtrans.base_url' => 'https://app.sandbox.midtrans.com',
+            'marketplace.po_start' => null,
+            'marketplace.po_end' => null,
+        ]);
+        Http::preventStrayRequests();
+        Http::fake([
+            'https://app.sandbox.midtrans.com/snap/v1/transactions' => Http::response([
+                'token' => 'snap-token',
+                'redirect_url' => 'https://attacker.example/snap/v2/vtweb/snap-token',
+            ], 201),
+        ]);
+        $buyer = User::factory()->create();
+        $seller = $this->seller();
+        $product = Product::create(['seller_id' => $seller->id, 'name' => 'Recycled Tote Bag', 'slug' => 'unsafe-midtrans-tote', 'description' => 'Made from upcycled fabric', 'price' => 14000, 'stock' => 2, 'status' => 'published']);
+        $buyer->cartItems()->create(['product_id' => $product->id, 'quantity' => 1]);
+
+        $this->actingAs($buyer)->get(route('checkout.show', ['mode' => 'cart']))->assertOk();
+
+        $response = $this->actingAs($buyer)->post(route('checkout'), [
+            '_token' => csrf_token(),
+            'mode' => 'cart',
+            'payment_method' => 'midtrans',
+            'pickup_contact_name' => $buyer->name,
+            'pickup_contact_phone' => '081234567890',
+            'accepted_terms' => '1',
+        ]);
+
+        $order = Order::with('payment')->firstOrFail();
+        $response->assertRedirect(route('orders.show', $order))->assertSessionHas('error');
+        $this->assertSame('pending_payment', $order->status);
+        $this->assertNull($order->payment->snap_redirect_url);
+    }
+
+    public function test_midtrans_settlement_marks_the_order_paid_and_issues_only_one_ticket(): void
+    {
+        config(['services.midtrans.server_key' => 'sandbox-server-key']);
+        $buyer = User::factory()->create();
+        $order = $this->midtransOrder($buyer);
+        $notification = $this->midtransNotification($order, [
+            'transaction_status' => 'settlement',
+        ]);
+        $this->fakeMidtransStatus($order, [
+            'transaction_status' => 'settlement',
+            'payment_type' => 'bank_transfer',
+            'transaction_id' => 'midtrans-transaction-1',
+        ]);
+
+        $this->postJson(route('midtrans.notifications'), $notification)->assertOk()->assertJson(['status' => 'ok']);
+        $this->postJson(route('midtrans.notifications'), $notification)->assertOk();
+
+        $this->assertSame('paid', $order->fresh()->status);
+        $this->assertDatabaseHas('payments', [
+            'order_id' => $order->id,
+            'status' => 'verified',
+            'method' => 'bank_transfer',
+            'transaction_id' => 'midtrans-transaction-1',
+        ]);
+        $this->assertDatabaseCount('tickets', 1);
+    }
+
+    public function test_midtrans_notification_returns_403_for_an_invalid_signature(): void
+    {
+        config(['services.midtrans.server_key' => 'sandbox-server-key']);
+        $order = $this->midtransOrder(User::factory()->create());
+        $notification = $this->midtransNotification($order);
+        $notification['signature_key'] = str_repeat('0', 128);
+
+        $this->postJson(route('midtrans.notifications'), $notification)->assertForbidden();
+
+        $this->assertSame('pending_payment', $order->fresh()->status);
+        $this->assertDatabaseHas('payments', ['order_id' => $order->id, 'status' => 'pending']);
+        $this->assertDatabaseCount('tickets', 0);
+    }
+
+    public function test_midtrans_notification_rejects_an_amount_that_does_not_match_the_order(): void
+    {
+        config(['services.midtrans.server_key' => 'sandbox-server-key']);
+        $order = $this->midtransOrder(User::factory()->create());
+        $notification = $this->midtransNotification($order, ['gross_amount' => '1.00']);
+        $this->fakeMidtransStatus($order);
+
+        $this->postJson(route('midtrans.notifications'), $notification)->assertUnprocessable();
+
+        $this->assertSame('pending_payment', $order->fresh()->status);
+        $this->assertDatabaseHas('payments', ['order_id' => $order->id, 'status' => 'pending']);
+        $this->assertDatabaseCount('tickets', 0);
+    }
+
+    public function test_midtrans_expiration_cancels_the_order_and_returns_reserved_stock_once(): void
+    {
+        config(['services.midtrans.server_key' => 'sandbox-server-key']);
+        $buyer = User::factory()->create();
+        $seller = $this->seller();
+        $product = Product::create(['seller_id' => $seller->id, 'name' => 'Seed kit', 'slug' => 'midtrans-seed-kit', 'description' => 'Seeds', 'price' => 14000, 'stock' => 0, 'status' => 'published']);
+        $order = $this->midtransOrder($buyer);
+        $order->items()->create(['product_id' => $product->id, 'seller_id' => $seller->id, 'product_name' => $product->name, 'quantity' => 1, 'price_at_order' => 14000, 'subtotal' => 14000]);
+        $notification = $this->midtransNotification($order, ['transaction_status' => 'expire']);
+        $this->fakeMidtransStatus($order, ['transaction_status' => 'expire']);
+
+        $this->postJson(route('midtrans.notifications'), $notification)->assertOk();
+        $this->postJson(route('midtrans.notifications'), $notification)->assertOk();
+
+        $this->assertSame('cancelled', $order->fresh()->status);
+        $this->assertSame(1, $product->fresh()->stock);
+        $this->assertDatabaseHas('payments', ['order_id' => $order->id, 'status' => 'failed']);
+        $this->assertDatabaseCount('tickets', 0);
+    }
+
+    public function test_midtrans_capture_with_a_challenge_fraud_status_does_not_mark_the_order_paid(): void
+    {
+        config(['services.midtrans.server_key' => 'sandbox-server-key']);
+        $order = $this->midtransOrder(User::factory()->create());
+        $notification = $this->midtransNotification($order, [
+            'transaction_status' => 'capture',
+            'fraud_status' => 'challenge',
+        ]);
+        $this->fakeMidtransStatus($order, [
+            'transaction_status' => 'capture',
+            'fraud_status' => 'challenge',
+        ]);
+
+        $this->postJson(route('midtrans.notifications'), $notification)->assertOk();
+
+        $this->assertSame('pending_payment', $order->fresh()->status);
+        $this->assertDatabaseHas('payments', ['order_id' => $order->id, 'status' => 'pending']);
+        $this->assertDatabaseCount('tickets', 0);
+    }
+
+    public function test_midtrans_uses_the_verified_status_instead_of_the_callback_status(): void
+    {
+        config(['services.midtrans.server_key' => 'sandbox-server-key']);
+        $order = $this->midtransOrder(User::factory()->create());
+        $notification = $this->midtransNotification($order, ['transaction_status' => 'settlement']);
+        $this->fakeMidtransStatus($order, ['transaction_status' => 'pending']);
+
+        $this->postJson(route('midtrans.notifications'), $notification)->assertOk();
+
+        $this->assertSame('pending_payment', $order->fresh()->status);
+        $this->assertDatabaseHas('payments', ['order_id' => $order->id, 'status' => 'pending']);
+        $this->assertDatabaseCount('tickets', 0);
+    }
+
+    public function test_buyer_cannot_upload_manual_proof_for_a_midtrans_order(): void
+    {
+        Storage::fake('local');
+        config([
+            'marketplace.bank_name' => 'BCA',
+            'marketplace.account_name' => 'FORTEXIV',
+            'marketplace.account_number' => '1234567890',
+        ]);
+        $buyer = User::factory()->create();
+        $order = $this->midtransOrder($buyer);
+
+        $this->actingAs($buyer)->get(route('orders.show', $order))->assertOk();
+
+        $this->actingAs($buyer)->post(route('payments.store', $order), [
+            '_token' => csrf_token(),
+            'method' => 'Transfer BCA',
+            'proof' => UploadedFile::fake()->createWithContent('receipt.pdf', "%PDF-1.4\ntransfer receipt\n%%EOF"),
+        ])->assertUnprocessable();
+
+        $this->assertDatabaseCount('payments', 1);
+        $this->assertDatabaseHas('payments', [
+            'order_id' => $order->id,
+            'gateway' => Payment::GATEWAY_MIDTRANS,
+            'status' => 'pending',
+        ]);
+        Storage::disk('local')->assertDirectoryEmpty('payment-proofs');
+    }
+
+    private function midtransOrder(User $buyer): Order
+    {
+        $order = Order::create([
+            'order_code' => 'FX-MIDTRANS01',
+            'buyer_id' => $buyer->id,
+            'status' => 'pending_payment',
+            'total_price' => 14000,
+            'pickup_date' => now()->addDay(),
+        ]);
+        $order->payment()->create([
+            'gateway' => Payment::GATEWAY_MIDTRANS,
+            'status' => 'pending',
+        ]);
+
+        return $order;
+    }
+
+    /**
+     * @param  array<string, string>  $overrides
+     */
+    private function fakeMidtransStatus(Order $order, array $overrides = []): void
+    {
+        config([
+            'services.midtrans.server_key' => 'sandbox-server-key',
+            'services.midtrans.status_url' => 'https://api.sandbox.midtrans.com',
+        ]);
+        Http::preventStrayRequests();
+        Http::fake([
+            'https://api.sandbox.midtrans.com/v2/'.$order->order_code.'/status' => Http::response(array_merge([
+                'order_id' => $order->order_code,
+                'gross_amount' => '14000.00',
+                'transaction_status' => 'settlement',
+                'fraud_status' => 'accept',
+                'payment_type' => 'qris',
+                'transaction_id' => 'midtrans-transaction-1',
+            ], $overrides)),
+        ]);
+    }
+
+    /**
+     * @param  array<string, string>  $overrides
+     * @return array<string, string>
+     */
+    private function midtransNotification(Order $order, array $overrides = []): array
+    {
+        $notification = array_merge([
+            'order_id' => $order->order_code,
+            'status_code' => '200',
+            'gross_amount' => '14000.00',
+            'transaction_status' => 'settlement',
+            'fraud_status' => 'accept',
+            'payment_type' => 'qris',
+            'transaction_id' => 'midtrans-transaction-1',
+        ], $overrides);
+        $notification['signature_key'] = hash(
+            'sha512',
+            $notification['order_id'].$notification['status_code'].$notification['gross_amount'].config('services.midtrans.server_key'),
+        );
+
+        return $notification;
     }
 
     private function seller(string $email = 'seller@example.test'): Seller

@@ -63,24 +63,34 @@
 
   @if($order->status === 'pending_payment')
     <section class="panel">
-      <h2>Pembayaran transfer manual</h2>
-      @if(config('marketplace.bank_name') && config('marketplace.account_name') && config('marketplace.account_number'))
-        <p>Transfer sesuai total pesanan, lalu unggah bukti transfer JPG, PNG, atau PDF (maksimum 5 MB).</p>
-        <p><strong>{{ config('marketplace.bank_name') }}</strong><br>Nama rekening: {{ config('marketplace.account_name') }}<br>Nomor rekening: {{ config('marketplace.account_number') }}</p>
-        <form method="post" action="{{ route('payments.store', $order) }}" enctype="multipart/form-data">
-          @csrf
-          <div class="field"><label for="method">Metode / bank transfer</label><input class="input" id="method" name="method" value="{{ old('method') }}" placeholder="Contoh: Transfer BCA" maxlength="50" required></div>
-          <div class="field"><label for="proof">Bukti transfer</label><input class="input" id="proof" name="proof" type="file" accept=".jpg,.jpeg,.png,.pdf" required></div>
-          <button class="btn" type="submit">Kirim bukti transfer</button>
-        </form>
+      @if($order->payment?->gateway === \App\Models\Payment::GATEWAY_MIDTRANS)
+        <h2>Pembayaran Midtrans</h2>
+        @if($order->payment->snap_redirect_url)
+          <p>Selesaikan pembayaran melalui Midtrans. Status pesanan akan diperbarui setelah pembayaran dikonfirmasi.</p>
+          <a class="btn" href="{{ $order->payment->snap_redirect_url }}">Lanjutkan ke Midtrans</a>
+        @else
+          <p class="muted">Halaman pembayaran belum dapat disiapkan. Hubungi admin marketplace sebelum mencoba membayar.</p>
+        @endif
       @else
-        <p class="note warn">Pesanan tersimpan dan menunggu informasi pembayaran. Jangan melakukan transfer sampai instruksi pembayaran resmi tersedia.</p>
+        <h2>Pembayaran transfer manual</h2>
+        @if(config('marketplace.bank_name') && config('marketplace.account_name') && config('marketplace.account_number'))
+          <p>Transfer sesuai total pesanan, lalu unggah bukti transfer JPG, PNG, atau PDF (maksimum 5 MB).</p>
+          <p><strong>{{ config('marketplace.bank_name') }}</strong><br>Nama rekening: {{ config('marketplace.account_name') }}<br>Nomor rekening: {{ config('marketplace.account_number') }}</p>
+          <form method="post" action="{{ route('payments.store', $order) }}" enctype="multipart/form-data">
+            @csrf
+            <div class="field"><label for="method">Metode / bank transfer</label><input class="input" id="method" name="method" value="{{ old('method') }}" placeholder="Contoh: Transfer BCA" maxlength="50" required></div>
+            <div class="field"><label for="proof">Bukti transfer</label><input class="input" id="proof" name="proof" type="file" accept=".jpg,.jpeg,.png,.pdf" required></div>
+            <button class="btn" type="submit">Kirim bukti transfer</button>
+          </form>
+        @else
+          <p class="note warn">Pesanan tersimpan dan menunggu informasi pembayaran. Jangan melakukan transfer sampai instruksi pembayaran resmi tersedia.</p>
+        @endif
       @endif
     </section>
   @elseif($order->payment)
     <section class="panel">
       <h2>Status pembayaran</h2>
-      <p><span class="badge {{ $order->payment->status }}">{{ ['pending' => 'Menunggu verifikasi', 'verified' => 'Terverifikasi', 'rejected' => 'Ditolak'][$order->payment->status] ?? $order->payment->status }}</span></p>
+      <p><span class="badge {{ $order->payment->status }}">{{ ['pending' => 'Menunggu verifikasi', 'verified' => 'Terverifikasi', 'rejected' => 'Ditolak', 'failed' => 'Gagal'][$order->payment->status] ?? $order->payment->status }}</span></p>
       @if($order->payment->notes)<p>Catatan admin: {{ $order->payment->notes }}</p>@endif
     </section>
   @endif

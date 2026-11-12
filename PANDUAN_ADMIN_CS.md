@@ -59,7 +59,7 @@ Batasan alat admin saat ini:
 | "Jumlah melebihi stok yang tersedia" | Jumlah di keranjang melebihi stok. | **[Bisa langsung]** Minta kurangi jumlah. |
 | Halaman error saat mengubah jumlah di keranjang | Jumlah baru melebihi stok. | **[Bisa langsung]** Minta kembali ke halaman sebelumnya dan isi jumlah yang lebih kecil. |
 | "Stok salah satu produk berubah" | Stok berkurang sebelum checkout. | **[Bisa langsung]** Minta periksa keranjang, sesuaikan jumlah, lalu checkout ulang. |
-| Halaman error **503** / *"Manual bank transfer details are not configured yet"* | Data rekening sekolah belum diisi di server. | **[Tim teknis]** Isi `PAYMENT_BANK_NAME`, `PAYMENT_ACCOUNT_NAME`, dan `PAYMENT_ACCOUNT_NUMBER`. **Ini memblokir semua pembeli**, jadi tangani segera. |
+| Halaman error **503** / checkout tidak tersedia | Metode pembayaran belum dikonfigurasi. | **[Tim teknis]** Isi kredensial Midtrans (`MIDTRANS_SERVER_KEY`) atau data rekening manual (`PAYMENT_BANK_NAME`, `PAYMENT_ACCOUNT_NAME`, `PAYMENT_ACCOUNT_NUMBER`). |
 | Tanggal pickup tidak bisa dipilih | Tanggal sebelum hari ini ditolak. | **[Bisa langsung]** Pilih hari ini atau setelahnya. |
 | Produk tidak ditemukan | Produk masih draft atau stoknya 0. | **[Bisa langsung]** Jelaskan bahwa produk sedang tidak tersedia. Hubungi penjual jika perlu. |
 
@@ -68,10 +68,11 @@ Batasan alat admin saat ini:
 | Keluhan | Penyebab | Penanganan |
 |---|---|---|
 | Gagal unggah bukti | Format bukan JPG/PNG/PDF, atau ukuran > 5 MB. | **[Bisa langsung]** Minta kompres atau tangkap layar ulang. |
+| Halaman pembayaran Midtrans tidak terbuka | Gangguan saat membuat sesi pembayaran atau konfigurasi Midtrans. | **[Tim teknis]** Minta pembeli tidak membayar ulang, catat kode pesanan, lalu cek konfigurasi Server Key dan log aplikasi. |
 | Salah unggah bukti (status *Waiting verification*) | Bukti hanya bisa dikirim sekali. | **[Bisa langsung]** Minta pengguna mengirim bukti yang benar lewat kanal CS. Cocokkan dengan mutasi rekening, lalu **Verify** jika dana sudah masuk. Jika tidak bisa dicocokkan, **Reject** dengan alasan jelas dan minta checkout ulang. |
 | Sudah transfer, status masih *Waiting verification* | Belum diproses admin. | **[Bisa langsung]** Cek di *Payment review*, cocokkan dengan mutasi rekening, lalu proses. |
 | Sudah transfer, tapi lupa unggah bukti (status *Pending payment*) | — | **[Bisa langsung]** Arahkan ke **My orders → Details**, lalu unggah bukti. |
-| Pesanan *Cancelled* / pembayaran ditolak | Admin menolak bukti. | **[Bisa langsung]** Jelaskan alasan dari *Admin note*. Pesanan tidak bisa dihidupkan kembali, jadi pengguna perlu checkout ulang. Jika dana **sudah benar-benar masuk**, lanjutkan ke baris berikutnya. |
+| Pesanan *Cancelled* / pembayaran ditolak | Bukti manual ditolak atau pembayaran Midtrans dibatalkan/kedaluwarsa. | **[Bisa langsung]** Jelaskan alasan yang tampil di halaman pesanan. Pesanan tidak bisa dihidupkan kembali, jadi pengguna perlu checkout ulang. Jika dana **sudah benar-benar masuk**, eskalasikan ke tim teknis. |
 | Minta uang kembali (refund) | Fitur refund belum ada. | **[Kebijakan]** Refund dilakukan manual oleh bendahara/pengelola di luar aplikasi. Catat kode pesanan, nominal, dan rekening pengembalian. |
 | Ingin membatalkan pesanan yang belum dibayar | Pembeli belum bisa membatalkan sendiri, dan stoknya tertahan. | **[Tim teknis]** Minta pembatalan dan pengembalian stok. |
 

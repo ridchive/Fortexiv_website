@@ -37,6 +37,8 @@
       <h2>Kontak pengambil</h2>
       @if(config('marketplace.bank_name') && config('marketplace.account_name') && config('marketplace.account_number'))
         <p class="muted">Setelah pesanan dibuat, unggah bukti transfer. Pesanan siap diambil setelah pembayaran diverifikasi.</p>
+      @elseif(config('services.midtrans.server_key'))
+        <p class="muted">Pembayaran dapat diselesaikan melalui halaman aman Midtrans.</p>
       @else
         <p class="note warn">Pesanan tetap akan disimpan dengan status menunggu pembayaran. Metode pembayaran belum dikonfigurasi; jangan lakukan pembayaran sampai instruksi resmi tersedia.</p>
       @endif
@@ -67,6 +69,26 @@
     @if($mode === 'now')
       <input type="hidden" name="product_id" value="{{ $items->first()['product']->id }}">
       <input type="hidden" name="quantity" value="{{ $items->first()['quantity'] }}">
+    @endif
+    @if((config('marketplace.bank_name') && config('marketplace.account_name') && config('marketplace.account_number')) || config('services.midtrans.server_key'))
+      @php($manualTransferConfigured = config('marketplace.bank_name') && config('marketplace.account_name') && config('marketplace.account_number'))
+      <fieldset class="field">
+        <legend>Metode pembayaran</legend>
+        @if($manualTransferConfigured)
+          <label class="chk">
+            <input type="radio" name="payment_method" value="manual" @checked(old('payment_method', 'manual') === 'manual')>
+            <span>Transfer bank manual</span>
+          </label>
+        @endif
+        @if(config('services.midtrans.server_key'))
+          <label class="chk">
+            <input type="radio" name="payment_method" value="midtrans" @checked(old('payment_method', $manualTransferConfigured ? 'manual' : 'midtrans') === 'midtrans')>
+            <span>Midtrans</span>
+          </label>
+        @endif
+      </fieldset>
+    @else
+      <input type="hidden" name="payment_method" value="manual">
     @endif
     <h2>Data pengambil dan persetujuan</h2>
     <div class="two">

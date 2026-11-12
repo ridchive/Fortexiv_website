@@ -1,6 +1,6 @@
 # Panduan Admin — FORTEXIV Marketplace
 
-Admin memverifikasi pembayaran transfer manual, memvalidasi ticket saat pembeli mengambil barang, mengelola akun pembeli dan penjual, dan melihat laporan harian.
+Admin memverifikasi pembayaran transfer manual, memantau pembayaran Midtrans yang diperbarui otomatis, memvalidasi ticket saat pembeli mengambil barang, mengelola akun pembeli dan penjual, dan melihat laporan harian.
 
 Untuk menangani keluhan dan kesulitan pembeli atau penjual, lihat [PANDUAN_ADMIN_CS.md](PANDUAN_ADMIN_CS.md).
 
@@ -18,9 +18,9 @@ Anda akan diminta memasukkan password, **minimal 12 karakter**. Jika email sudah
 
 > Di komputer pengembangan ini, gunakan PHP 8.4: `C:\xampp\php84\php.exe artisan marketplace:create-admin ...`
 
-### 2. Mengisi rekening tujuan transfer
+### 2. Mengaktifkan metode pembayaran
 
-Pembeli **tidak bisa checkout** sebelum data rekening diisi. Isi di file `.env`:
+Untuk transfer manual, isi data rekening di file `.env`:
 
 ```env
 PAYMENT_BANK_NAME="Bank BCA"
@@ -28,14 +28,24 @@ PAYMENT_ACCOUNT_NAME="Koperasi Sekolah"
 PAYMENT_ACCOUNT_NUMBER="1234567890"
 ```
 
+Untuk Midtrans Snap, isi Server Key Sandbox saat pengembangan atau Server Key Production saat sudah live:
+
+```env
+MIDTRANS_SERVER_KEY=
+MIDTRANS_IS_PRODUCTION=false
+```
+
+Atur Payment Notification URL di dashboard Midtrans ke `https://<domain-publik>/api/midtrans/notifications`. Callback harus dapat dijangkau dari internet melalui HTTPS. Checkout tersedia jika setidaknya satu metode pembayaran telah dikonfigurasi.
+
 Jika config di-cache (`php artisan config:cache`), jalankan `php artisan config:clear` atau cache ulang setelah mengubah `.env`.
 
 ## Alur pesanan dari sisi admin
 
 ```
 Pembeli checkout (Pending payment)
-→ Pembeli unggah bukti (Waiting verification)
-→ Admin Verify → Paid + ticket terbit   |   Admin Reject → Cancelled + stok kembali
+→ Transfer manual: unggah bukti (Waiting verification) → Admin Verify/Reject
+→ Midtrans: status diperbarui otomatis dari notifikasi server-ke-server
+→ Paid + ticket terbit   |   pembayaran gagal/kedaluwarsa → Cancelled + stok kembali
 → Pembeli datang dengan ticket → Admin Validate ticket → Picked up
 ```
 
@@ -54,13 +64,13 @@ Dari sini ada pintasan ke **Payment review**, **Validate pickup**, **Manage acco
 ## 2. Memverifikasi pembayaran (Payment review)
 
 1. Buka **Payment review**.
-2. Klik **Download receipt** untuk mengunduh bukti transfer pembeli.
-3. Cocokkan dengan mutasi rekening: nominal sama dengan **Total**, dan dana sudah masuk.
-4. Ambil keputusan:
+2. Untuk pembayaran manual, klik **Download receipt** untuk mengunduh bukti transfer pembeli.
+3. Cocokkan bukti manual dengan mutasi rekening: nominal sama dengan **Total**, dan dana sudah masuk.
+4. Ambil keputusan untuk pembayaran manual:
    - **Verify**: pesanan menjadi **Paid** dan **ticket pickup** (`FXT-...`) otomatis terbit untuk pembeli.
    - **Reject**: isi alasan di kolom **Reason** (wajib, maksimal 255 karakter), lalu klik **Reject**. Pesanan menjadi **Cancelled**, **stok produk dikembalikan**, dan alasan Anda tampil kepada pembeli sebagai *Admin note*.
 
-Setiap pembayaran hanya bisa diproses satu kali. Keputusan Verify atau Reject **tidak bisa dibatalkan** dari aplikasi, jadi periksa dengan teliti.
+Pembayaran Midtrans tidak memiliki tombol Verify/Reject; statusnya diperbarui otomatis setelah callback diverifikasi oleh aplikasi. Pembayaran manual hanya bisa diproses satu kali. Keputusan Verify atau Reject **tidak bisa dibatalkan** dari aplikasi, jadi periksa dengan teliti.
 
 ## 3. Memvalidasi pengambilan barang (Validate pickup)
 
@@ -95,8 +105,8 @@ Akun admin tidak tampil di daftar ini dan tidak bisa dinonaktifkan dari sini.
 
 | Status | Arti | Tindakan admin |
 |---|---|---|
-| **Pending payment** | Menunggu pembeli mengunggah bukti. | — |
+| **Pending payment** | Menunggu pembayaran Midtrans atau bukti transfer manual. | — |
 | **Waiting verification** | Bukti terkirim. | Verify atau Reject |
 | **Paid** | Lunas, ticket terbit. | Validasi ticket saat pickup |
 | **Picked up** | Barang sudah diambil. | — |
-| **Cancelled** | Pembayaran ditolak, stok kembali. | — |
+| **Cancelled** | Pembayaran ditolak, dibatalkan, atau kedaluwarsa; stok kembali. | — |

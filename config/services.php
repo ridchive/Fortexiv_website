@@ -35,4 +35,15 @@ return [
         ],
     ],
 
+    'midtrans' => [
+        'server_key' => env('MIDTRANS_SERVER_KEY'),
+        'is_production' => env('MIDTRANS_IS_PRODUCTION', false),
+        'base_url' => env('MIDTRANS_IS_PRODUCTION', false)
+            ? 'https://app.midtrans.com'
+            : 'https://app.sandbox.midtrans.com',
+        'status_url' => env('MIDTRANS_IS_PRODUCTION', false)
+            ? 'https://api.midtrans.com'
+            : 'https://api.sandbox.midtrans.com',
+    ],
+
 ];
