@@ -1,4 +1,4 @@
-@extends('layouts.app')
+git@extends('layouts.app')
 
 @section('title', 'Katalog produk — FORTEXIV')
 
