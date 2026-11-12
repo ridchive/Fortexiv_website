@@ -6,19 +6,25 @@ use App\Models\CartItem;
 use App\Models\Category;
 use App\Models\Order;
 use App\Models\OrderFulfillment;
+use App\Models\Payment;
 use App\Models\Product;
 use App\Models\Project;
+use App\Services\MidtransService;
 use App\Support\PurchaseWindow;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Http\Client\ConnectionException;
+use Illuminate\Http\Client\RequestException;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Str;
 use Illuminate\Validation\Rule;
 use Illuminate\Validation\ValidationException;
 use Illuminate\View\View;
+use UnexpectedValueException;
 
 class MarketplaceController extends Controller
 {
@@ -222,7 +228,7 @@ class MarketplaceController extends Controller
         ]);
     }
 
-    public function checkout(Request $request, PurchaseWindow $purchaseWindow): RedirectResponse
+    public function checkout(Request $request, PurchaseWindow $purchaseWindow, MidtransService $midtrans): RedirectResponse
     {
         abort_unless($purchaseWindow->canAcceptOrders(), 422, 'PO belum dibuka atau sudah ditutup. Pesanan baru tidak dapat dibuat.');
         $data = $request->validate([
@@ -232,13 +238,20 @@ class MarketplaceController extends Controller
             'pickup_contact_name' => ['required', 'string', 'max:100'],
             'pickup_contact_phone' => ['required', 'string', 'max:30'],
             'accepted_terms' => ['required', 'accepted'],
+            'payment_method' => ['sometimes', 'required', Rule::in([Payment::GATEWAY_MANUAL, Payment::GATEWAY_MIDTRANS])],
         ], [
             'accepted_terms.accepted' => 'Setujui Terms of Service sebelum mengonfirmasi pesanan.',
             'pickup_contact_name.required' => 'Nama pengambil wajib diisi.',
             'pickup_contact_phone.required' => 'Nomor WhatsApp wajib diisi.',
         ]);
 
-        $order = DB::transaction(function () use ($request, $data, $purchaseWindow): Order {
+        $paymentMethod = $data['payment_method'] ?? Payment::GATEWAY_MANUAL;
+
+        if ($paymentMethod === Payment::GATEWAY_MIDTRANS) {
+            abort_unless(filled(config('services.midtrans.server_key')), 503, 'Midtrans belum dikonfigurasi.');
+        }
+
+        $order = DB::transaction(function () use ($request, $data, $paymentMethod, $purchaseWindow): Order {
             if (! $purchaseWindow->canAcceptOrders()) {
                 throw ValidationException::withMessages(['po' => 'Jendela PO sudah berubah. Pesanan baru tidak dapat dibuat.']);
             }
@@ -307,8 +320,36 @@ class MarketplaceController extends Controller
                 CartItem::query()->where('user_id', $request->user()->id)->delete();
             }
 
+            if ($paymentMethod === Payment::GATEWAY_MIDTRANS) {
+                $order->payment()->create([
+                    'gateway' => Payment::GATEWAY_MIDTRANS,
+                    'status' => 'pending',
+                ]);
+            }
+
             return $order;
         });
+
+        if ($paymentMethod === Payment::GATEWAY_MIDTRANS) {
+            try {
+                $transaction = $midtrans->createSnapTransaction($order);
+            } catch (ConnectionException|RequestException|UnexpectedValueException $exception) {
+                Log::warning('Midtrans checkout could not be completed.', [
+                    'order_code' => $order->order_code,
+                    'exception' => $exception::class,
+                ]);
+
+                return redirect()->route('orders.show', $order)
+                    ->with('error', 'Pembayaran Midtrans belum dapat dibuka. Jangan melakukan pembayaran ulang; silakan hubungi admin.');
+            }
+
+            $order->payment()->update([
+                'snap_token' => $transaction['token'],
+                'snap_redirect_url' => $transaction['redirect_url'],
+            ]);
+
+            return redirect()->away($transaction['redirect_url']);
+        }
 
         $status = $this->transferConfigured()
             ? 'Pesanan tersimpan. Silakan lanjutkan pembayaran dan unggah bukti transfer.'
@@ -348,9 +389,15 @@ class MarketplaceController extends Controller
         DB::transaction(function () use ($order, $data): void {
             $lockedOrder = Order::query()->whereKey($order->id)->lockForUpdate()->firstOrFail();
             abort_unless($lockedOrder->status === 'pending_payment', 422, 'Status pesanan telah berubah.');
+            abort_unless(
+                ! $lockedOrder->payment()->where('gateway', Payment::GATEWAY_MIDTRANS)->exists(),
+                422,
+                'Pesanan ini menggunakan pembayaran Midtrans.',
+            );
             $lockedOrder->payment()->create([
                 'proof_image' => $data['proof']->store('payment-proofs', 'local'),
                 'method' => $data['method'],
+                'gateway' => Payment::GATEWAY_MANUAL,
                 'status' => 'pending',
             ]);
             $lockedOrder->update(['status' => 'waiting_verification']);

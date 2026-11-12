@@ -493,6 +493,7 @@
 </header>
 <main class="app">
   @if(session('status'))<div class="flash" role="status">{{ session('status') }}</div>@endif
+  @if(session('error'))<div class="panel errors" role="alert">{{ session('error') }}</div>@endif
   @if($errors->any())<div class="panel errors" role="alert"><strong>Periksa kembali:</strong><ul>@foreach($errors->all() as $error)<li>{{ $error }}</li>@endforeach</ul></div>@endif
   @yield('content')
 </main>

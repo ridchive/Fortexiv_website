@@ -7,6 +7,10 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 class Payment extends Model
 {
+    public const GATEWAY_MANUAL = 'manual';
+
+    public const GATEWAY_MIDTRANS = 'midtrans';
+
     protected $guarded = [];
 
     protected function casts(): array

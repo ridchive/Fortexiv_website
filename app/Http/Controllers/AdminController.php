@@ -22,10 +22,15 @@ class AdminController extends Controller
     {
         return view('admin.dashboard', [
             'ordersCount' => Order::count(),
-            'pendingPayments' => Payment::where('status', 'pending')->count(),
+            'pendingPayments' => Payment::where('gateway', Payment::GATEWAY_MANUAL)->where('status', 'pending')->count(),
             'buyersCount' => User::where('role', 'buyer')->count(),
             'productsSold' => OrderItem::whereHas('order', fn ($query) => $query->whereIn('status', ['paid', 'partially_picked_up', 'picked_up']))->sum('quantity'),
-            'payments' => Payment::with('order.buyer')->where('status', 'pending')->latest()->limit(6)->get(),
+            'payments' => Payment::with('order.buyer')
+                ->where('gateway', Payment::GATEWAY_MANUAL)
+                ->where('status', 'pending')
+                ->latest()
+                ->limit(6)
+                ->get(),
             'orders' => Order::query()->with(['buyer', 'payment', 'items.seller.project'])->latest()->limit(12)->get(),
         ]);
     }
@@ -39,6 +44,7 @@ class AdminController extends Controller
 
     public function paymentProof(Payment $payment)
     {
+        abort_unless($payment->gateway === Payment::GATEWAY_MANUAL && filled($payment->proof_image), 404);
         abort_unless(Storage::disk('local')->exists($payment->proof_image), 404);
 
         return Storage::disk('local')->download($payment->proof_image);

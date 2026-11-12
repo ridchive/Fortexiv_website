@@ -1,12 +1,12 @@
 # Panduan Pembeli — FORTEXIV Marketplace
 
-FORTEXIV adalah marketplace produk hasil proyek kelas siswa. Sebagai pembeli, Anda bisa menjelajah proyek, membeli produk, membayar dengan transfer bank manual, lalu mengambil pesanan di sekolah dengan **ticket pickup**.
+FORTEXIV adalah marketplace produk hasil proyek kelas siswa. Sebagai pembeli, Anda bisa menjelajah proyek, membeli produk, membayar lewat Midtrans atau transfer bank manual, lalu mengambil pesanan di sekolah dengan **ticket pickup**.
 
 ## Alur singkat
 
 ```
-Daftar/Masuk → Pilih produk → Add to cart → Place order (pilih tanggal pickup)
-→ Transfer ke rekening → Unggah bukti transfer → Admin verifikasi
+Daftar/Masuk → Pilih produk → Add to cart → Checkout (pilih tanggal pickup dan metode pembayaran)
+→ Bayar lewat Midtrans atau transfer manual → Admin verifikasi transfer manual
 → Ticket pickup terbit → Tunjukkan ticket saat mengambil barang
 ```
 
@@ -42,14 +42,22 @@ Hanya produk yang sudah diterbitkan penjual dan masih memiliki stok yang tampil.
 ## 4. Membuat pesanan (checkout)
 
 1. Di halaman **Cart**, bagian **Checkout & pickup**, pilih **Pickup date**. Tanggal ini harus hari ini atau setelahnya.
-2. Klik **Place order**.
+2. Pilih **Pay securely with Midtrans** atau **Place order with manual transfer**.
 3. Pesanan dibuat dengan kode seperti `FX-00000001` dan status **Pending payment**. Stok produk langsung dipesan untuk Anda.
 
 > Jika muncul pesan *"Stok salah satu produk berubah"*, ada produk yang stoknya berkurang sebelum Anda checkout. Periksa kembali keranjang Anda.
 
-## 5. Membayar dan mengunggah bukti transfer
+## 5. Membayar pesanan
 
-1. Setelah checkout, Anda diarahkan ke halaman detail pesanan. Bagian **Manual bank transfer** menampilkan nama bank, nama pemilik rekening, dan nomor rekening tujuan.
+### Midtrans
+
+1. Klik **Pay securely with Midtrans**. Anda diarahkan ke halaman pembayaran Midtrans.
+2. Selesaikan pembayaran di Midtrans. Status pesanan akan diperbarui otomatis setelah pembayaran terkonfirmasi.
+3. Jika halaman pembayaran tidak dapat dibuka, jangan mencoba membayar ulang. Hubungi admin sekolah.
+
+### Transfer manual
+
+1. Setelah checkout, buka detail pesanan. Bagian **Manual bank transfer** menampilkan nama bank, nama pemilik rekening, dan nomor rekening tujuan.
 2. Transfer sesuai **total pesanan**.
 3. Isi **Transfer method / bank** (contoh: `Transfer BCA`).
 4. Pilih file **Proof of transfer** berupa JPG, PNG, atau PDF, maksimal 5 MB.
@@ -63,11 +71,11 @@ Buka **My orders** untuk melihat semua pesanan. Klik **Details** untuk melihat r
 
 | Status | Arti |
 |---|---|
-| **Pending payment** | Pesanan dibuat, menunggu Anda mengunggah bukti transfer. |
+| **Pending payment** | Pesanan dibuat, menunggu pembayaran Midtrans atau bukti transfer manual. |
 | **Waiting verification** | Bukti transfer terkirim, menunggu dicek admin. |
 | **Paid** | Pembayaran diverifikasi. Ticket pickup sudah terbit. |
 | **Picked up** | Barang sudah Anda ambil. Pesanan selesai. |
-| **Cancelled** | Pembayaran ditolak admin. Alasannya tampil sebagai *Admin note* di halaman pesanan. |
+| **Cancelled** | Pembayaran manual ditolak admin atau transaksi Midtrans dibatalkan/kedaluwarsa. Catatan admin tampil di halaman pesanan jika tersedia. |
 
 Jika pembayaran ditolak, pesanan dibatalkan dan stok dikembalikan. Untuk membeli lagi, tambahkan produk ke keranjang dan checkout ulang.
 

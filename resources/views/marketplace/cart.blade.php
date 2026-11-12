@@ -68,7 +68,6 @@
         @endforeach
       </section>
     @endforeach
-
     <section class="panel">
       <div class="kv"><span>Total pesanan</span><strong>{{ \App\Support\Money::format($cartTotal) }}</strong></div>
       <p class="muted">Tidak ada pengiriman. Setiap grup kelas diserahkan secara terpisah di lokasi acara.</p>

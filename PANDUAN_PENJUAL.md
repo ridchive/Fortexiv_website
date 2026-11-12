@@ -7,7 +7,7 @@ Sebagai penjual, Anda (siswa atau kelas) menjual produk hasil proyek kelas. Anda
 ```
 Daftar sebagai penjual → Tambah produk (tersimpan sebagai Draft)
 → Publish → Produk tampil di Marketplace → Pembeli memesan
-→ Admin verifikasi pembayaran → Pembeli mengambil barang dengan ticket
+→ Admin verifikasi pembayaran → Pembeli mengambil barang dengan ticket2
 ```
 
 ## 1. Membuat akun penjual
