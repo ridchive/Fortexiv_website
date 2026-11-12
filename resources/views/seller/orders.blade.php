@@ -5,7 +5,7 @@
 @section('content')
 <div class="wrap">
 <div class="pgh"><span class="eyebrow">PORTAL KELAS</span><h1>Pesanan untuk kelasmu</h1><p>Konfirmasikan kode pickup setelah produk pada grup kelasmu benar-benar diserahkan.</p></div>
-<div class="table-wrap"><table><thead><tr><th>Buyer</th><th>Produk</th><th>Jumlah</th><th>Pesanan</th><th>Pembayaran</th><th>Tanggal pickup</th><th>Status pesanan</th><th>Serah-terima grup</th></tr></thead><tbody>
+<div class="table-wrap"><table><thead><tr><th>Pembeli</th><th>Produk</th><th>Jumlah</th><th>Pesanan</th><th>Pembayaran</th><th>Tanggal pengambilan</th><th>Status pesanan</th><th>Serah-terima grup</th></tr></thead><tbody>
   @forelse($items as $item)
     <tr>
       <td>{{ $item->order->buyer->name }}</td><td>{{ $item->product_name }}</td><td>{{ $item->quantity }}</td><td>{{ $item->order->order_code }}</td>

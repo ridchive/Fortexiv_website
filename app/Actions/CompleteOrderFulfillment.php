@@ -25,15 +25,15 @@ class CompleteOrderFulfillment
                 throw ValidationException::withMessages(['pickup_code' => 'Kode pickup tidak valid untuk kelas ini.']);
             }
 
+            if ($fulfillment->status !== 'pending') {
+                throw ValidationException::withMessages(['pickup_code' => 'Grup kelas ini sudah diserahkan.']);
+            }
+
             $order = Order::query()->whereKey($fulfillment->order_id)->lockForUpdate()->firstOrFail();
             $ticket = Ticket::query()->where('order_id', $order->id)->lockForUpdate()->first();
 
             if (! $ticket || ! in_array($order->status, ['paid', 'partially_picked_up'], true)) {
                 throw ValidationException::withMessages(['pickup_code' => 'Pesanan belum dibayar atau tidak siap untuk diambil.']);
-            }
-
-            if ($fulfillment->status !== 'pending') {
-                throw ValidationException::withMessages(['pickup_code' => 'Grup kelas ini sudah diserahkan.']);
             }
 
             $fulfillment->update([

@@ -26,7 +26,7 @@ class EmailVerificationTest extends TestCase
         $this->actingAs($user)
             ->get($signedUrl)
             ->assertRedirect(route('home'))
-            ->assertSessionHas('status', 'Your email address has been verified.');
+            ->assertSessionHas('status', 'Alamat email berhasil diverifikasi.');
 
         $this->assertNotNull($user->fresh()->email_verified_at);
     }
@@ -51,7 +51,7 @@ class EmailVerificationTest extends TestCase
             ->actingAs($user)
             ->post(route('verification.send'))
             ->assertRedirect(route('verification.notice'))
-            ->assertSessionHas('status', 'A new email verification link has been sent.');
+            ->assertSessionHas('status', 'Tautan verifikasi baru telah dikirim ke alamat email Anda.');
 
         Notification::assertSentTo($user, VerifyEmail::class);
     }
@@ -65,7 +65,7 @@ class EmailVerificationTest extends TestCase
             ->actingAs($user)
             ->post(route('verification.code.send'))
             ->assertRedirect(route('verification.notice'))
-            ->assertSessionHas('status', 'A verification code has been sent to your email address.');
+            ->assertSessionHas('status', 'Kode verifikasi telah dikirim ke alamat email Anda.');
 
         Notification::assertSentTo(
             $user,
@@ -87,7 +87,7 @@ class EmailVerificationTest extends TestCase
         $this->actingAs($user)
             ->post(route('verification.code.verify'), ['code' => '123456'])
             ->assertRedirect(route('home'))
-            ->assertSessionHas('status', 'Your email address has been verified.');
+            ->assertSessionHas('status', 'Alamat email berhasil diverifikasi.');
 
         $this->assertNotNull($user->fresh()->email_verified_at);
         $this->assertNull($user->fresh()->email_verification_code_hash);
@@ -145,7 +145,7 @@ class EmailVerificationTest extends TestCase
             ->post(route('verification.code.verify'), ['code' => '123456'])
             ->assertRedirect(route('verification.notice'))
             ->assertSessionHasErrors([
-                'code' => 'Too many incorrect codes. Request a new code to try again.',
+                'code' => 'Terlalu banyak kode yang salah. Minta kode baru untuk mencoba kembali.',
             ]);
 
         $this->assertNull($user->fresh()->email_verified_at);
@@ -173,7 +173,7 @@ class EmailVerificationTest extends TestCase
             ->get(route('verification.notice'))
             ->assertOk()
             ->assertSee('name="code"', false)
-            ->assertSee('Send verification code');
+            ->assertSee('Kirim kode verifikasi');
     }
 
     public function test_unverified_user_must_verify_before_using_buyer_routes(): void

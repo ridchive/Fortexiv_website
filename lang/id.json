@@ -1,0 +1,15 @@
+{
+    "Verify your email address": "Verifikasi alamat email Anda",
+    "Please click the button below to verify your email address.": "Klik tombol di bawah untuk memverifikasi alamat email Anda.",
+    "Verify Email Address": "Verifikasi Alamat Email",
+    "If you did not create an account, no further action is required.": "Jika Anda tidak membuat akun, Anda tidak perlu melakukan tindakan lebih lanjut.",
+    "Reset your password": "Atur ulang kata sandi Anda",
+    "You are receiving this email because we received a password reset request for your account.": "Anda menerima email ini karena kami menerima permintaan pengaturan ulang kata sandi untuk akun Anda.",
+    "Reset Password": "Atur Ulang Kata Sandi",
+    "This password reset link will expire in :count minutes.": "Tautan pengaturan ulang kata sandi ini akan kedaluwarsa dalam :count menit.",
+    "If you did not request a password reset, no further action is required.": "Jika Anda tidak meminta pengaturan ulang kata sandi, Anda tidak perlu melakukan tindakan lebih lanjut.",
+    "Hello!": "Halo!",
+    "Regards,": "Salam,",
+    "If you’re having trouble clicking the \":actionText\" button, copy and paste the URL below into your web browser:": "Jika tombol \":actionText\" tidak berfungsi, salin dan tempel URL di bawah ini ke peramban Anda:",
+    "All rights reserved.": "Hak cipta dilindungi."
+}

@@ -14,7 +14,7 @@
   </form>
   @if(session('pickup_group'))
     @php($group = session('pickup_group'))
-    <div class="panel" style="margin-top:20px"><strong>Grup kelas berhasil diserahkan</strong><p>{{ $group['seller_name'] }} · Pesanan {{ $group['order_code'] }} · Buyer {{ $group['buyer_name'] }}.</p></div>
+    <div class="panel" style="margin-top:20px"><strong>Grup kelas berhasil diserahkan</strong><p>{{ $group['seller_name'] }} · Pesanan {{ $group['order_code'] }} · Pembeli {{ $group['buyer_name'] }}.</p></div>
   @endif
 </section>
 @endsection

@@ -21,7 +21,7 @@ class PasswordResetTest extends TestCase
         $this->get(route('password.request'))->assertOk();
         $this->post(route('password.email'), ['email' => $user->email])
             ->assertRedirect(route('password.request'))
-            ->assertSessionHas('status', 'If an account exists for that email, a reset link will be sent. If you recently requested one, please wait before trying again.');
+            ->assertSessionHas('status', 'Jika email tersebut terdaftar, tautan untuk mengatur ulang kata sandi akan dikirim. Jika Anda baru saja meminta tautan, tunggu sebelum mencoba kembali.');
 
         Notification::assertSentTo($user, ResetPassword::class);
         $this->assertDatabaseHas('password_reset_tokens', ['email' => $user->email]);
@@ -34,7 +34,7 @@ class PasswordResetTest extends TestCase
         $this->from(route('password.request'))
             ->post(route('password.email'), ['email' => 'unknown@example.test'])
             ->assertRedirect(route('password.request'))
-            ->assertSessionHas('status', 'If an account exists for that email, a reset link will be sent. If you recently requested one, please wait before trying again.');
+            ->assertSessionHas('status', 'Jika email tersebut terdaftar, tautan untuk mengatur ulang kata sandi akan dikirim. Jika Anda baru saja meminta tautan, tunggu sebelum mencoba kembali.');
 
         Notification::assertNothingSent();
     }
@@ -46,7 +46,7 @@ class PasswordResetTest extends TestCase
 
         $this->get(route('password.reset', ['token' => $token, 'email' => $user->email]))
             ->assertOk()
-            ->assertSee('Choose a new password');
+            ->assertSee('Buat kata sandi baru');
 
         $this->post(route('password.update'), [
             'token' => $token,
@@ -55,7 +55,7 @@ class PasswordResetTest extends TestCase
             'password_confirmation' => 'new-secure-password',
         ])
             ->assertRedirect(route('login'))
-            ->assertSessionHas('status', 'Your password has been reset. You can now sign in.');
+            ->assertSessionHas('status', 'Kata sandi berhasil diubah. Silakan masuk.');
 
         $this->assertTrue(password_verify('new-secure-password', $user->fresh()->password));
         $this->assertDatabaseMissing('password_reset_tokens', ['email' => $user->email]);

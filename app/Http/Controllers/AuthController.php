@@ -40,7 +40,7 @@ class AuthController extends Controller
 
         $emailService->sendPasswordResetLink($credentials['email']);
 
-        return back()->with('status', 'If an account exists for that email, a reset link will be sent. If you recently requested one, please wait before trying again.');
+        return back()->with('status', 'Jika email tersebut terdaftar, tautan untuk mengatur ulang kata sandi akan dikirim. Jika Anda baru saja meminta tautan, tunggu sebelum mencoba kembali.');
     }
 
     public function resetPasswordForm(Request $request, string $token): View
@@ -69,10 +69,10 @@ class AuthController extends Controller
         });
 
         if ($status === Password::PASSWORD_RESET) {
-            return redirect()->route('login')->with('status', 'Your password has been reset. You can now sign in.');
+            return redirect()->route('login')->with('status', 'Kata sandi berhasil diubah. Silakan masuk.');
         }
 
-        return back()->withErrors(['email' => 'This password reset link is invalid or has expired.']);
+        return back()->withErrors(['email' => 'Tautan pengaturan ulang kata sandi tidak valid atau sudah kedaluwarsa.']);
     }
 
     public function verificationNotice(Request $request): View|RedirectResponse
@@ -99,7 +99,7 @@ class AuthController extends Controller
             'email_verification_code_attempts' => 0,
         ])->save();
 
-        return redirect()->to($this->dashboardUrl($request->user()))->with('status', 'Your email address has been verified.');
+        return redirect()->to($this->dashboardUrl($request->user()))->with('status', 'Alamat email berhasil diverifikasi.');
     }
 
     public function resendEmailVerification(Request $request, EmailService $emailService): RedirectResponse
@@ -112,7 +112,7 @@ class AuthController extends Controller
 
         $emailService->sendEmailVerificationLink($user);
 
-        return back()->with('status', 'A new email verification link has been sent.');
+        return back()->with('status', 'Tautan verifikasi baru telah dikirim ke alamat email Anda.');
     }
 
     public function sendEmailVerificationCode(Request $request, EmailService $emailService): RedirectResponse
@@ -133,7 +133,7 @@ class AuthController extends Controller
 
         $emailService->sendEmailVerificationCode($user, $code);
 
-        return back()->with('status', 'A verification code has been sent to your email address.');
+        return back()->with('status', 'Kode verifikasi telah dikirim ke alamat email Anda.');
     }
 
     public function verifyEmailCode(Request $request): RedirectResponse
@@ -179,12 +179,12 @@ class AuthController extends Controller
 
         if ($result === 'verified') {
             return redirect()->to($this->dashboardUrl($request->user()))
-                ->with('status', 'Your email address has been verified.');
+                ->with('status', 'Alamat email berhasil diverifikasi.');
         }
 
         $message = $result === 'too_many_attempts'
-            ? 'Too many incorrect codes. Request a new code to try again.'
-            : 'The verification code is invalid or has expired.';
+            ? 'Terlalu banyak kode yang salah. Minta kode baru untuk mencoba kembali.'
+            : 'Kode verifikasi tidak valid atau sudah kedaluwarsa.';
 
         return back()->withErrors(['code' => $message]);
     }
@@ -254,7 +254,7 @@ class AuthController extends Controller
         $request->session()->regenerate();
         $emailService->sendEmailVerificationLink($user);
 
-        return redirect()->route('verification.notice')->with('status', 'A verification link has been sent to your email address.');
+        return redirect()->route('verification.notice')->with('status', 'Tautan verifikasi telah dikirim ke alamat email Anda.');
     }
 
     public function logout(Request $request): RedirectResponse

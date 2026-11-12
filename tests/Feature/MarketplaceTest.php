@@ -319,7 +319,9 @@ class MarketplaceTest extends TestCase
             'mode' => 'cart',
             'pickup_contact_name' => $buyer->name,
             'pickup_contact_phone' => '081234567890',
-        ])->assertSessionHasErrors('accepted_terms');
+        ])->assertSessionHasErrors([
+            'accepted_terms' => 'Setujui Terms of Service sebelum mengonfirmasi pesanan.',
+        ]);
 
         $this->assertDatabaseCount('orders', 0);
         $this->assertSame(2, $product->fresh()->stock);
@@ -518,6 +520,25 @@ class MarketplaceTest extends TestCase
             'seller_id' => $secondSeller->id,
             'status' => 'handed_over',
         ]);
+
+        $this->actingAs($firstSeller->user)
+            ->post(route('seller.pickup'), ['pickup_code' => $firstPickupCode])
+            ->assertSessionHasErrors([
+                'pickup_code' => 'Grup kelas ini sudah diserahkan.',
+            ]);
+        $this->assertSame('picked_up', $order->fresh()->status);
+    }
+
+    public function test_seller_validation_errors_use_indonesian_attribute_names(): void
+    {
+        $seller = $this->seller('validation-seller@example.test');
+
+        $this->actingAs($seller->user)
+            ->from(route('seller.products.create'))
+            ->post(route('seller.products.store'), [])
+            ->assertSessionHasErrors([
+                'name' => 'Kolom nama produk wajib diisi.',
+            ]);
     }
 
     public function test_rejecting_a_manual_payment_returns_reserved_stock_once(): void
@@ -559,6 +580,8 @@ class MarketplaceTest extends TestCase
     public function test_buyer_seller_and_admin_pages_render_for_their_own_roles(): void
     {
         $buyer = User::factory()->create();
+        $this->get(route('login'))->assertOk()->assertSee('Masuk');
+        $this->get(route('register'))->assertOk()->assertSee('Buat akun');
         $this->get(route('help'))->assertOk()->assertSee('pertanyaan umum')->assertSee('Cara memesan')->assertSee('Pengambilan barang');
         $this->get(route('terms'))->assertOk()->assertSee('Terms of Service');
         $this->actingAs($buyer)->get(route('account'))->assertOk()->assertSee('Account information');
@@ -566,17 +589,17 @@ class MarketplaceTest extends TestCase
         $this->actingAs($buyer)->get(route('orders.index'))->assertOk();
 
         $seller = $this->seller('pages-seller@example.test');
-        $this->actingAs($seller->user)->get(route('seller.dashboard'))->assertOk();
-        $this->actingAs($seller->user)->get(route('seller.products.index'))->assertOk();
-        $this->actingAs($seller->user)->get(route('seller.products.create'))->assertOk();
+        $this->actingAs($seller->user)->get(route('seller.dashboard'))->assertOk()->assertSee('DASHBOARD PENJUAL');
+        $this->actingAs($seller->user)->get(route('seller.products.index'))->assertOk()->assertSee('Produk Anda');
+        $this->actingAs($seller->user)->get(route('seller.products.create'))->assertOk()->assertSee('Tambah produk');
         $this->actingAs($seller->user)->get(route('seller.orders'))->assertOk();
 
         $admin = User::factory()->create(['role' => 'admin']);
-        $this->actingAs($admin)->get(route('admin.dashboard'))->assertOk()->assertSee('Daftar Order');
-        $this->actingAs($admin)->get(route('admin.payments'))->assertOk();
-        $this->actingAs($admin)->get(route('admin.users'))->assertOk();
+        $this->actingAs($admin)->get(route('admin.dashboard'))->assertOk()->assertSee('Daftar pesanan');
+        $this->actingAs($admin)->get(route('admin.payments'))->assertOk()->assertSee('Verifikasi pembayaran');
+        $this->actingAs($admin)->get(route('admin.users'))->assertOk()->assertSee('Nonaktifkan');
         $this->actingAs($admin)->get(route('admin.pickup'))->assertOk();
-        $this->actingAs($admin)->get(route('admin.reports'))->assertOk();
+        $this->actingAs($admin)->get(route('admin.reports'))->assertOk()->assertSee('Laporan harian');
     }
 
     public function test_checkout_does_not_create_an_order_when_stock_is_no_longer_available(): void
