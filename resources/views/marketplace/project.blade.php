@@ -63,7 +63,7 @@
       <div><span class="eyebrow">{{ $project->class_name }}</span><h2 id="related-products-heading">Produk dari proyek ini</h2></div>
       <a href="{{ route('catalog.index', ['class' => $project->id]) }}">Buka katalog kelas →</a>
     </div>
-    <div class="grid">
+    <div class="grid catalog-grid">
       @forelse($project->products as $product)
         @include('marketplace.partials.product-card', ['product' => $product, 'window' => $window])
       @empty
