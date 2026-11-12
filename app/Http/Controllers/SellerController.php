@@ -7,7 +7,6 @@ use App\Models\Category;
 use App\Models\OrderFulfillment;
 use App\Models\OrderItem;
 use App\Models\Product;
-use App\Models\Project;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Storage;
@@ -25,7 +24,7 @@ class SellerController extends Controller
             'seller' => $seller,
             'productsCount' => $seller->products()->count(),
             'ordersCount' => OrderItem::where('seller_id', $seller->id)->distinct('order_id')->count('order_id'),
-            'pendingCount' => $seller->products()->where('status', 'draft')->count(),
+            'pendingCount' => $seller->products()->where('review_status', 'pending_review')->count(),
             'items' => $items,
         ]);
     }
@@ -42,7 +41,6 @@ class SellerController extends Controller
         return view('seller.product-form', [
             'product' => new Product,
             'categories' => Category::orderBy('name')->get(),
-            'projects' => Project::where('is_published', true)->orderBy('class_name')->get(),
         ]);
     }
 
@@ -51,10 +49,12 @@ class SellerController extends Controller
         $data = $this->validatedProduct($request);
         $data['slug'] = $this->uniqueSlug($data['name']);
         $data['image'] = $request->file('image')?->store('products', 'public');
+        $data['project_id'] = $request->user()->seller->project_id;
         $data['status'] = 'draft';
+        $data['review_status'] = 'draft';
         $request->user()->seller->products()->create($data);
 
-        return redirect()->route('seller.products.index')->with('status', 'Produk tersimpan sebagai draft.');
+        return redirect()->route('seller.products.index')->with('status', 'Produk tersimpan sebagai draf. Ajukan untuk ditinjau admin agar dapat ditampilkan.');
     }
 
     public function edit(Request $request, Product $product): View
@@ -64,7 +64,6 @@ class SellerController extends Controller
         return view('seller.product-form', [
             'product' => $product,
             'categories' => Category::orderBy('name')->get(),
-            'projects' => Project::where('is_published', true)->orderBy('class_name')->get(),
         ]);
     }
 
@@ -83,18 +82,33 @@ class SellerController extends Controller
         } else {
             unset($data['image']);
         }
+        $data['project_id'] = $request->user()->seller->project_id;
+        $data['status'] = 'draft';
+        $data['review_status'] = 'draft';
+        $data['review_notes'] = null;
+        $data['reviewed_by'] = null;
+        $data['reviewed_at'] = null;
         $product->update($data);
 
-        return redirect()->route('seller.products.index')->with('status', 'Produk diperbarui.');
+        return redirect()->route('seller.products.index')->with('status', 'Perubahan tersimpan sebagai draf. Ajukan kembali untuk ditinjau admin.');
     }
 
-    public function publish(Request $request, Product $product): RedirectResponse
+    public function submitForReview(Request $request, Product $product): RedirectResponse
     {
         $this->authorizeProduct($request, $product);
-        abort_if($product->stock < 1, 422, 'Tambahkan stok sebelum menerbitkan produk.');
-        $product->update(['status' => 'published']);
+        abort_if($product->stock < 1, 422, 'Tambahkan stok sebelum mengajukan produk untuk ditinjau.');
+        abort_if(! $product->category_id || ! $product->project_id, 422, 'Produk harus memiliki kategori dan proyek kelas.');
+        abort_if($product->review_status === 'pending_review', 422, 'Produk ini sudah menunggu tinjauan admin.');
 
-        return back()->with('status', 'Produk sekarang tampil di marketplace.');
+        $product->update([
+            'status' => 'draft',
+            'review_status' => 'pending_review',
+            'review_notes' => null,
+            'reviewed_by' => null,
+            'reviewed_at' => null,
+        ]);
+
+        return back()->with('status', 'Produk diajukan untuk ditinjau admin. Produk belum tampil di marketplace.');
     }
 
     public function destroy(Request $request, Product $product): RedirectResponse
@@ -147,7 +161,6 @@ class SellerController extends Controller
             'price' => ['required', 'integer', 'min:1', 'max:100000000'],
             'stock' => ['required', 'integer', 'min:0', 'max:100000'],
             'category_id' => ['nullable', 'integer', 'exists:categories,id'],
-            'project_id' => ['nullable', 'integer', 'exists:projects,id'],
             'image' => ['nullable', 'image', 'mimes:jpg,jpeg,png,webp', 'max:5120'],
         ]);
     }

@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Controllers\AdminController;
+use App\Http\Controllers\AdminContentController;
 use App\Http\Controllers\AuthController;
 use App\Http\Controllers\MarketplaceController;
 use App\Http\Controllers\SellerController;
@@ -62,7 +63,7 @@ Route::prefix('seller')->name('seller.')->middleware(['auth', 'verified', 'role:
     Route::post('/products', [SellerController::class, 'store'])->name('products.store');
     Route::get('/products/{product}/edit', [SellerController::class, 'edit'])->name('products.edit');
     Route::put('/products/{product}', [SellerController::class, 'update'])->name('products.update');
-    Route::patch('/products/{product}/publish', [SellerController::class, 'publish'])->name('products.publish');
+    Route::patch('/products/{product}/submit-review', [SellerController::class, 'submitForReview'])->name('products.submit-review');
     Route::delete('/products/{product}', [SellerController::class, 'destroy'])->name('products.destroy');
     Route::get('/orders', [SellerController::class, 'orders'])->name('orders');
     Route::post('/pickup', [SellerController::class, 'pickup'])->name('pickup');
@@ -79,4 +80,13 @@ Route::prefix('admin')->name('admin.')->middleware(['auth', 'verified', 'role:ad
     Route::get('/pickup', [AdminController::class, 'pickupForm'])->name('pickup');
     Route::post('/pickup', [AdminController::class, 'pickup'])->name('pickup.validate');
     Route::get('/reports/daily', [AdminController::class, 'report'])->name('reports');
+    Route::get('/articles', [AdminContentController::class, 'articles'])->name('articles.index');
+    Route::get('/articles/create', [AdminContentController::class, 'createArticle'])->name('articles.create');
+    Route::post('/articles', [AdminContentController::class, 'storeArticle'])->name('articles.store');
+    Route::get('/articles/{project}/edit', [AdminContentController::class, 'editArticle'])->name('articles.edit');
+    Route::put('/articles/{project}', [AdminContentController::class, 'updateArticle'])->name('articles.update');
+    Route::patch('/articles/{project}/archive', [AdminContentController::class, 'archiveArticle'])->name('articles.archive');
+    Route::get('/products', [AdminContentController::class, 'products'])->name('products.index');
+    Route::get('/products/{product}/review', [AdminContentController::class, 'reviewProduct'])->name('products.review');
+    Route::put('/products/{product}/review', [AdminContentController::class, 'decideProduct'])->name('products.decide');
 });

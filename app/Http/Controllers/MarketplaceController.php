@@ -33,7 +33,7 @@ class MarketplaceController extends Controller
         return view('marketplace.home', [
             'projects' => Project::query()
                 ->where('is_published', true)
-                ->withCount(['products as published_products_count' => fn (Builder $query) => $query->where('status', 'published')])
+                ->withCount(['products as published_products_count' => fn (Builder $query) => $query->where('status', 'published')->where('review_status', 'approved')])
                 ->orderBy('id')
                 ->get(),
             'products' => $this->availableProducts()->where('stock', '>', 0)->limit(8)->get(),
@@ -88,7 +88,7 @@ class MarketplaceController extends Controller
 
     public function product(Product $product, PurchaseWindow $purchaseWindow): View
     {
-        abort_unless($product->status === 'published', 404);
+        abort_unless($product->status === 'published' && $product->review_status === 'approved', 404);
         $product->load(['seller.project', 'category', 'project']);
 
         return view('marketplace.product', [
@@ -103,6 +103,7 @@ class MarketplaceController extends Controller
         $project->load([
             'products' => fn (HasMany $query) => $query
                 ->where('status', 'published')
+                ->where('review_status', 'approved')
                 ->with(['seller', 'category']),
         ]);
 
@@ -154,7 +155,7 @@ class MarketplaceController extends Controller
         ]);
         abort_unless($purchaseWindow->canAcceptOrders(), 422, 'PO belum dibuka atau sudah ditutup. Produk masih dapat dilihat di katalog.');
 
-        $product = Product::query()->whereKey($data['product_id'])->where('status', 'published')->firstOrFail();
+        $product = Product::query()->whereKey($data['product_id'])->where('status', 'published')->where('review_status', 'approved')->firstOrFail();
         $item = $request->user()->cartItems()->firstOrNew(['product_id' => $product->id]);
         $quantity = ($item->exists ? $item->quantity : 0) + $data['quantity'];
         if ($quantity > $product->stock) {
@@ -171,7 +172,7 @@ class MarketplaceController extends Controller
     {
         abort_unless($cartItem->user_id === $request->user()->id, 404);
         $data = $request->validate(['quantity' => ['required', 'integer', 'min:1', 'max:100']]);
-        abort_if($cartItem->product->status !== 'published' || $data['quantity'] > $cartItem->product->stock, 422, 'Produk tidak tersedia sebanyak jumlah yang diminta. Hapus produk atau kurangi jumlahnya.');
+        abort_if($cartItem->product->status !== 'published' || $cartItem->product->review_status !== 'approved' || $data['quantity'] > $cartItem->product->stock, 422, 'Produk tidak tersedia sebanyak jumlah yang diminta. Hapus produk atau kurangi jumlahnya.');
         $cartItem->update(['quantity' => $data['quantity']]);
 
         return back()->with('status', 'Jumlah produk diperbarui.');
@@ -194,7 +195,7 @@ class MarketplaceController extends Controller
                 'product' => ['required', 'integer', 'exists:products,id'],
                 'quantity' => ['required', 'integer', 'min:1', 'max:100'],
             ]);
-            $product = Product::query()->whereKey($data['product'])->where('status', 'published')->with(['seller.project', 'project', 'category'])->firstOrFail();
+            $product = Product::query()->whereKey($data['product'])->where('status', 'published')->where('review_status', 'approved')->with(['seller.project', 'project', 'category'])->firstOrFail();
             $items = collect([[
                 'product' => $product,
                 'quantity' => (int) $data['quantity'],
@@ -269,7 +270,7 @@ class MarketplaceController extends Controller
             $orderItems = [];
             foreach ($items as $item) {
                 $product = Product::query()->whereKey($item['product_id'])->lockForUpdate()->first();
-                if (! $product || $product->status !== 'published' || $product->stock < $item['quantity']) {
+                if (! $product || $product->status !== 'published' || $product->review_status !== 'approved' || $product->stock < $item['quantity']) {
                     throw ValidationException::withMessages(['cart' => 'Stok atau ketersediaan produk berubah. Periksa kembali pesananmu.']);
                 }
 
@@ -420,7 +421,8 @@ class MarketplaceController extends Controller
     {
         return Product::query()
             ->with(['seller.project', 'category', 'project'])
-            ->where('status', 'published');
+            ->where('status', 'published')
+            ->where('review_status', 'approved');
     }
 
     /**

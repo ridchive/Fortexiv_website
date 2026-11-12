@@ -18,7 +18,7 @@
   <div class="stat"><strong>{{ $ordersCount }}</strong><span>Total pesanan</span></div>
   <div class="stat"><strong>{{ $items->where('order.status', 'waiting_verification')->count() }}</strong><span>Menunggu verifikasi pembayaran</span></div>
   <div class="stat"><strong>{{ $productsCount }}</strong><span>Produk Anda</span></div>
-  <div class="stat"><strong>{{ $pendingCount }}</strong><span>Produk draf</span></div>
+  <div class="stat"><strong>{{ $pendingCount }}</strong><span>Produk menunggu review admin</span></div>
 </div>
 <div class="chip-row"><a class="chip" href="{{ route('seller.products.index') }}">Kelola produk</a><a class="chip" href="{{ route('seller.orders') }}">Pesanan dan pembeli</a></div>
 <h2>Pesanan terbaru</h2>

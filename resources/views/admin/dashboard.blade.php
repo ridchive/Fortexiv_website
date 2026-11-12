@@ -26,14 +26,6 @@
   <div class="stat"><strong>{{ $buyersCount }}</strong><span>Akun pembeli</span></div>
   <div class="stat"><strong>{{ $productsSold }}</strong><span>Produk terjual</span></div>
 </div>
-<div class="chip-row">
-  <a class="chip" href="#all-orders">Daftar pesanan</a>
-  <a class="chip" href="{{ route('admin.payments') }}">Verifikasi pembayaran</a>
-  <a class="chip" href="{{ route('admin.users') }}">Kelola akun</a>
-  <a class="chip" href="{{ route('admin.pickup') }}">Validasi pengambilan</a>
-  <a class="chip" href="{{ route('admin.reports') }}">Laporan harian</a>
-</div>
-
 <h2 id="all-orders">Daftar pesanan</h2>
 <div class="table-wrap">
   <table>
