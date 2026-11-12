@@ -5,6 +5,15 @@
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
   <meta name="csrf-token" content="{{ csrf_token() }}">
   <title>@yield('title', 'FORTEXIV')</title>
+  <script>
+    (() => {
+      const savedTheme = localStorage.getItem('fortexiv-theme');
+
+      if (savedTheme === 'light' || savedTheme === 'dark') {
+        document.documentElement.dataset.theme = savedTheme;
+      }
+    })();
+  </script>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,600;12..96,800&family=Figtree:wght@400;500;600;700&display=swap" rel="stylesheet">
@@ -155,7 +164,7 @@
     .errors { color: var(--bad); font-size: 13px; }
     .sr-only { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip: rect(0, 0, 0, 0); white-space: nowrap; border: 0; }
     .flash { padding: 12px 15px; }
-    .table-wrap { margin: 14px 0 22px; overflow: auto; border: 1px solid var(--line); border-radius: var(--radius); background: #FFF; }
+    .table-wrap { margin: 14px 0 22px; overflow: auto; border: 1px solid var(--line); border-radius: var(--radius); background: var(--surface); }
     table { width: 100%; border-collapse: collapse; min-width: 620px; }
     th, td { padding: 12px 14px; border-bottom: 1px solid var(--line); font-size: 13px; text-align: left; }
     th { color: var(--muted); font-size: 11px; letter-spacing: .04em; text-transform: uppercase; }
@@ -288,15 +297,23 @@
     .hicons { display: flex; align-items: center; gap: 6px; }
     .ib { position: relative; display: grid; width: 42px; height: 42px; place-items: center; border: 0; border-radius: 50%; background: transparent; color: var(--ink); text-decoration: none; cursor: pointer; }
     .ib:hover { background: var(--soft); }
+    .theme-toggle .icon-moon { display: none; }
+    :root[data-theme="light"] .theme-toggle .icon-sun { display: none; }
+    :root[data-theme="light"] .theme-toggle .icon-moon { display: block; }
     .ib .n { position: absolute; top: 2px; right: 0; display: grid; min-width: 18px; height: 18px; place-items: center; padding: 0 4px; border-radius: 9px; background: var(--dark); color: var(--dark-ink); font-size: 11px; font-weight: 700; }
     .main-nav { display: flex; flex-wrap: wrap; justify-content: center; gap: clamp(18px, 5vw, 56px); padding-bottom: 14px; }
     .main-nav a { padding: 4px 2px 5px; border-bottom: 2px solid transparent; color: var(--ink); font-weight: 600; text-decoration: none; }
     .main-nav a:hover { border-color: var(--line); }
     .main-nav a.active { border-color: var(--good); color: var(--good); }
+    .admin-header { position: relative; z-index: 40; }
+    .admin-shortcuts { position: sticky; top: 0; z-index: 30; display: flex; flex-wrap: nowrap; gap: 8px; margin: 0 calc(-1 * max(16px, env(safe-area-inset-left, 0px))); padding: 8px max(16px, env(safe-area-inset-right, 0px)) 8px max(16px, env(safe-area-inset-left, 0px)); overflow-x: auto; border-bottom: 1px solid var(--line); background: var(--bg); color: var(--ink); scrollbar-width: thin; -webkit-overflow-scrolling: touch; scroll-snap-type: x proximity; }
+    .admin-shortcuts a { flex: 0 0 auto; min-height: 44px; display: inline-flex; align-items: center; padding: 7px 12px; border: 1px solid var(--line); border-radius: 999px; background: var(--surface); color: var(--ink); font-size: 12px; font-weight: 700; text-decoration: none; white-space: nowrap; scroll-snap-align: start; }
+    .admin-shortcuts a:hover, .admin-shortcuts a.active { border-color: var(--good); background: var(--good-bg); color: var(--good); }
+    .admin-shortcuts .admin-back { border-color: var(--good); background: var(--good-bg); color: var(--good); }
     .umenu { position: relative; }
     .umenu summary { list-style: none; cursor: pointer; }
     .umenu summary::-webkit-details-marker { display: none; }
-    .umenu .pop { position: absolute; top: 46px; right: 0; z-index: 20; min-width: 220px; padding: 8px; border: 1px solid var(--line); border-radius: 10px; background: var(--surface); box-shadow: 0 10px 30px rgba(0,0,0,.14); }
+    .umenu .pop { position: absolute; top: 46px; right: 0; z-index: 50; min-width: 220px; padding: 8px; border: 1px solid var(--line); border-radius: 10px; background: var(--surface); box-shadow: 0 10px 30px rgba(0,0,0,.14); }
     .umenu .pop a, .umenu .pop button { display: flex; width: 100%; align-items: center; gap: 8px; padding: 9px 10px; border: 0; border-radius: 6px; background: transparent; color: var(--ink); text-align: left; text-decoration: none; cursor: pointer; }
     .umenu .pop a:hover, .umenu .pop button:hover { background: var(--soft); }
     .umenu .who { margin-bottom: 6px; padding: 8px 10px; border-bottom: 1px solid var(--line); }
@@ -435,7 +452,7 @@
 </head>
 <body>
 <div class="prototype-note">Prototype operasional FORTEXIV. Pembayaran dan QR pickup masih simulasi.</div>
-<header class="site-header wrap">
+<header @class(['site-header wrap', 'admin-header' => request()->routeIs('admin.*')])>
   <div class="hd">
     <a class="brand" href="{{ route('home') }}"><i class="brand-mark"></i>FORTEXIV</a>
     <form class="hsearch" method="get" action="{{ route('catalog.index') }}" role="search">
@@ -445,6 +462,10 @@
       </button>
     </form>
     <div class="hicons">
+      <button class="ib theme-toggle" type="button" data-theme-toggle aria-label="Aktifkan mode terang" title="Aktifkan mode terang">
+        <svg class="icon-sun" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><circle cx="12" cy="12" r="4"></circle><path d="M12 2v2m0 16v2M4.93 4.93l1.42 1.42m11.3 11.3 1.42 1.42M2 12h2m16 0h2M4.93 19.07l1.42-1.42m11.3-11.3 1.42-1.42"></path></svg>
+        <svg class="icon-moon" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><path d="M20.5 14.2A8.5 8.5 0 0 1 9.8 3.5 8.5 8.5 0 1 0 20.5 14.2Z"></path></svg>
+      </button>
       @auth
         @if(auth()->user()->role === 'buyer')
           <a class="ib" href="{{ route('cart.index') }}" aria-label="Keranjang">
@@ -491,7 +512,19 @@
     @endguest
   </nav>
 </header>
-<main class="app">
+<main @class(['app', 'admin-app' => request()->routeIs('admin.*')])>
+  @if(request()->routeIs('admin.*'))
+    <nav class="admin-shortcuts" aria-label="Navigasi admin">
+      <a class="admin-back" href="{{ route('admin.dashboard') }}">← Dashboard</a>
+      <a href="{{ route('admin.dashboard') }}#all-orders" @class(['active' => request()->routeIs('admin.dashboard')])>Daftar pesanan</a>
+      <a href="{{ route('admin.payments') }}" @class(['active' => request()->routeIs('admin.payments*')])>Verifikasi pembayaran</a>
+      <a href="{{ route('admin.users') }}" @class(['active' => request()->routeIs('admin.users*')])>Kelola akun</a>
+      <a href="{{ route('admin.pickup') }}" @class(['active' => request()->routeIs('admin.pickup*')])>Validasi pengambilan</a>
+      <a href="{{ route('admin.reports') }}" @class(['active' => request()->routeIs('admin.reports*')])>Laporan harian</a>
+      <a href="{{ route('admin.articles.index') }}" @class(['active' => request()->routeIs('admin.articles*')])>Kelola artikel proyek</a>
+      <a href="{{ route('admin.products.index') }}" @class(['active' => request()->routeIs('admin.products*')])>Review produk</a>
+    </nav>
+  @endif
   @if(session('status'))<div class="flash" role="status">{{ session('status') }}</div>@endif
   @if(session('error'))<div class="panel errors" role="alert">{{ session('error') }}</div>@endif
   @if($errors->any())<div class="panel errors" role="alert"><strong>Periksa kembali:</strong><ul>@foreach($errors->all() as $error)<li>{{ $error }}</li>@endforeach</ul></div>@endif
@@ -512,5 +545,33 @@
   </div>
 </footer>
 @stack('scripts')
+<script>
+  (() => {
+    const themeRoot = document.documentElement;
+    const themeToggle = document.querySelector('[data-theme-toggle]');
+
+    if (!themeToggle) {
+      return;
+    }
+
+    const updateThemeLabel = () => {
+      const nextTheme = themeRoot.dataset.theme === 'dark' ? 'light' : 'dark';
+      const label = nextTheme === 'light' ? 'Aktifkan mode terang' : 'Aktifkan mode gelap';
+
+      themeToggle.setAttribute('aria-label', label);
+      themeToggle.setAttribute('title', label);
+    };
+
+    themeToggle.addEventListener('click', () => {
+      const nextTheme = themeRoot.dataset.theme === 'dark' ? 'light' : 'dark';
+
+      themeRoot.dataset.theme = nextTheme;
+      localStorage.setItem('fortexiv-theme', nextTheme);
+      updateThemeLabel();
+    });
+
+    updateThemeLabel();
+  })();
+</script>
 </body>
 </html>
