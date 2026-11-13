@@ -175,6 +175,36 @@ class MarketplaceTest extends TestCase
         $this->assertGuest();
     }
 
+    public function test_default_purchase_window_is_open_and_allows_orders_until_november_28(): void
+    {
+        $this->travelTo('2026-11-13 12:00:00');
+        $buyer = User::factory()->create();
+        $seller = $this->seller();
+        $product = Product::create([
+            'seller_id' => $seller->id,
+            'name' => 'Produk PO aktif',
+            'slug' => 'produk-po-aktif',
+            'description' => 'Produk tersedia selama PO.',
+            'price' => 12000,
+            'stock' => 3,
+            'review_status' => 'approved',
+            'status' => 'published',
+        ]);
+
+        $this->actingAs($buyer)
+            ->get(route('catalog.index'))
+            ->assertOk()
+            ->assertSee('PO aktif')
+            ->assertDontSee('Jadwal PO belum tersedia')
+            ->assertSee('+ Keranjang');
+
+        $this->actingAs($buyer)
+            ->get(route('products.show', $product))
+            ->assertOk()
+            ->assertDontSee('Pemesanan belum tersedia')
+            ->assertSee('Beli Sekarang');
+    }
+
     public function test_project_story_links_to_its_products_and_catalog_filters_by_class_and_category(): void
     {
         $seller = $this->seller();
