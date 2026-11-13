@@ -132,7 +132,7 @@ class MarketplaceSeeder extends Seeder
                 ['Paket Stiker Satwa Sekolah', 'alat-tulis', 15000, 50, 'Sepuluh stiker vinil bergambar satwa yang hidup di kebun sekolah.', 'Ilustrasi dibuat dari pengamatan lapangan oleh siswa.', 'draft'],
             ],
             'XII Kriya Kreatif' => [
-                ['Pot Tanah Liat Mini', 'dekorasi', 20000, 28, 'Pot tanah liat mini dengan bibit lidah buaya.', 'Dibentuk tangan dari tanah liat lokal dan dibakar di tungku sekolah. Setiap pot dijual bersama satu bibit.', 'published'],
+                ['Pot Tanah Liat Mini', 'dekorasi', 1, 28, 'Pot tanah liat mini dengan bibit lidah buaya.', 'Dibentuk tangan dari tanah liat lokal dan dibakar di tungku sekolah. Setiap pot dijual bersama satu bibit.', 'published'],
                 ['Lilin Minyak Jelantah', 'dekorasi', 35000, 15, 'Lilin dari minyak jelantah kantin yang disaring, dalam gelas kaca bekas.', 'Jelantah dari kantin disaring tiga kali sebelum dicor menjadi lilin. Nyala bersih, tanpa bau gorengan.', 'published'],
                 ['Sabun Batang Kulit Jeruk', 'perawatan', 17000, 40, 'Sabun batang dengan serbuk kulit jeruk dan minyak kelapa.', 'Kulit jeruk dari kantin dikeringkan lalu digiling. Sabun dibuat dengan metode dingin dan diperam selama empat minggu.', 'draft'],
             ],
