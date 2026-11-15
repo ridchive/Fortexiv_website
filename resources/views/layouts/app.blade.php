@@ -335,21 +335,87 @@
     .umenu .pop a, .umenu .pop button { display: flex; width: 100%; align-items: center; gap: 8px; padding: 9px 10px; border: 0; border-radius: 6px; background: transparent; color: var(--ink); text-align: left; text-decoration: none; cursor: pointer; }
     .umenu .pop a:hover, .umenu .pop button:hover { background: var(--soft); }
     .umenu .who { margin-bottom: 6px; padding: 8px 10px; border-bottom: 1px solid var(--line); }
-    .hero { position: relative; display: grid; grid-area: slide; height: 100%; min-width: 0; min-height: 0; grid-template-columns: minmax(0, 1.05fr) minmax(0, 1fr); align-items: stretch; gap: 0; margin: 0; padding: 0; overflow: hidden; border-radius: 12px; background: var(--lime); color: var(--lime-ink); }
-    .hero-carousel { position: relative; display: grid; height: clamp(430px, 32vw, 460px); grid-template-areas: "slide"; overflow: hidden; border-radius: 12px; }
-    .hero[hidden] { display: none; }
-    .hero.is-entering-forward { animation: hero-enter-forward .65s ease-out both; }
-    .hero.is-entering-backward { animation: hero-enter-backward .65s ease-out both; }
-    @keyframes hero-enter-forward {
-      from { opacity: 0; transform: translateX(48px); }
-      to { opacity: 1; transform: translateX(0); }
+    .hero-carousel {
+      position: relative;
+      display: block;
+      height: clamp(430px, 32vw, 460px);
+      overflow: hidden;
+      border-radius: 12px;
+      cursor: grab;
+      user-select: none;
+      -webkit-user-select: none;
+      touch-action: pan-y;
     }
-    @keyframes hero-enter-backward {
-      from { opacity: 0; transform: translateX(-48px); }
-      to { opacity: 1; transform: translateX(0); }
+    .hero-carousel.is-dragging {
+      cursor: grabbing;
+    }
+    .hero-track {
+      display: flex;
+      height: 100%;
+      width: 100%;
+      will-change: transform;
+      transition: transform 0.5s cubic-bezier(0.25, 1, 0.5, 1);
+    }
+    .hero-track.is-dragging {
+      transition: none;
+    }
+    .hero {
+      position: relative;
+      flex: 0 0 100%;
+      width: 100%;
+      max-width: 100%;
+      box-sizing: border-box;
+      display: grid;
+      height: 100%;
+      min-width: 0;
+      min-height: 0;
+      grid-template-columns: minmax(0, 1.05fr) minmax(0, 1fr);
+      align-items: stretch;
+      gap: 0;
+      margin: 0;
+      padding: 0;
+      overflow: hidden;
+      background: var(--lime);
+      color: var(--lime-ink);
     }
     @media (prefers-reduced-motion: reduce) {
-      .hero.is-entering-forward, .hero.is-entering-backward { animation: none; }
+      .hero-track { transition: none !important; }
+    }
+    .hero-nav {
+      position: absolute;
+      top: 50%;
+      transform: translateY(-50%);
+      z-index: 4;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      width: 40px;
+      height: 40px;
+      border-radius: 50%;
+      border: 1px solid rgba(22, 48, 26, 0.15);
+      background: rgba(255, 255, 255, 0.88);
+      color: var(--lime-ink);
+      backdrop-filter: blur(8px);
+      cursor: pointer;
+      transition: opacity 0.25s ease, transform 0.2s ease, background 0.2s ease;
+      box-shadow: 0 4px 14px rgba(10, 40, 10, 0.15);
+      opacity: 0;
+      pointer-events: none;
+    }
+    .hero-carousel:hover .hero-nav,
+    .hero-carousel:focus-within .hero-nav {
+      opacity: 0.92;
+      pointer-events: auto;
+    }
+    .hero-nav:hover {
+      opacity: 1;
+      background: #ffffff;
+      transform: translateY(-50%) scale(1.08);
+    }
+    .hero-nav.prev { left: 16px; }
+    .hero-nav.next { right: 16px; }
+    @media (max-width: 720px) {
+      .hero-nav { display: none; }
     }
     .hero .tx { display: flex; flex-direction: column; justify-content: center; gap: 16px; padding: clamp(24px, 4vw, 48px); }
     .hero .tx h1 { line-height: 1.06; }
@@ -365,9 +431,9 @@
     .hero .dots { position: absolute; bottom: 16px; left: clamp(24px, 4vw, 48px); z-index: 2; display: flex; gap: 8px; }
     .hero .dots button { width: 26px; height: 6px; padding: 0; border: 0; border-radius: 3px; background: rgba(22,48,26,.3); cursor: pointer; }
     .hero .dots button[aria-pressed="true"] { background: var(--lime-ink); }
-    .hero-dots { position: absolute; bottom: 16px; left: clamp(24px, 4vw, 48px); z-index: 2; display: flex; gap: 8px; }
-    .hero-dots button { width: 26px; height: 6px; padding: 0; border: 0; border-radius: 3px; background: rgba(22,48,26,.3); cursor: pointer; }
-    .hero-dots button[aria-pressed="true"] { background: var(--lime-ink); }
+    .hero-dots { position: absolute; bottom: 16px; left: clamp(24px, 4vw, 48px); z-index: 3; display: flex; align-items: center; gap: 8px; }
+    .hero-dots button { width: 24px; height: 6px; padding: 0; border: 0; border-radius: 3px; background: rgba(22,48,26,.3); cursor: pointer; transition: width 0.3s ease, background 0.3s ease; }
+    .hero-dots button[aria-pressed="true"] { width: 44px; background: var(--lime-ink); }
     .band { display: flex; flex-wrap: wrap; justify-content: center; align-items: center; gap: 10px 18px; margin-top: 16px; padding: 12px 18px; border-radius: 6px; background: var(--band); font-weight: 600; text-align: center; }
     .sec-b { padding-block: 44px; border-top: 1px solid var(--line); }
     .sec-h { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: end; gap: 16px; margin-bottom: 22px; }
