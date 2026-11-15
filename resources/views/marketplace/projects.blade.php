@@ -17,7 +17,7 @@
     @endforeach
   </div>
 
-  <div class="grid3">
+  <div class="grid3 project-list-grid">
     @forelse($projects as $project)
       <a class="story" href="{{ route('projects.show', $project) }}">
         <div class="im">@include('marketplace.partials.project-art', ['project' => $project])</div>

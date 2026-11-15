@@ -445,6 +445,19 @@
       .hero-dots { bottom: 14px; left: 18px; }
       .split { grid-template-columns: minmax(0, 1fr); }
       .grid3, .steps { grid-template-columns: minmax(0, 1fr); }
+      .project-list-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; }
+      .project-list-grid .story { min-width: 0; gap: 8px; }
+      .project-list-grid .story .im { aspect-ratio: 4 / 3; }
+      .project-list-grid .story h3 { font-size: .95rem; line-height: 1.2; }
+      .project-list-grid .story p {
+        display: -webkit-box;
+        overflow: hidden;
+        -webkit-box-orient: vertical;
+        -webkit-line-clamp: 2;
+        font-size: .8rem;
+        line-height: 1.35;
+      }
+      .project-list-grid .story .btn { padding: 6px 8px; font-size: .72rem; }
       .story-strip { grid-auto-columns: minmax(240px, min(82vw, 320px)); }
       .story-scroll-hint { display: block; margin: -10px 0 14px; color: var(--muted); font-size: .85rem; }
       .ft .cols { grid-template-columns: repeat(2, minmax(0, 1fr)); }
