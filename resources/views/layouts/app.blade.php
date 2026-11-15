@@ -535,6 +535,7 @@
     <nav class="admin-shortcuts" aria-label="Navigasi admin">
       <a class="admin-back" href="{{ route('admin.dashboard') }}">← Dashboard</a>
       <a href="{{ route('admin.dashboard') }}#all-orders" @class(['active' => request()->routeIs('admin.dashboard')])>Daftar pesanan</a>
+      <a href="{{ route('admin.event.edit') }}" @class(['active' => request()->routeIs('admin.event*')])>Jadwal PO & Acara</a>
       <a href="{{ route('admin.payments') }}" @class(['active' => request()->routeIs('admin.payments*')])>Verifikasi pembayaran</a>
       <a href="{{ route('admin.users') }}" @class(['active' => request()->routeIs('admin.users*')])>Kelola akun</a>
       <a href="{{ route('admin.pickup') }}" @class(['active' => request()->routeIs('admin.pickup*')])>Validasi pengambilan</a>

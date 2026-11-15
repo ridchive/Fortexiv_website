@@ -2,6 +2,7 @@
 
 use App\Http\Controllers\AdminController;
 use App\Http\Controllers\AdminContentController;
+use App\Http\Controllers\AdminEventController;
 use App\Http\Controllers\AuthController;
 use App\Http\Controllers\MarketplaceController;
 use App\Http\Controllers\SellerController;
@@ -80,6 +81,8 @@ Route::prefix('admin')->name('admin.')->middleware(['auth', 'verified', 'role:ad
     Route::get('/pickup', [AdminController::class, 'pickupForm'])->name('pickup');
     Route::post('/pickup', [AdminController::class, 'pickup'])->name('pickup.validate');
     Route::get('/reports/daily', [AdminController::class, 'report'])->name('reports');
+    Route::get('/event-settings', [AdminEventController::class, 'edit'])->name('event.edit');
+    Route::put('/event-settings', [AdminEventController::class, 'update'])->name('event.update');
     Route::get('/articles', [AdminContentController::class, 'articles'])->name('articles.index');
     Route::get('/articles/create', [AdminContentController::class, 'createArticle'])->name('articles.create');
     Route::post('/articles', [AdminContentController::class, 'storeArticle'])->name('articles.store');

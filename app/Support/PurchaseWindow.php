@@ -2,12 +2,43 @@
 
 namespace App\Support;
 
+use App\Models\EventSetting;
 use Illuminate\Support\Carbon;
+use Throwable;
 
 class PurchaseWindow
 {
+    protected ?EventSetting $currentSetting = null;
+
+    protected bool $settingLoaded = false;
+
+    public function currentSetting(): ?EventSetting
+    {
+        if (! $this->settingLoaded) {
+            try {
+                $this->currentSetting = EventSetting::current();
+            } catch (Throwable) {
+                $this->currentSetting = null;
+            }
+            $this->settingLoaded = true;
+        }
+
+        return $this->currentSetting;
+    }
+
+    public function resetSetting(): void
+    {
+        $this->currentSetting = null;
+        $this->settingLoaded = false;
+    }
+
     public function opensAt(): ?Carbon
     {
+        $setting = $this->currentSetting();
+        if ($setting && $setting->po_start) {
+            return Carbon::parse($setting->po_start);
+        }
+
         if (filled(config('marketplace.po_start'))) {
             return Carbon::parse(config('marketplace.po_start'));
         }
@@ -21,6 +52,11 @@ class PurchaseWindow
 
     public function closesAt(): ?Carbon
     {
+        $setting = $this->currentSetting();
+        if ($setting && $setting->po_end) {
+            return Carbon::parse($setting->po_end);
+        }
+
         if (filled(config('marketplace.po_end'))) {
             return Carbon::parse(config('marketplace.po_end'));
         }
@@ -34,6 +70,11 @@ class PurchaseWindow
 
     public function eventAt(): ?Carbon
     {
+        $setting = $this->currentSetting();
+        if ($setting && $setting->event_at) {
+            return Carbon::parse($setting->event_at);
+        }
+
         if (filled(config('marketplace.event_at'))) {
             return Carbon::parse(config('marketplace.event_at'));
         }
@@ -47,6 +88,11 @@ class PurchaseWindow
 
     public function paymentDeadline(): ?Carbon
     {
+        $setting = $this->currentSetting();
+        if ($setting && $setting->payment_deadline) {
+            return Carbon::parse($setting->payment_deadline);
+        }
+
         if (filled(config('marketplace.payment_deadline'))) {
             return Carbon::parse(config('marketplace.payment_deadline'));
         }
@@ -56,6 +102,40 @@ class PurchaseWindow
         }
 
         return null;
+    }
+
+    public function location(): ?string
+    {
+        $setting = $this->currentSetting();
+        if ($setting && filled($setting->event_location)) {
+            return $setting->event_location;
+        }
+
+        return config('marketplace.event_location')
+            ?: (app()->environment('local', 'testing') ? 'Aula Utama SAI, Jl. Cemara Hijau No. 7, Bandung (lokasi contoh)' : null);
+    }
+
+    public function pickupInstructions(): ?string
+    {
+        $setting = $this->currentSetting();
+        if ($setting && filled($setting->pickup_instructions)) {
+            return $setting->pickup_instructions;
+        }
+
+        return config('marketplace.pickup_instructions')
+            ?: (app()->environment('local', 'testing')
+                ? 'Bawa QR pesanan dari halaman Pesanan Saya. Setiap kelas punya meja sendiri, jadi satu pesanan lintas kelas punya lebih dari satu QR. Tunjukkan QR kepada petugas kelas, cek isi pesanan, lalu petugas mengonfirmasi penyerahan.'
+                : null);
+    }
+
+    public function banner(): ?string
+    {
+        $setting = $this->currentSetting();
+        if ($setting && filled($setting->banner)) {
+            return $setting->banner;
+        }
+
+        return config('marketplace.banner');
     }
 
     public function status(): string
@@ -103,13 +183,9 @@ class PurchaseWindow
             'closesAt' => $this->closesAt(),
             'eventAt' => $this->eventAt(),
             'paymentDeadline' => $this->paymentDeadline(),
-            'location' => config('marketplace.event_location')
-                ?: (app()->environment('local', 'testing') ? 'Aula Utama SAI, Jl. Cemara Hijau No. 7, Bandung (lokasi contoh)' : null),
-            'pickupInstructions' => config('marketplace.pickup_instructions')
-                ?: (app()->environment('local', 'testing')
-                    ? 'Bawa QR pesanan dari halaman Pesanan Saya. Setiap kelas punya meja sendiri, jadi satu pesanan lintas kelas punya lebih dari satu QR. Tunjukkan QR kepada petugas kelas, cek isi pesanan, lalu petugas mengonfirmasi penyerahan.'
-                    : null),
-            'banner' => config('marketplace.banner'),
+            'location' => $this->location(),
+            'pickupInstructions' => $this->pickupInstructions(),
+            'banner' => $this->banner(),
         ];
     }
 }

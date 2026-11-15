@@ -20,6 +20,44 @@
 @endphp
 
 <div class="section-head"><div class="eyebrow">ADMINISTRASI PLATFORM</div><h1>Dashboard admin</h1></div>
+
+@php
+    $window = app(\App\Support\PurchaseWindow::class)->details();
+    $statusClasses = [
+        'open' => 'good',
+        'closed' => 'bad',
+        'upcoming' => 'warn',
+        'not_configured' => 'info',
+    ];
+    $statusLabels = [
+        'open' => 'PO Sedang Dibuka',
+        'closed' => 'PO Telah Ditutup',
+        'upcoming' => 'PO Akan Datang',
+        'not_configured' => 'Belum Dikonfigurasi',
+    ];
+@endphp
+
+<div class="panel" style="margin-bottom: 24px; display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; gap: 16px;">
+  <div>
+    <div class="eyebrow">STATUS JENDELA PRE-ORDER (PO)</div>
+    <div style="display: flex; align-items: center; gap: 10px; margin-top: 4px;">
+      <span class="badge {{ $statusClasses[$window['status']] ?? 'info' }}">{{ $statusLabels[$window['status']] ?? ucfirst($window['status']) }}</span>
+      <span style="font-weight: 600;">
+        @if($window['opensAt'] && $window['closesAt'])
+          {{ $window['opensAt']->format('d M Y H:i') }} — {{ $window['closesAt']->format('d M Y H:i') }}
+        @else
+          Jadwal belum disetel
+        @endif
+      </span>
+    </div>
+    <div class="muted" style="font-size: 13px; margin-top: 6px;">
+      Pengambilan: {{ $window['eventAt'] ? $window['eventAt']->format('d M Y') : '—' }} &middot; Lokasi: {{ $window['location'] ?? 'Belum disetel' }}
+    </div>
+  </div>
+  <div>
+    <a class="btn" href="{{ route('admin.event.edit') }}">Kelola Jadwal PO</a>
+  </div>
+</div>
 <div class="stats">
   <div class="stat"><strong>{{ $ordersCount }}</strong><span>Total pesanan</span></div>
   <div class="stat"><strong>{{ $pendingPayments }}</strong><span>Pembayaran menunggu verifikasi</span></div>
