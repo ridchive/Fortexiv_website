@@ -3,6 +3,20 @@
 @section('title', 'Kelola Jadwal PO & Acara — Admin FORTEXIV')
 
 @section('content')
+<style>
+  .input.is-invalid, textarea.is-invalid {
+    border: 2px solid var(--bad, #A8261F) !important;
+    background-color: var(--bad-bg, #FADCD8) !important;
+  }
+  .field-error {
+    color: var(--bad, #A8261F);
+    font-size: 12px;
+    font-weight: 700;
+    display: block;
+    margin-top: 4px;
+  }
+</style>
+
 <div class="wrap">
   <div class="section-head">
     <div>
@@ -30,17 +44,6 @@
     </div>
   @endif
 
-  @if($errors->any())
-    <div class="panel errors" role="alert" style="margin-bottom:20px">
-      <strong>Terjadi kesalahan validasi:</strong>
-      <ul style="margin:8px 0 0;padding-left:20px">
-        @foreach($errors->all() as $error)
-          <li>{{ $error }}</li>
-        @endforeach
-      </ul>
-    </div>
-  @endif
-
   <form method="post" action="{{ route('admin.event.update') }}" id="event-form">
     @csrf
     @method('PUT')
@@ -53,26 +56,32 @@
         <div class="field">
           <label for="po_start"><strong>Waktu Pembukaan PO</strong></label>
           <input
-            class="input"
+            class="input @error('po_start') is-invalid @enderror"
             id="po_start"
             name="po_start"
             type="datetime-local"
             value="{{ old('po_start', $setting?->po_start ? $setting->po_start->format('Y-m-d\TH:i') : ($window['opensAt'] ? $window['opensAt']->format('Y-m-d\TH:i') : '')) }}"
             required
           >
+          @error('po_start')
+            <span class="field-error">{{ $message }}</span>
+          @enderror
           <small class="muted">Format: Tanggal dan jam dimulainya transaksi baru.</small>
         </div>
 
         <div class="field">
           <label for="po_end"><strong>Waktu Penutupan PO</strong></label>
           <input
-            class="input"
+            class="input @error('po_end') is-invalid @enderror"
             id="po_end"
             name="po_end"
             type="datetime-local"
             value="{{ old('po_end', $setting?->po_end ? $setting->po_end->format('Y-m-d\TH:i') : ($window['closesAt'] ? $window['closesAt']->format('Y-m-d\TH:i') : '')) }}"
             required
           >
+          @error('po_end')
+            <span class="field-error">{{ $message }}</span>
+          @enderror
           <small class="muted">Format: Batas akhir pembeli dapat checkout.</small>
         </div>
       </div>
@@ -91,27 +100,41 @@
 
       <div class="grid" style="grid-template-columns:repeat(auto-fit, minmax(280px, 1fr));gap:16px;margin-top:16px">
         <div class="field">
-          <label for="payment_deadline"><strong>Batas Waktu Pembayaran (Opsional)</strong></label>
+          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px">
+            <label for="payment_deadline" style="margin-bottom:0"><strong>Batas Waktu Pembayaran (Opsional)</strong></label>
+            <button
+              type="button"
+              class="link-button"
+              style="font-size:12px;color:var(--bad, #A8261F);font-weight:700"
+              onclick="document.getElementById('payment_deadline').value = ''"
+            >Kosongkan</button>
+          </div>
           <input
-            class="input"
+            class="input @error('payment_deadline') is-invalid @enderror"
             id="payment_deadline"
             name="payment_deadline"
             type="datetime-local"
-            value="{{ old('payment_deadline', $setting?->payment_deadline ? $setting->payment_deadline->format('Y-m-d\TH:i') : ($window['paymentDeadline'] ? $window['paymentDeadline']->format('Y-m-d\TH:i') : '')) }}"
+            value="{{ old('payment_deadline', $setting?->payment_deadline ? $setting->payment_deadline->format('Y-m-d\TH:i') : '') }}"
           >
-          <small class="muted">Batas konfirmasi atau upload bukti transfer manual.</small>
+          @error('payment_deadline')
+            <span class="field-error">{{ $message }}</span>
+          @enderror
+          <small class="muted">Batas konfirmasi atau upload bukti transfer manual. Kosongkan jika tidak ada batas khusus.</small>
         </div>
 
         <div class="field">
           <label for="event_at"><strong>Waktu / Tanggal Hari H Acara</strong></label>
           <input
-            class="input"
+            class="input @error('event_at') is-invalid @enderror"
             id="event_at"
             name="event_at"
             type="datetime-local"
             value="{{ old('event_at', $setting?->event_at ? $setting->event_at->format('Y-m-d\TH:i') : ($window['eventAt'] ? $window['eventAt']->format('Y-m-d\TH:i') : '')) }}"
             required
           >
+          @error('event_at')
+            <span class="field-error">{{ $message }}</span>
+          @enderror
           <small class="muted">Tanggal pengambilan fisik barang oleh pembeli.</small>
         </div>
       </div>
@@ -119,7 +142,7 @@
       <div class="field" style="margin-top:16px">
         <label for="event_location"><strong>Lokasi Acara / Pengambilan</strong></label>
         <input
-          class="input"
+          class="input @error('event_location') is-invalid @enderror"
           id="event_location"
           name="event_location"
           type="text"
@@ -128,24 +151,30 @@
           maxlength="255"
           required
         >
+        @error('event_location')
+          <span class="field-error">{{ $message }}</span>
+        @enderror
       </div>
 
       <div class="field" style="margin-top:16px">
         <label for="pickup_instructions"><strong>Petunjuk Pengambilan Barang untuk Pembeli</strong></label>
         <textarea
-          class="input"
+          class="input @error('pickup_instructions') is-invalid @enderror"
           id="pickup_instructions"
           name="pickup_instructions"
           rows="3"
           placeholder="Tuliskan panduan alur antrean, verifikasi QR per stan kelas, dsb."
           maxlength="2000"
         >{{ old('pickup_instructions', $setting?->pickup_instructions ?? $window['pickupInstructions']) }}</textarea>
+        @error('pickup_instructions')
+          <span class="field-error">{{ $message }}</span>
+        @enderror
       </div>
 
       <div class="field" style="margin-top:16px">
         <label for="banner"><strong>Teks Pengumuman / Banner Beranda</strong></label>
         <input
-          class="input"
+          class="input @error('banner') is-invalid @enderror"
           id="banner"
           name="banner"
           type="text"
@@ -153,6 +182,9 @@
           placeholder="Satu periode PO untuk semua kelas. Semua pesanan diambil langsung di acara, tidak ada pengiriman."
           maxlength="255"
         >
+        @error('banner')
+          <span class="field-error">{{ $message }}</span>
+        @enderror
       </div>
     </section>
 
@@ -163,7 +195,7 @@
       <div class="field" style="margin-top:14px">
         <label for="change_reason"><strong>Alasan Perubahan Jadwal</strong> <span style="color:var(--bad)">*</span></label>
         <textarea
-          class="input"
+          class="input @error('change_reason') is-invalid @enderror"
           id="change_reason"
           name="change_reason"
           rows="2"
@@ -171,6 +203,9 @@
           maxlength="500"
           required
         >{{ old('change_reason') }}</textarea>
+        @error('change_reason')
+          <span class="field-error">{{ $message }}</span>
+        @enderror
         <small class="muted">Alasan ini akan tercatat permanen di riwayat audit admin.</small>
       </div>
     </section>
@@ -232,6 +267,26 @@
     return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}T${pad(date.getHours())}:${pad(date.getMinutes())}`;
   }
 
+  function syncDependentDates(newPoEndDate) {
+    const paymentDeadlineInput = document.getElementById('payment_deadline');
+    const eventAtInput = document.getElementById('event_at');
+
+    if (paymentDeadlineInput && paymentDeadlineInput.value) {
+      const currentDeadline = new Date(paymentDeadlineInput.value);
+      if (!isNaN(currentDeadline.getTime()) && currentDeadline < newPoEndDate) {
+        paymentDeadlineInput.value = formatForInput(newPoEndDate);
+      }
+    }
+
+    if (eventAtInput && eventAtInput.value) {
+      const currentEvent = new Date(eventAtInput.value);
+      if (!isNaN(currentEvent.getTime()) && currentEvent < newPoEndDate) {
+        const adjustedEvent = new Date(newPoEndDate.getTime() + 5 * 24 * 60 * 60 * 1000);
+        eventAtInput.value = formatForInput(adjustedEvent);
+      }
+    }
+  }
+
   function quickSet(action) {
     const now = new Date();
     const poStartInput = document.getElementById('po_start');
@@ -247,6 +302,7 @@
       poStartInput.value = formatForInput(now);
       poEndInput.value = formatForInput(future);
       reasonInput.value = 'Pembukaan jendela PO selama 7 hari ke depan.';
+      syncDependentDates(future);
     } else if (action === 'extend3') {
       let base = poEndInput.value ? new Date(poEndInput.value) : now;
       if (isNaN(base.getTime()) || base < now) {
@@ -255,7 +311,16 @@
       const extended = new Date(base.getTime() + 3 * 24 * 60 * 60 * 1000);
       poEndInput.value = formatForInput(extended);
       reasonInput.value = 'Perpanjangan penutupan PO selama 3 hari tambahan.';
+      syncDependentDates(extended);
     }
   }
+
+  document.addEventListener('DOMContentLoaded', () => {
+    const firstInvalid = document.querySelector('.is-invalid');
+    if (firstInvalid) {
+      firstInvalid.focus();
+      firstInvalid.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    }
+  });
 </script>
 @endsection

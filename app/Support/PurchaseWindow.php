@@ -97,10 +97,6 @@ class PurchaseWindow
             return Carbon::parse(config('marketplace.payment_deadline'));
         }
 
-        if (app()->environment('local', 'testing')) {
-            return now()->startOfDay()->addDays(16)->setTime(23, 59);
-        }
-
         return null;
     }
 

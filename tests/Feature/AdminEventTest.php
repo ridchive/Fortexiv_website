@@ -119,4 +119,56 @@ class AdminEventTest extends TestCase
             'change_reason' => '',
         ])->assertSessionHasErrors(['po_end', 'change_reason']);
     }
+
+    public function test_admin_can_save_settings_with_empty_payment_deadline(): void
+    {
+        $admin = User::factory()->create(['role' => 'admin']);
+        $purchaseWindow = app(PurchaseWindow::class);
+
+        $poStart = now()->subHour();
+        $poEnd = now()->addDays(7);
+        $eventAt = now()->addDays(14);
+
+        $response = $this->actingAs($admin)->put(route('admin.event.update'), [
+            'po_start' => $poStart->format('Y-m-d H:i:s'),
+            'po_end' => $poEnd->format('Y-m-d H:i:s'),
+            'payment_deadline' => '',
+            'event_at' => $eventAt->format('Y-m-d H:i:s'),
+            'event_location' => 'Aula Utama',
+            'change_reason' => 'Batas pembayaran tidak ditentukan (opsional dikosongkan).',
+        ]);
+
+        $response->assertRedirect(route('admin.event.edit'))
+            ->assertSessionHasNoErrors();
+
+        $this->assertDatabaseHas('event_settings', [
+            'payment_deadline' => null,
+            'event_location' => 'Aula Utama',
+        ]);
+
+        $purchaseWindow->resetSetting();
+        $this->assertNull($purchaseWindow->paymentDeadline());
+    }
+
+    public function test_validation_rejects_payment_deadline_before_po_end(): void
+    {
+        $admin = User::factory()->create(['role' => 'admin']);
+
+        $poStart = now();
+        $poEnd = now()->addDays(5);
+        $invalidPaymentDeadline = now()->addDays(2); // before po_end!
+
+        $response = $this->actingAs($admin)->put(route('admin.event.update'), [
+            'po_start' => $poStart->format('Y-m-d H:i:s'),
+            'po_end' => $poEnd->format('Y-m-d H:i:s'),
+            'payment_deadline' => $invalidPaymentDeadline->format('Y-m-d H:i:s'),
+            'event_at' => now()->addDays(10)->format('Y-m-d H:i:s'),
+            'event_location' => 'Aula',
+            'change_reason' => 'Uji batas waktu salah.',
+        ]);
+
+        $response->assertSessionHasErrors([
+            'payment_deadline' => 'Jika diisi, Batas Waktu Pembayaran harus sama dengan atau setelah Waktu Penutupan PO.',
+        ]);
+    }
 }
