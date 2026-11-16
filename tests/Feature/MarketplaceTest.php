@@ -46,6 +46,16 @@ class MarketplaceTest extends TestCase
             'review_status' => 'approved',
             'status' => 'published',
         ]);
+        foreach ([6, 9, 10, 11, 12] as $grade) {
+            Project::create([
+                'class_name' => "kelas {$grade}",
+                'grade' => $grade,
+                'title' => "Proyek kelas {$grade}",
+                'introduction' => 'Proyek kelas lama.',
+                'story' => 'Cerita kelas lama.',
+                'outcome' => 'Hasil kelas lama.',
+            ]);
+        }
 
         $this->seed(MarketplaceSeeder::class);
 
@@ -71,6 +81,12 @@ class MarketplaceTest extends TestCase
             'status' => 'draft',
         ]);
         $this->assertDatabaseCount('products', 10);
+        foreach ([6, 9, 10, 11, 12] as $grade) {
+            $this->assertDatabaseHas('projects', [
+                'class_name' => "kelas {$grade}",
+                'is_published' => false,
+            ]);
+        }
     }
 
     public function test_homepage_uses_fortexiv_project_showcase_and_catalog_hides_unpublished_products(): void

@@ -45,6 +45,11 @@ class MarketplaceSeeder extends Seeder
         }
 
         $legacyClassNames = [
+            'kelas 6',
+            'kelas 9',
+            'kelas 10',
+            'kelas 11',
+            'kelas 12',
             'XI Agribisnis 1',
             'XI Tata Boga 2',
             'X Desain Grafis',
