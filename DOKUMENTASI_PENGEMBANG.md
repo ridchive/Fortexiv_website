@@ -46,6 +46,8 @@ MIDTRANS_STATUS_CHECK_BATCH_SIZE=25
 
 Command terjadwal `marketplace:sync-midtrans-payments` memeriksa pesanan Midtrans yang masih menunggu pembayaran (transaksi Snap sudah dibuat) ke API status Midtrans, sebagai cadangan bila notifikasi tidak sampai. `MIDTRANS_STATUS_CHECK_INTERVAL_MINUTES` mengatur jaraknya (default 15 menit; `0` mematikan jadwal; nilai ≥ 60 dibulatkan ke jam penuh) dan `MIDTRANS_STATUS_CHECK_BATCH_SIZE` membatasi jumlah pesanan per putaran; pesanan yang paling lama tidak diperiksa didahulukan. Jadwal hanya berjalan bila cron `php artisan schedule:run` terpasang (lihat `PANDUAN_DEVOPS.md` Bagian 6.1).
 
+Midtrans menolak `order_id` yang pernah dipakai. Karena itu `order_id` yang dikirim ke Midtrans disimpan di `payments.midtrans_order_id`: di `APP_ENV=production` nilainya sama dengan kode pesanan (`FX-00000001`), sedangkan di environment lain diberi akhiran acak (`FX-00000001-K7Q2M9`) agar tidak bentrok setelah `migrate:fresh` atau bila beberapa environment memakai merchant sandbox yang sama. Webhook, cek status manual, dan command terjadwal mencari transaksi lewat kolom ini.
+
 Bila hanya satu metode pembayaran yang dikonfigurasi, pilihan metode tidak ditampilkan di checkout dan metode tersebut dipakai otomatis.
 
 Saat go-live, gunakan Server Key Production dan ubah `MIDTRANS_IS_PRODUCTION=true`. Atur Payment Notification URL di dashboard Midtrans ke `https://<domain-publik>/api/midtrans/notifications`. Endpoint mengambil status transaksi langsung dari Midtrans sebelum mengubah status pesanan; gunakan URL HTTPS publik yang dapat dijangkau Midtrans.

@@ -15,10 +15,11 @@ use UnexpectedValueException;
 class MidtransService
 {
     /**
-     * @return array{token: string, redirect_url: string}
+     * @return array{token: string, redirect_url: string, order_id: string}
      */
     public function createSnapTransaction(Order $order): array
     {
+        $midtransOrderId = $this->newMidtransOrderId($order);
         $serverKey = config('services.midtrans.server_key');
         $baseUrl = config('services.midtrans.base_url');
 
@@ -36,7 +37,7 @@ class MidtransService
             ->timeout(15)
             ->post($baseUrl.'/snap/v1/transactions', [
                 'transaction_details' => [
-                    'order_id' => $order->order_code,
+                    'order_id' => $midtransOrderId,
                     'gross_amount' => $order->total_price,
                 ],
                 'item_details' => $order->items->map(fn ($item) => [
@@ -65,7 +66,22 @@ class MidtransService
         return [
             'token' => $transaction['token'],
             'redirect_url' => $transaction['redirect_url'],
+            'order_id' => $midtransOrderId,
         ];
+    }
+
+    /**
+     * Midtrans never accepts an order_id twice. Outside production the order code can repeat
+     * (for example after `migrate:fresh` against the same sandbox merchant), so a random suffix
+     * keeps every Snap attempt unique there; production keeps the plain order code.
+     */
+    private function newMidtransOrderId(Order $order): string
+    {
+        if (app()->isProduction()) {
+            return $order->order_code;
+        }
+
+        return $order->order_code.'-'.Str::upper(Str::random(6));
     }
 
     /**
@@ -152,7 +168,7 @@ class MidtransService
      */
     public function syncTransactionStatus(Order $order): string
     {
-        $transaction = $this->getTransactionStatus($order->order_code);
+        $transaction = $this->getTransactionStatus($order->payment?->midtrans_order_id ?? $order->order_code);
         $this->handleNotification($transaction, $transaction);
 
         return Str::lower($transaction['transaction_status']);
@@ -165,9 +181,12 @@ class MidtransService
     public function handleNotification(array $notification, array $transaction): void
     {
         DB::transaction(function () use ($notification, $transaction): void {
+            $orderId = Payment::query()
+                ->where('midtrans_order_id', $notification['order_id'])
+                ->value('order_id');
             $order = Order::query()
                 ->with('items')
-                ->where('order_code', $notification['order_id'])
+                ->whereKey($orderId)
                 ->lockForUpdate()
                 ->firstOrFail();
             $payment = Payment::query()

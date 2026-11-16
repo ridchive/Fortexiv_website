@@ -17,7 +17,7 @@ class MidtransNotificationController extends Controller
         ]);
 
         $notification = $request->validate([
-            'order_id' => ['required', 'string', 'max:24'],
+            'order_id' => ['required', 'string', 'max:50'],
             'status_code' => ['required', 'string', 'max:10'],
             'gross_amount' => ['required', 'string', 'max:20'],
             'signature_key' => ['required', 'string', 'size:128'],

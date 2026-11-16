@@ -11,6 +11,7 @@ use App\Models\Seller;
 use App\Models\User;
 use Database\Seeders\MarketplaceSeeder;
 use Illuminate\Auth\Notifications\VerifyEmail;
+use Illuminate\Foundation\Http\Middleware\PreventRequestForgery;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Http\Client\Request as ClientRequest;
 use Illuminate\Http\UploadedFile;
@@ -864,10 +865,70 @@ class MarketplaceTest extends TestCase
             'gateway' => Payment::GATEWAY_MIDTRANS,
             'snap_redirect_url' => 'https://app.sandbox.midtrans.com/snap/v4/redirection/snap-token',
         ]);
+        $this->assertMatchesRegularExpression('/^'.preg_quote($order->order_code, '/').'-[A-Z0-9]{6}$/', $order->payment->midtrans_order_id);
         Http::assertSent(fn (ClientRequest $request): bool => $request->url() === 'https://app.sandbox.midtrans.com/snap/v1/transactions'
-            && $request['transaction_details']['order_id'] === $order->order_code
+            && $request['transaction_details']['order_id'] === $order->payment->midtrans_order_id
             && $request['transaction_details']['gross_amount'] === 14000
             && $request['enabled_payments'] === ['other_qris']);
+    }
+
+    public function test_midtrans_checkout_in_production_sends_the_plain_order_code(): void
+    {
+        $this->app->detectEnvironment(fn (): string => 'production');
+        // CSRF verification is only skipped automatically while the environment is "testing".
+        $this->withoutMiddleware(PreventRequestForgery::class);
+        config([
+            'services.midtrans.server_key' => 'production-server-key',
+            'services.midtrans.base_url' => 'https://app.sandbox.midtrans.com',
+            'marketplace.po_start' => null,
+            'marketplace.po_end' => null,
+        ]);
+        Http::preventStrayRequests();
+        Http::fake([
+            'https://app.sandbox.midtrans.com/snap/v1/transactions' => Http::response([
+                'token' => 'snap-token',
+                'redirect_url' => 'https://app.sandbox.midtrans.com/snap/v4/redirection/snap-token',
+            ], 201),
+        ]);
+        $buyer = User::factory()->create();
+        $product = Product::create(['seller_id' => $this->seller()->id, 'name' => 'Recycled Tote Bag', 'slug' => 'production-tote', 'description' => 'Made from upcycled fabric', 'price' => 14000, 'stock' => 2, 'review_status' => 'approved', 'status' => 'published']);
+        $buyer->cartItems()->create(['product_id' => $product->id, 'quantity' => 1]);
+
+        $this->actingAs($buyer)->post(route('checkout'), [
+            '_token' => csrf_token(),
+            'mode' => 'cart',
+            'payment_method' => 'midtrans',
+            'pickup_contact_name' => $buyer->name,
+            'pickup_contact_phone' => '081234567890',
+            'accepted_terms' => '1',
+        ])->assertRedirect('https://app.sandbox.midtrans.com/snap/v4/redirection/snap-token');
+
+        $order = Order::with('payment')->firstOrFail();
+        $this->assertSame($order->order_code, $order->payment->midtrans_order_id);
+        Http::assertSent(fn (ClientRequest $request): bool => $request['transaction_details']['order_id'] === $order->order_code);
+    }
+
+    public function test_midtrans_notification_finds_the_order_by_its_suffixed_midtrans_order_id(): void
+    {
+        config(['services.midtrans.server_key' => 'sandbox-server-key']);
+        $order = $this->midtransOrder(User::factory()->create());
+        $order->payment()->update(['midtrans_order_id' => 'FX-MIDTRANS01-AB12CD']);
+        Http::preventStrayRequests();
+        Http::fake([
+            'https://api.sandbox.midtrans.com/v2/FX-MIDTRANS01-AB12CD/status' => Http::response([
+                'order_id' => 'FX-MIDTRANS01-AB12CD',
+                'gross_amount' => '14000.00',
+                'transaction_status' => 'settlement',
+                'payment_type' => 'qris',
+                'transaction_id' => 'midtrans-transaction-suffixed',
+            ]),
+        ]);
+        $notification = $this->midtransNotification($order, ['order_id' => 'FX-MIDTRANS01-AB12CD']);
+
+        $this->postJson(route('midtrans.notifications'), $notification)->assertOk();
+
+        $this->assertSame('paid', $order->fresh()->status);
+        $this->assertDatabaseCount('tickets', 1);
     }
 
     public function test_checkout_hides_the_payment_method_choice_when_only_midtrans_is_configured(): void
@@ -1013,8 +1074,10 @@ class MarketplaceTest extends TestCase
             'snap_token' => 'retry-snap-token',
             'snap_redirect_url' => 'https://app.sandbox.midtrans.com/snap/v4/redirection/retry-snap-token',
         ]);
+        $midtransOrderId = $order->payment()->value('midtrans_order_id');
+        $this->assertMatchesRegularExpression('/^FX-MIDTRANS01-[A-Z0-9]{6}$/', $midtransOrderId);
         Http::assertSent(fn (ClientRequest $request): bool => $request->url() === 'https://app.sandbox.midtrans.com/snap/v1/transactions'
-            && $request['transaction_details']['order_id'] === $order->order_code);
+            && $request['transaction_details']['order_id'] === $midtransOrderId);
         Http::assertSentCount(1);
     }
 
@@ -1366,6 +1429,7 @@ class MarketplaceTest extends TestCase
         $order->payment()->create([
             'gateway' => Payment::GATEWAY_MIDTRANS,
             'status' => 'pending',
+            'midtrans_order_id' => $order->order_code,
         ]);
 
         return $order;

@@ -361,6 +361,7 @@ class MarketplaceController extends Controller
             }
 
             $order->payment()->update([
+                'midtrans_order_id' => $transaction['order_id'],
                 'snap_token' => $transaction['token'],
                 'snap_redirect_url' => $transaction['redirect_url'],
             ]);
@@ -416,6 +417,7 @@ class MarketplaceController extends Controller
 
                 $transaction = $midtrans->createSnapTransaction($lockedOrder);
                 $payment->update([
+                    'midtrans_order_id' => $transaction['order_id'],
                     'snap_token' => $transaction['token'],
                     'snap_redirect_url' => $transaction['redirect_url'],
                 ]);

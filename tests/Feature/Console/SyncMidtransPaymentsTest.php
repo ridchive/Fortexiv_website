@@ -127,6 +127,7 @@ class SyncMidtransPaymentsTest extends TestCase
         $order->payment()->create([
             'gateway' => Payment::GATEWAY_MIDTRANS,
             'status' => 'pending',
+            'midtrans_order_id' => $snapRedirectUrl ? $orderCode : null,
             'snap_token' => $snapRedirectUrl ? 'token' : null,
             'snap_redirect_url' => $snapRedirectUrl,
         ]);
