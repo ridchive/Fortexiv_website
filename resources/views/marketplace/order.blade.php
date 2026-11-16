@@ -65,6 +65,10 @@
     <section class="panel">
       @if($order->payment?->gateway === \App\Models\Payment::GATEWAY_MIDTRANS)
         <h2>Pembayaran Midtrans</h2>
+        <form method="post" action="{{ route('payments.midtrans.refresh', $order) }}">
+          @csrf
+          <button class="btn" type="submit">Periksa status pembayaran</button>
+        </form>
         @if($order->payment->snap_redirect_url)
           <p>Selesaikan pembayaran melalui Midtrans. Status pesanan akan diperbarui setelah pembayaran dikonfirmasi.</p>
           <a class="btn" href="{{ $order->payment->snap_redirect_url }}">Lanjutkan ke Midtrans</a>

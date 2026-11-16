@@ -8,6 +8,7 @@ use App\Models\Product;
 use App\Models\Ticket;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Http;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Str;
 use UnexpectedValueException;
 
@@ -74,21 +75,53 @@ class MidtransService
     {
         $serverKey = config('services.midtrans.server_key');
         $signature = $notification['signature_key'] ?? null;
+        $orderId = $notification['order_id'] ?? null;
+        $statusCode = $notification['status_code'] ?? null;
+        $grossAmount = $notification['gross_amount'] ?? null;
+        $diagnostics = [
+            'order_id' => is_string($orderId) ? $orderId : null,
+            'status_code' => is_string($statusCode) ? $statusCode : null,
+            'gross_amount' => is_string($grossAmount) ? $grossAmount : null,
+            'server_key_configured' => is_string($serverKey) && filled($serverKey),
+            'received_signature_length' => is_string($signature) ? strlen($signature) : null,
+            'received_signature_is_sha512_hex' => is_string($signature)
+                && preg_match('/\A[a-f0-9]{128}\z/i', $signature) === 1,
+        ];
 
-        if (! filled($serverKey)
+        if (! is_string($serverKey)
+            || ! filled($serverKey)
             || ! is_string($signature)
-            || ! is_string($notification['order_id'] ?? null)
-            || ! is_string($notification['status_code'] ?? null)
-            || ! is_string($notification['gross_amount'] ?? null)) {
+            || ! is_string($orderId)
+            || ! is_string($statusCode)
+            || ! is_string($grossAmount)) {
+            Log::debug('Midtrans notification signature validation completed.', $diagnostics + [
+                'result' => 'rejected',
+                'reason' => 'missing_or_invalid_validation_input',
+            ]);
+
             return false;
         }
 
         $expectedSignature = hash(
             'sha512',
-            $notification['order_id'].$notification['status_code'].$notification['gross_amount'].$serverKey,
+            $orderId.$statusCode.$grossAmount.$serverKey,
         );
+        $signatureMatches = hash_equals($expectedSignature, $signature);
+        $signatureDiagnostics = [];
 
-        return hash_equals($expectedSignature, $signature);
+        if (config('app.env') === 'local') {
+            $signatureDiagnostics = [
+                'received_signature' => $signature,
+                'expected_signature' => $expectedSignature,
+            ];
+        }
+
+        Log::debug('Midtrans notification signature validation completed.', $diagnostics + $signatureDiagnostics + [
+            'algorithm' => 'SHA-512(order_id + status_code + gross_amount + server_key)',
+            'result' => $signatureMatches ? 'valid' : 'mismatch',
+        ]);
+
+        return $signatureMatches;
     }
 
     /**

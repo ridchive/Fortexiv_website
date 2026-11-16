@@ -11,6 +11,11 @@ class MidtransNotificationController extends Controller
 {
     public function __invoke(Request $request, MidtransService $midtrans): JsonResponse
     {
+        Log::info('Midtrans webhook HTTP request received.', [
+            'method' => $request->method(),
+            'content_type' => $request->header('Content-Type'),
+        ]);
+
         $notification = $request->validate([
             'order_id' => ['required', 'string', 'max:24'],
             'status_code' => ['required', 'string', 'max:10'],
@@ -22,7 +27,13 @@ class MidtransNotificationController extends Controller
             'transaction_id' => ['nullable', 'string', 'max:100'],
         ]);
 
-        abort_unless($midtrans->hasValidSignature($notification), 403, 'Invalid Midtrans signature.');
+        if (! $midtrans->hasValidSignature($notification)) {
+            Log::warning('Midtrans notification rejected due to invalid signature.', [
+                'order_id' => $notification['order_id'],
+            ]);
+
+            abort(403, 'Invalid Midtrans signature.');
+        }
 
         Log::info('Midtrans notification received.', [
             'order_id' => $notification['order_id'],

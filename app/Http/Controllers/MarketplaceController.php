@@ -436,6 +436,35 @@ class MarketplaceController extends Controller
         return redirect()->away($redirectUrl);
     }
 
+    public function refreshMidtransPaymentStatus(Request $request, Order $order, MidtransService $midtrans): RedirectResponse
+    {
+        abort_unless($order->buyer_id === $request->user()->id, 404);
+        abort_unless($order->status === 'pending_payment', 422, 'Pesanan ini tidak menunggu pembayaran.');
+
+        $payment = $order->payment()->firstOrFail();
+        abort_unless($payment->gateway === Payment::GATEWAY_MIDTRANS, 422, 'Pesanan ini tidak menggunakan Midtrans.');
+        abort_unless($payment->status === 'pending', 422, 'Status pembayaran telah berubah.');
+
+        try {
+            $transaction = $midtrans->getTransactionStatus($order->order_code);
+            $midtrans->handleNotification($transaction, $transaction);
+        } catch (ConnectionException|RequestException|UnexpectedValueException $exception) {
+            Log::warning('Midtrans payment status refresh could not be completed.', [
+                'order_code' => $order->order_code,
+                'exception' => $exception::class,
+                'error' => $exception->getMessage(),
+            ]);
+
+            return redirect()->route('orders.show', $order)
+                ->with('error', 'Status pembayaran belum dapat diperiksa ke Midtrans. Coba lagi beberapa saat.');
+        }
+
+        $transactionStatus = Str::lower($transaction['transaction_status']);
+
+        return redirect()->route('orders.show', $order)
+            ->with('status', 'Status Midtrans berhasil diperiksa: '.$transactionStatus.'.');
+    }
+
     public function uploadPayment(Request $request, Order $order): RedirectResponse
     {
         abort_unless($this->transferConfigured(), 503, 'Informasi transfer bank belum dikonfigurasi.');

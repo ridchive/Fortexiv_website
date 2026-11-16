@@ -1063,6 +1063,24 @@ class MarketplaceTest extends TestCase
         $this->postJson(route('midtrans.notifications'), $notification)->assertOk()->assertJson(['status' => 'ok']);
         $this->postJson(route('midtrans.notifications'), $notification)->assertOk();
 
+        Log::shouldHaveReceived('debug')
+            ->with('Midtrans notification signature validation completed.', [
+                'order_id' => $order->order_code,
+                'status_code' => '200',
+                'gross_amount' => '14000.00',
+                'server_key_configured' => true,
+                'received_signature_length' => 128,
+                'received_signature_is_sha512_hex' => true,
+                'algorithm' => 'SHA-512(order_id + status_code + gross_amount + server_key)',
+                'result' => 'valid',
+            ])
+            ->twice();
+        Log::shouldHaveReceived('info')
+            ->with('Midtrans webhook HTTP request received.', [
+                'method' => 'POST',
+                'content_type' => 'application/json',
+            ])
+            ->twice();
         Log::shouldHaveReceived('info')
             ->with('Midtrans notification received.', [
                 'order_id' => $order->order_code,
@@ -1085,15 +1103,95 @@ class MarketplaceTest extends TestCase
 
     public function test_midtrans_notification_returns_403_for_an_invalid_signature(): void
     {
-        config(['services.midtrans.server_key' => 'sandbox-server-key']);
+        config([
+            'app.env' => 'local',
+            'services.midtrans.server_key' => 'sandbox-server-key',
+        ]);
         Log::spy();
         $order = $this->midtransOrder(User::factory()->create());
         $notification = $this->midtransNotification($order);
         $notification['signature_key'] = str_repeat('0', 128);
+        $expectedSignature = hash(
+            'sha512',
+            $order->order_code.'20014000.00sandbox-server-key',
+        );
 
         $this->postJson(route('midtrans.notifications'), $notification)->assertForbidden();
 
-        Log::shouldNotHaveReceived('info');
+        Log::shouldHaveReceived('debug')
+            ->with('Midtrans notification signature validation completed.', [
+                'order_id' => $order->order_code,
+                'status_code' => '200',
+                'gross_amount' => '14000.00',
+                'server_key_configured' => true,
+                'received_signature_length' => 128,
+                'received_signature_is_sha512_hex' => true,
+                'received_signature' => str_repeat('0', 128),
+                'expected_signature' => $expectedSignature,
+                'algorithm' => 'SHA-512(order_id + status_code + gross_amount + server_key)',
+                'result' => 'mismatch',
+            ]);
+        Log::shouldHaveReceived('info')
+            ->with('Midtrans webhook HTTP request received.', [
+                'method' => 'POST',
+                'content_type' => 'application/json',
+            ]);
+        Log::shouldHaveReceived('warning')
+            ->with('Midtrans notification rejected due to invalid signature.', [
+                'order_id' => $order->order_code,
+            ]);
+        $this->assertSame('pending_payment', $order->fresh()->status);
+        $this->assertDatabaseHas('payments', ['order_id' => $order->id, 'status' => 'pending']);
+        $this->assertDatabaseCount('tickets', 0);
+    }
+
+    public function test_buyer_can_refresh_midtrans_status_from_the_authenticated_status_api(): void
+    {
+        config(['services.midtrans.server_key' => 'sandbox-server-key']);
+        $buyer = User::factory()->create();
+        $order = $this->midtransOrder($buyer);
+        $this->fakeMidtransStatus($order, [
+            'transaction_status' => 'settlement',
+            'transaction_id' => 'midtrans-transaction-refresh',
+        ]);
+
+        $this->actingAs($buyer)
+            ->post(route('payments.midtrans.refresh', $order))
+            ->assertRedirect(route('orders.show', $order))
+            ->assertSessionHas('status', 'Status Midtrans berhasil diperiksa: settlement.');
+
+        $this->assertSame('paid', $order->fresh()->status);
+        $this->assertDatabaseHas('payments', [
+            'order_id' => $order->id,
+            'status' => 'verified',
+            'transaction_id' => 'midtrans-transaction-refresh',
+        ]);
+        $this->assertDatabaseCount('tickets', 1);
+    }
+
+    public function test_another_buyer_cannot_refresh_midtrans_status_for_an_order(): void
+    {
+        $order = $this->midtransOrder(User::factory()->create());
+
+        $this->actingAs(User::factory()->create())
+            ->post(route('payments.midtrans.refresh', $order))
+            ->assertNotFound();
+
+        $this->assertSame('pending_payment', $order->fresh()->status);
+        $this->assertDatabaseCount('tickets', 0);
+    }
+
+    public function test_midtrans_status_refresh_does_not_update_an_order_when_the_api_amount_does_not_match(): void
+    {
+        config(['services.midtrans.server_key' => 'sandbox-server-key']);
+        $buyer = User::factory()->create();
+        $order = $this->midtransOrder($buyer);
+        $this->fakeMidtransStatus($order, ['gross_amount' => '1.00']);
+
+        $this->actingAs($buyer)
+            ->post(route('payments.midtrans.refresh', $order))
+            ->assertUnprocessable();
+
         $this->assertSame('pending_payment', $order->fresh()->status);
         $this->assertDatabaseHas('payments', ['order_id' => $order->id, 'status' => 'pending']);
         $this->assertDatabaseCount('tickets', 0);

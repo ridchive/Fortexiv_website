@@ -1,7 +1,7 @@
 <?php
 
-use App\Http\Controllers\AdminController;
 use App\Http\Controllers\AdminContentController;
+use App\Http\Controllers\AdminController;
 use App\Http\Controllers\AdminEventController;
 use App\Http\Controllers\AuthController;
 use App\Http\Controllers\MarketplaceController;
@@ -56,6 +56,9 @@ Route::middleware(['auth', 'verified', 'role:buyer'])->group(function () {
     Route::post('/orders/{order:order_code}/midtrans/retry', [MarketplaceController::class, 'retryMidtransPayment'])
         ->middleware('throttle:6,1')
         ->name('payments.midtrans.retry');
+    Route::post('/orders/{order:order_code}/midtrans/refresh', [MarketplaceController::class, 'refreshMidtransPaymentStatus'])
+        ->middleware('throttle:6,1')
+        ->name('payments.midtrans.refresh');
     Route::post('/orders/{order:order_code}/payment-proof', [MarketplaceController::class, 'uploadPayment'])->name('payments.store');
     Route::get('/orders/{order:order_code}/ticket', [MarketplaceController::class, 'ticket'])->name('tickets.show');
 });
