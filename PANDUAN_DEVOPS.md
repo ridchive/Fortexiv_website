@@ -281,13 +281,15 @@ Lalu, **hanya sekali**, buat APP_KEY, isi data awal, dan buat akun admin:
 ```bash
 cd /var/www/fortexiv/current
 php artisan key:generate --force        # menulis APP_KEY ke shared/.env
-php artisan db:seed --force             # kategori + 12 proyek kelas
+php artisan db:seed --class=CategorySeeder --force   # kategori produk saja (tanpa data demo)
 php artisan marketplace:create-admin "Nama Admin" admin@example.sch.id   # password ≥ 12 karakter
 php artisan optimize                    # cache ulang config dengan APP_KEY baru
 sudo systemctl reload php8.4-fpm
 ```
 
-> Jangan jalankan `db:seed` lagi di deploy berikutnya kecuali memang ingin menyinkronkan ulang kategori dan proyek dari seeder. Seeder memakai `updateOrCreate`, sehingga perubahan judul atau cerita proyek yang dibuat langsung di database akan tertimpa.
+> Kategori wajib ada: tanpa kategori, seller tidak bisa mengajukan produk untuk ditinjau dan tidak ada halaman admin untuk membuatnya. `CategorySeeder` hanya mengisi kategori dan aman dijalankan ulang kapan saja (tidak menduplikasi). Untuk server yang sudah berjalan, cek dengan `php artisan tinker --execute 'echo App\Models\Category::count();'`; jika `0`, jalankan perintah seeder di atas.
+>
+> `php artisan db:seed --force` (tanpa `--class`) menjalankan `MarketplaceSeeder`, yang selain kategori juga membuat 12 proyek kelas dan akun demo. Pakai hanya bila data demo memang diinginkan. Seeder itu memakai `updateOrCreate`, sehingga perubahan judul atau cerita proyek yang dibuat langsung di database akan tertimpa.
 
 ### 3.3 Pasang HTTPS
 

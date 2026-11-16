@@ -14,15 +14,8 @@ class MarketplaceSeeder extends Seeder
 {
     public function run(): void
     {
-        $categories = collect([
-            ['name' => 'Makanan', 'slug' => 'makanan'],
-            ['name' => 'Alat Tulis', 'slug' => 'alat-tulis'],
-            ['name' => 'Aksesori', 'slug' => 'aksesori'],
-            ['name' => 'Dekorasi', 'slug' => 'dekorasi'],
-            ['name' => 'Perawatan', 'slug' => 'perawatan'],
-        ])->mapWithKeys(fn (array $category): array => [
-            $category['slug'] => Category::updateOrCreate(['slug' => $category['slug']], $category),
-        ]);
+        $this->call(CategorySeeder::class);
+        $categories = Category::query()->get()->keyBy('slug');
 
         foreach ([
             ['Class 1', 'Green Economy'],
