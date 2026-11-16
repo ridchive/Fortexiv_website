@@ -353,10 +353,11 @@ class MarketplaceController extends Controller
                 Log::warning('Midtrans checkout could not be completed.', [
                     'order_code' => $order->order_code,
                     'exception' => $exception::class,
+                    'error' => $exception->getMessage(),
                 ]);
 
                 return redirect()->route('orders.show', $order)
-                    ->with('error', 'Pembayaran Midtrans belum dapat dibuka. Jangan melakukan pembayaran ulang; silakan hubungi admin.');
+                    ->with('error', 'Halaman pembayaran belum berhasil disiapkan. Setelah koneksi Midtrans pulih, coba lagi dari halaman pesanan. Jika transaksi percobaan sudah terlihat di dashboard Midtrans, minta admin mengeceknya sebelum mengulang.');
             }
 
             $order->payment()->update([
@@ -391,6 +392,48 @@ class MarketplaceController extends Controller
         $order->load(['buyer', 'items.seller', 'fulfillments.seller.project', 'payment', 'ticket']);
 
         return view('marketplace.order', compact('order'));
+    }
+
+    public function retryMidtransPayment(Request $request, Order $order, MidtransService $midtrans): RedirectResponse
+    {
+        abort_unless($order->buyer_id === $request->user()->id, 404);
+        abort_unless($order->status === 'pending_payment', 422, 'Pesanan ini tidak menunggu pembayaran.');
+
+        try {
+            $redirectUrl = DB::transaction(function () use ($order, $midtrans): string {
+                $lockedOrder = Order::query()->whereKey($order->id)->lockForUpdate()->firstOrFail();
+                abort_unless($lockedOrder->status === 'pending_payment', 422, 'Status pesanan telah berubah.');
+
+                $payment = $lockedOrder->payment()->lockForUpdate()->firstOrFail();
+                abort_unless($payment->gateway === Payment::GATEWAY_MIDTRANS, 422, 'Pesanan ini tidak menggunakan Midtrans.');
+                abort_unless($payment->status === 'pending', 422, 'Status pembayaran telah berubah.');
+
+                if (filled($payment->snap_redirect_url)) {
+                    return $payment->snap_redirect_url;
+                }
+
+                abort_unless(filled(config('services.midtrans.server_key')), 503, 'Midtrans belum dikonfigurasi.');
+
+                $transaction = $midtrans->createSnapTransaction($lockedOrder);
+                $payment->update([
+                    'snap_token' => $transaction['token'],
+                    'snap_redirect_url' => $transaction['redirect_url'],
+                ]);
+
+                return $transaction['redirect_url'];
+            });
+        } catch (ConnectionException|RequestException|UnexpectedValueException $exception) {
+            Log::warning('Midtrans checkout retry could not be completed.', [
+                'order_code' => $order->order_code,
+                'exception' => $exception::class,
+                'error' => $exception->getMessage(),
+            ]);
+
+            return redirect()->route('orders.show', $order)
+                ->with('error', 'Halaman pembayaran belum berhasil disiapkan. Periksa koneksi Midtrans, lalu coba lagi. Jika transaksi sudah terlihat di dashboard Midtrans, minta admin mengeceknya sebelum mengulang.');
+        }
+
+        return redirect()->away($redirectUrl);
     }
 
     public function uploadPayment(Request $request, Order $order): RedirectResponse

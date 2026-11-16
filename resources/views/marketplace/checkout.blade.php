@@ -83,7 +83,7 @@
         @if(config('services.midtrans.server_key'))
           <label class="chk">
             <input type="radio" name="payment_method" value="midtrans" @checked(old('payment_method', $manualTransferConfigured ? 'manual' : 'midtrans') === 'midtrans')>
-            <span>Midtrans</span>
+            <span>QRIS (Midtrans)</span>
           </label>
         @endif
       </fieldset>

@@ -865,7 +865,8 @@ class MarketplaceTest extends TestCase
         ]);
         Http::assertSent(fn (ClientRequest $request): bool => $request->url() === 'https://app.sandbox.midtrans.com/snap/v1/transactions'
             && $request['transaction_details']['order_id'] === $order->order_code
-            && $request['transaction_details']['gross_amount'] === 14000);
+            && $request['transaction_details']['gross_amount'] === 14000
+            && $request['enabled_payments'] === ['other_qris']);
     }
 
     public function test_midtrans_checkout_is_unavailable_without_a_server_key(): void
@@ -933,6 +934,77 @@ class MarketplaceTest extends TestCase
         $this->assertSame('pending', $order->payment->status);
         $this->assertNull($order->payment->snap_redirect_url);
         $this->assertSame(1, $product->fresh()->stock);
+    }
+
+    public function test_buyer_can_retry_midtrans_for_an_order_without_a_payment_url(): void
+    {
+        config([
+            'services.midtrans.server_key' => 'sandbox-server-key',
+            'services.midtrans.base_url' => 'https://app.sandbox.midtrans.com',
+        ]);
+        Http::preventStrayRequests();
+        Http::fake([
+            'https://app.sandbox.midtrans.com/snap/v1/transactions' => Http::response([
+                'token' => 'retry-snap-token',
+                'redirect_url' => 'https://app.sandbox.midtrans.com/snap/v4/redirection/retry-snap-token',
+            ], 201),
+        ]);
+        $buyer = User::factory()->create();
+        $order = $this->midtransOrder($buyer);
+
+        $this->actingAs($buyer)->get(route('orders.show', $order))
+            ->assertOk()
+            ->assertSee('Coba siapkan halaman pembayaran lagi');
+
+        $this->actingAs($buyer)->post(route('payments.midtrans.retry', $order))
+            ->assertRedirect('https://app.sandbox.midtrans.com/snap/v4/redirection/retry-snap-token');
+        $this->actingAs($buyer)->post(route('payments.midtrans.retry', $order))
+            ->assertRedirect('https://app.sandbox.midtrans.com/snap/v4/redirection/retry-snap-token');
+
+        $this->assertDatabaseCount('orders', 1);
+        $this->assertDatabaseHas('payments', [
+            'order_id' => $order->id,
+            'snap_token' => 'retry-snap-token',
+            'snap_redirect_url' => 'https://app.sandbox.midtrans.com/snap/v4/redirection/retry-snap-token',
+        ]);
+        Http::assertSent(fn (ClientRequest $request): bool => $request->url() === 'https://app.sandbox.midtrans.com/snap/v1/transactions'
+            && $request['transaction_details']['order_id'] === $order->order_code);
+        Http::assertSentCount(1);
+    }
+
+    public function test_buyer_cannot_retry_midtrans_for_another_buyers_order(): void
+    {
+        Http::preventStrayRequests();
+        $buyer = User::factory()->create();
+        $otherBuyer = User::factory()->create();
+        $order = $this->midtransOrder($buyer);
+
+        $this->actingAs($otherBuyer)->post(route('payments.midtrans.retry', $order))
+            ->assertNotFound();
+
+        $this->assertNull($order->payment->fresh()->snap_redirect_url);
+    }
+
+    public function test_failed_midtrans_retry_keeps_order_available_for_another_attempt(): void
+    {
+        config([
+            'services.midtrans.server_key' => 'sandbox-server-key',
+            'services.midtrans.base_url' => 'https://app.sandbox.midtrans.com',
+        ]);
+        Http::preventStrayRequests();
+        Http::fake([
+            'https://app.sandbox.midtrans.com/snap/v1/transactions' => Http::response(['message' => 'Unavailable'], 500),
+        ]);
+        $buyer = User::factory()->create();
+        $order = $this->midtransOrder($buyer);
+
+        $this->actingAs($buyer)->post(route('payments.midtrans.retry', $order))
+            ->assertRedirect(route('orders.show', $order))
+            ->assertSessionHas('error');
+
+        $this->assertSame('pending_payment', $order->fresh()->status);
+        $this->assertNull($order->payment->fresh()->snap_redirect_url);
+        $this->assertDatabaseCount('orders', 1);
     }
 
     public function test_midtrans_checkout_does_not_redirect_to_an_untrusted_payment_url(): void

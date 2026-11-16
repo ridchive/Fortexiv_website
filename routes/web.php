@@ -53,6 +53,9 @@ Route::middleware(['auth', 'verified', 'role:buyer'])->group(function () {
     Route::post('/checkout', [MarketplaceController::class, 'checkout'])->name('checkout');
     Route::get('/orders', [MarketplaceController::class, 'orders'])->name('orders.index');
     Route::get('/orders/{order:order_code}', [MarketplaceController::class, 'order'])->name('orders.show');
+    Route::post('/orders/{order:order_code}/midtrans/retry', [MarketplaceController::class, 'retryMidtransPayment'])
+        ->middleware('throttle:6,1')
+        ->name('payments.midtrans.retry');
     Route::post('/orders/{order:order_code}/payment-proof', [MarketplaceController::class, 'uploadPayment'])->name('payments.store');
     Route::get('/orders/{order:order_code}/ticket', [MarketplaceController::class, 'ticket'])->name('tickets.show');
 });

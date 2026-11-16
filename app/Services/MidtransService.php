@@ -45,6 +45,7 @@ class MidtransService
                     'name' => Str::limit($item->product_name, 50, ''),
                 ])->all(),
                 'customer_details' => $customerDetails,
+                'enabled_payments' => ['other_qris'],
                 'callbacks' => [
                     'finish' => route('orders.show', $order),
                 ],

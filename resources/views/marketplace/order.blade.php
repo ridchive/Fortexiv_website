@@ -69,7 +69,16 @@
           <p>Selesaikan pembayaran melalui Midtrans. Status pesanan akan diperbarui setelah pembayaran dikonfirmasi.</p>
           <a class="btn" href="{{ $order->payment->snap_redirect_url }}">Lanjutkan ke Midtrans</a>
         @else
-          <p class="muted">Halaman pembayaran belum dapat disiapkan. Hubungi admin marketplace sebelum mencoba membayar.</p>
+          @if($order->payment->status === 'pending')
+            <p class="muted">Halaman pembayaran belum dapat disiapkan. Periksa koneksi Midtrans, lalu coba siapkan kembali.</p>
+            <form method="post" action="{{ route('payments.midtrans.retry', $order) }}">
+              @csrf
+              <button class="btn" type="submit">Coba siapkan halaman pembayaran lagi</button>
+            </form>
+            <p class="note warn">Jika transaksi percobaan sebelumnya sudah terlihat di dashboard Midtrans, minta admin mengeceknya sebelum mencoba lagi.</p>
+          @else
+            <p class="muted">Status pembayaran berubah dan halaman pembayaran tidak tersedia. Hubungi admin marketplace untuk memeriksa transaksi.</p>
+          @endif
         @endif
       @else
         <h2>Pembayaran transfer manual</h2>
