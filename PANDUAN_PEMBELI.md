@@ -1,12 +1,12 @@
 # Panduan Pembeli — FORTEXIV Marketplace
 
-FORTEXIV adalah marketplace produk hasil proyek kelas siswa. Sebagai pembeli, Anda bisa menjelajah proyek, membeli produk, membayar lewat Midtrans atau transfer bank manual, lalu mengambil pesanan di sekolah dengan **ticket pickup**.
+FORTEXIV adalah marketplace produk hasil proyek kelas siswa. Sebagai pembeli, Anda bisa menjelajah proyek, membeli produk, membayar lewat QRIS (Midtrans) atau transfer bank manual, lalu mengambil pesanan di sekolah dengan **ticket pickup**.
 
 ## Alur singkat
 
 ```
 Daftar/Masuk → Pilih produk → Add to cart → Checkout (pilih tanggal pickup dan metode pembayaran)
-→ Bayar lewat Midtrans atau transfer manual → Admin verifikasi transfer manual
+→ Bayar lewat QRIS (Midtrans) atau transfer manual → Admin verifikasi transfer manual
 → Ticket pickup terbit → Tunjukkan ticket saat mengambil barang
 ```
 

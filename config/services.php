@@ -44,6 +44,10 @@ return [
         'status_url' => env('MIDTRANS_IS_PRODUCTION', false)
             ? 'https://api.midtrans.com'
             : 'https://api.sandbox.midtrans.com',
+        // Minutes between scheduled status checks of pending Midtrans orders; 0 disables the schedule.
+        'status_check_interval_minutes' => (int) env('MIDTRANS_STATUS_CHECK_INTERVAL_MINUTES', 15),
+        // Maximum number of pending orders checked against the status API per scheduled run.
+        'status_check_batch_size' => (int) env('MIDTRANS_STATUS_CHECK_BATCH_SIZE', 25),
     ],
 
 ];

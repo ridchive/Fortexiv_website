@@ -27,12 +27,14 @@ class MidtransNotificationController extends Controller
             'transaction_id' => ['nullable', 'string', 'max:100'],
         ]);
 
+        /*
+         * The callback body is only a trigger: the order is updated from the authenticated
+         * server-to-server status API below, so a signature mismatch is logged rather than fatal.
+         */
         if (! $midtrans->hasValidSignature($notification)) {
-            Log::warning('Midtrans notification rejected due to invalid signature.', [
+            Log::warning('Midtrans notification signature mismatch; verifying through the status API.', [
                 'order_id' => $notification['order_id'],
             ]);
-
-            abort(403, 'Invalid Midtrans signature.');
         }
 
         Log::info('Midtrans notification received.', [

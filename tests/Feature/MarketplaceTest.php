@@ -870,6 +870,51 @@ class MarketplaceTest extends TestCase
             && $request['enabled_payments'] === ['other_qris']);
     }
 
+    public function test_checkout_hides_the_payment_method_choice_when_only_midtrans_is_configured(): void
+    {
+        config([
+            'services.midtrans.server_key' => 'sandbox-server-key',
+            'marketplace.bank_name' => '',
+            'marketplace.account_name' => '',
+            'marketplace.account_number' => '',
+            'marketplace.po_start' => null,
+            'marketplace.po_end' => null,
+        ]);
+        $buyer = User::factory()->create();
+        $product = Product::create(['seller_id' => $this->seller()->id, 'name' => 'Seed kit', 'slug' => 'qris-only-seed', 'description' => 'Seeds', 'price' => 7000, 'stock' => 2, 'review_status' => 'approved', 'status' => 'published']);
+        $buyer->cartItems()->create(['product_id' => $product->id, 'quantity' => 1]);
+
+        $this->actingAs($buyer)
+            ->get(route('checkout.show', ['mode' => 'cart']))
+            ->assertOk()
+            ->assertSee('<input type="hidden" name="payment_method" value="midtrans">', false)
+            ->assertDontSee('Metode pembayaran')
+            ->assertDontSee('type="radio" name="payment_method"', false);
+    }
+
+    public function test_checkout_lets_the_buyer_choose_when_bank_transfer_and_midtrans_are_configured(): void
+    {
+        config([
+            'services.midtrans.server_key' => 'sandbox-server-key',
+            'marketplace.bank_name' => 'Bank Test',
+            'marketplace.account_name' => 'Koperasi',
+            'marketplace.account_number' => '123',
+            'marketplace.po_start' => null,
+            'marketplace.po_end' => null,
+        ]);
+        $buyer = User::factory()->create();
+        $product = Product::create(['seller_id' => $this->seller()->id, 'name' => 'Seed kit', 'slug' => 'two-methods-seed', 'description' => 'Seeds', 'price' => 7000, 'stock' => 2, 'review_status' => 'approved', 'status' => 'published']);
+        $buyer->cartItems()->create(['product_id' => $product->id, 'quantity' => 1]);
+
+        $this->actingAs($buyer)
+            ->get(route('checkout.show', ['mode' => 'cart']))
+            ->assertOk()
+            ->assertSee('Metode pembayaran')
+            ->assertSee('type="radio" name="payment_method" value="manual"', false)
+            ->assertSee('type="radio" name="payment_method" value="midtrans"', false)
+            ->assertDontSee('<input type="hidden" name="payment_method"', false);
+    }
+
     public function test_midtrans_checkout_is_unavailable_without_a_server_key(): void
     {
         config([
@@ -1101,7 +1146,7 @@ class MarketplaceTest extends TestCase
         $this->assertDatabaseCount('tickets', 1);
     }
 
-    public function test_midtrans_notification_returns_403_for_an_invalid_signature(): void
+    public function test_midtrans_notification_with_an_invalid_signature_is_settled_from_the_status_api(): void
     {
         config([
             'app.env' => 'local',
@@ -1109,6 +1154,7 @@ class MarketplaceTest extends TestCase
         ]);
         Log::spy();
         $order = $this->midtransOrder(User::factory()->create());
+        $this->fakeMidtransStatus($order);
         $notification = $this->midtransNotification($order);
         $notification['signature_key'] = str_repeat('0', 128);
         $expectedSignature = hash(
@@ -1116,7 +1162,7 @@ class MarketplaceTest extends TestCase
             $order->order_code.'20014000.00sandbox-server-key',
         );
 
-        $this->postJson(route('midtrans.notifications'), $notification)->assertForbidden();
+        $this->postJson(route('midtrans.notifications'), $notification)->assertOk();
 
         Log::shouldHaveReceived('debug')
             ->with('Midtrans notification signature validation completed.', [
@@ -1137,9 +1183,24 @@ class MarketplaceTest extends TestCase
                 'content_type' => 'application/json',
             ]);
         Log::shouldHaveReceived('warning')
-            ->with('Midtrans notification rejected due to invalid signature.', [
+            ->with('Midtrans notification signature mismatch; verifying through the status API.', [
                 'order_id' => $order->order_code,
             ]);
+        Http::assertSent(fn (ClientRequest $request): bool => $request->url() === 'https://api.sandbox.midtrans.com/v2/'.$order->order_code.'/status');
+        $this->assertSame('paid', $order->fresh()->status);
+        $this->assertDatabaseHas('payments', ['order_id' => $order->id, 'status' => 'verified']);
+        $this->assertDatabaseCount('tickets', 1);
+    }
+
+    public function test_midtrans_notification_with_an_invalid_signature_does_not_settle_a_pending_transaction(): void
+    {
+        $order = $this->midtransOrder(User::factory()->create());
+        $this->fakeMidtransStatus($order, ['transaction_status' => 'pending']);
+        $notification = $this->midtransNotification($order);
+        $notification['signature_key'] = str_repeat('0', 128);
+
+        $this->postJson(route('midtrans.notifications'), $notification)->assertOk();
+
         $this->assertSame('pending_payment', $order->fresh()->status);
         $this->assertDatabaseHas('payments', ['order_id' => $order->id, 'status' => 'pending']);
         $this->assertDatabaseCount('tickets', 0);

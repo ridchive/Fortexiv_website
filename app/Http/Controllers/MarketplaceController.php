@@ -446,8 +446,7 @@ class MarketplaceController extends Controller
         abort_unless($payment->status === 'pending', 422, 'Status pembayaran telah berubah.');
 
         try {
-            $transaction = $midtrans->getTransactionStatus($order->order_code);
-            $midtrans->handleNotification($transaction, $transaction);
+            $transactionStatus = $midtrans->syncTransactionStatus($order);
         } catch (ConnectionException|RequestException|UnexpectedValueException $exception) {
             Log::warning('Midtrans payment status refresh could not be completed.', [
                 'order_code' => $order->order_code,
@@ -458,8 +457,6 @@ class MarketplaceController extends Controller
             return redirect()->route('orders.show', $order)
                 ->with('error', 'Status pembayaran belum dapat diperiksa ke Midtrans. Coba lagi beberapa saat.');
         }
-
-        $transactionStatus = Str::lower($transaction['transaction_status']);
 
         return redirect()->route('orders.show', $order)
             ->with('status', 'Status Midtrans berhasil diperiksa: '.$transactionStatus.'.');

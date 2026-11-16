@@ -148,6 +148,17 @@ class MidtransService
     }
 
     /**
+     * Applies the authenticated Midtrans status of the order and returns that status in lowercase.
+     */
+    public function syncTransactionStatus(Order $order): string
+    {
+        $transaction = $this->getTransactionStatus($order->order_code);
+        $this->handleNotification($transaction, $transaction);
+
+        return Str::lower($transaction['transaction_status']);
+    }
+
+    /**
      * @param  array<string, mixed>  $notification
      * @param  array<string, mixed>  $transaction
      */

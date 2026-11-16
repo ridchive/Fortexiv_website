@@ -498,7 +498,7 @@ Jika tidak ingin mengelola server sendiri, aplikasi bisa di-deploy ke [Laravel C
 
 ### 6.1 Scheduler dan queue worker
 
-Saat ini aplikasi **belum memakai** job queue maupun jadwal. Pasang keduanya sekarang agar fitur berikutnya, seperti notifikasi atau pembatalan otomatis pesanan kedaluwarsa (lihat `DOKUMENTASI_PENGEMBANG.md`), langsung berjalan.
+Scheduler **wajib** dipasang: jadwal `marketplace:sync-midtrans-payments` memeriksa pesanan Midtrans yang masih pending ke API status Midtrans (interval diatur `MIDTRANS_STATUS_CHECK_INTERVAL_MINUTES`, default 15 menit). Job queue belum dipakai, tetapi pasang juga sekarang agar fitur berikutnya, seperti notifikasi atau pembatalan otomatis pesanan kedaluwarsa (lihat `DOKUMENTASI_PENGEMBANG.md`), langsung berjalan.
 
 **Scheduler** (`sudo -u deploy crontab -e`):
 

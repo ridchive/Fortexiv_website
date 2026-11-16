@@ -40,7 +40,13 @@ Untuk Midtrans Snap Sandbox, isi Server Key dan pertahankan mode production `fal
 ```env
 MIDTRANS_SERVER_KEY=
 MIDTRANS_IS_PRODUCTION=false
+MIDTRANS_STATUS_CHECK_INTERVAL_MINUTES=15
+MIDTRANS_STATUS_CHECK_BATCH_SIZE=25
 ```
+
+Command terjadwal `marketplace:sync-midtrans-payments` memeriksa pesanan Midtrans yang masih menunggu pembayaran (transaksi Snap sudah dibuat) ke API status Midtrans, sebagai cadangan bila notifikasi tidak sampai. `MIDTRANS_STATUS_CHECK_INTERVAL_MINUTES` mengatur jaraknya (default 15 menit; `0` mematikan jadwal; nilai ≥ 60 dibulatkan ke jam penuh) dan `MIDTRANS_STATUS_CHECK_BATCH_SIZE` membatasi jumlah pesanan per putaran; pesanan yang paling lama tidak diperiksa didahulukan. Jadwal hanya berjalan bila cron `php artisan schedule:run` terpasang (lihat `PANDUAN_DEVOPS.md` Bagian 6.1).
+
+Bila hanya satu metode pembayaran yang dikonfigurasi, pilihan metode tidak ditampilkan di checkout dan metode tersebut dipakai otomatis.
 
 Saat go-live, gunakan Server Key Production dan ubah `MIDTRANS_IS_PRODUCTION=true`. Atur Payment Notification URL di dashboard Midtrans ke `https://<domain-publik>/api/midtrans/notifications`. Endpoint mengambil status transaksi langsung dari Midtrans sebelum mengubah status pesanan; gunakan URL HTTPS publik yang dapat dijangkau Midtrans.
 
@@ -168,7 +174,7 @@ Stok dikurangi saat **checkout**, dan dikembalikan saat pembayaran manual ditola
 - Keranjang: tambah, ubah jumlah, hapus, dengan validasi stok.
 - Checkout dengan tanggal pickup (≥ hari ini), melalui Midtrans Snap atau transfer manual.
 - Checkout dinonaktifkan (HTTP 503) bila tidak ada metode pembayaran yang dikonfigurasi.
-- Callback Midtrans diverifikasi dengan signature dan status API server-to-server; pembayaran sukses menerbitkan ticket, transaksi gagal/kedaluwarsa mengembalikan stok.
+- Callback Midtrans hanya menjadi pemicu: status pesanan selalu diambil dari status API server-to-server (terautentikasi Server Key). Signature callback tetap dihitung dan dicatat; bila tidak cocok hanya dicatat sebagai peringatan. Endpoint dibatasi 60 request/menit; pembayaran sukses menerbitkan ticket, transaksi gagal/kedaluwarsa mengembalikan stok.
 - Unggah bukti transfer (JPG/PNG/PDF, maks 5 MB) dan metode transfer.
 - Riwayat dan detail pesanan, termasuk catatan penolakan dari admin.
 - Ticket pickup setelah pembayaran diverifikasi.

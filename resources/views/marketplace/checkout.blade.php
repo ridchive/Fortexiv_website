@@ -70,25 +70,22 @@
       <input type="hidden" name="product_id" value="{{ $items->first()['product']->id }}">
       <input type="hidden" name="quantity" value="{{ $items->first()['quantity'] }}">
     @endif
-    @if((config('marketplace.bank_name') && config('marketplace.account_name') && config('marketplace.account_number')) || config('services.midtrans.server_key'))
-      @php($manualTransferConfigured = config('marketplace.bank_name') && config('marketplace.account_name') && config('marketplace.account_number'))
+    @php($paymentMethods = array_filter([
+      'manual' => config('marketplace.bank_name') && config('marketplace.account_name') && config('marketplace.account_number') ? 'Transfer bank manual' : null,
+      'midtrans' => config('services.midtrans.server_key') ? 'QRIS (Midtrans)' : null,
+    ]))
+    @if(count($paymentMethods) > 1)
       <fieldset class="field">
         <legend>Metode pembayaran</legend>
-        @if($manualTransferConfigured)
+        @foreach($paymentMethods as $paymentMethod => $paymentMethodLabel)
           <label class="chk">
-            <input type="radio" name="payment_method" value="manual" @checked(old('payment_method', 'manual') === 'manual')>
-            <span>Transfer bank manual</span>
+            <input type="radio" name="payment_method" value="{{ $paymentMethod }}" @checked(old('payment_method', array_key_first($paymentMethods)) === $paymentMethod)>
+            <span>{{ $paymentMethodLabel }}</span>
           </label>
-        @endif
-        @if(config('services.midtrans.server_key'))
-          <label class="chk">
-            <input type="radio" name="payment_method" value="midtrans" @checked(old('payment_method', $manualTransferConfigured ? 'manual' : 'midtrans') === 'midtrans')>
-            <span>QRIS (Midtrans)</span>
-          </label>
-        @endif
+        @endforeach
       </fieldset>
     @else
-      <input type="hidden" name="payment_method" value="manual">
+      <input type="hidden" name="payment_method" value="{{ array_key_first($paymentMethods) ?? 'manual' }}">
     @endif
     <h2>Data pengambil dan persetujuan</h2>
     <div class="two">

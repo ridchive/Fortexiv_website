@@ -76,6 +76,7 @@ Kolom **Prioritas** memakai MoSCoW, **Poin** memakai skala 1/2/3/5/8 (lihat `00-
 | US-14 | Sebagai buyer, saya ingin **checkout dari keranjang**, supaya pesanan saya tercatat sistem. | Must | 5 | 2 | Order dibuat dengan status `pending_payment`; stok dikurangi saat order dibuat (bukan saat verifikasi) untuk mencegah dua buyer memesan stok terakhir yang sama. |
 | US-15 | Sebagai buyer, saya ingin **mengunggah bukti transfer**, supaya admin bisa memverifikasi pembayaran saya. | Must | 3 | 3 | Upload dibatasi jenis file (jpg/png/pdf) dan ukuran maksimum; order berubah status jadi `waiting_verification`. |
 | US-16 | Sebagai admin, saya ingin **memverifikasi atau menolak bukti pembayaran**, supaya hanya pembayaran sah yang lanjut ke pickup. | Must | 5 | 3 | Verifikasi mengubah status order jadi `paid` dan memicu penerbitan ticket (US-17); penolakan mengembalikan stok dan mengubah status jadi `cancelled`. |
+| US-21 | Sebagai buyer, saya ingin **membayar dengan QRIS dinamis melalui Midtrans**, supaya pembayaran saya terkonfirmasi otomatis tanpa perlu mengunggah bukti transfer. | Must | 5 | 3 | Checkout via Midtrans hanya menawarkan QRIS (Snap `enabled_payments: ["other_qris"]`), QR dibuat per order dengan nominal sesuai total order; callback Midtrans hanya pemicu, status order selalu diambil dari API status Midtrans yang terautentikasi (signature tidak cocok dicatat sebagai peringatan); `settlement`/`capture` menjadikan order `paid` dan memicu penerbitan ticket (US-17); `expire`/`cancel`/`deny`/`failure` membatalkan order dan mengembalikan stok; metode `qris` tercatat di data pembayaran. |
 
 ### Epic 6 — Digital Ticket
 
@@ -96,13 +97,25 @@ Kolom **Prioritas** memakai MoSCoW, **Poin** memakai skala 1/2/3/5/8 (lihat `00-
 | US-19 | Sebagai admin, saya ingin **mengelola akun seller & buyer**, supaya platform tetap tertib. | Should | 3 | 4 | Admin bisa menonaktifkan akun bermasalah tanpa menghapus riwayat order-nya. |
 | US-20 | Sebagai admin, saya ingin **melihat laporan harian** (total order, pembayaran sukses, dibatalkan, produk terjual, revenue, status pickup), supaya saya bisa memantau operasional. | Should | 5 | 4 | Laporan bisa difilter per tanggal; angka revenue hanya menghitung order berstatus `paid`/`picked_up`. |
 
+### Kandidat Backlog — belum dijadwalkan
+
+Dicatat setelah QRIS Midtrans (US-21) diaktifkan; prioritas, poin, dan sprint ditentukan saat Sprint Planning. US-24 dan US-25 bertentangan dengan Out of Scope di bawah, jadi perlu disepakati dulu sebelum diambil.
+
+| ID | User Story | Usulan Prioritas | Catatan |
+|---|---|---|---|
+| US-22 | Sebagai buyer, saya ingin **status pembayaran QRIS diperiksa ulang otomatis ke Midtrans secara berkala**, supaya pesanan tidak tertahan di `pending_payment` bila notifikasi gagal. | Should | **Sudah diimplementasi:** command terjadwal `marketplace:sync-midtrans-payments`, interval `MIDTRANS_STATUS_CHECK_INTERVAL_MINUTES` (default 15) dan batas `MIDTRANS_STATUS_CHECK_BATCH_SIZE` (default 25). Butuh cron `schedule:run`. |
+| US-23 | Sebagai sistem, saya ingin **membatalkan otomatis order yang melewati batas waktu pembayaran**, supaya stok yang tertahan kembali tersedia. | Should | Scheduled command + `custom_expiry` Snap (mis. 15–30 menit) agar masa berlaku QR jelas. |
+| US-24 | Sebagai buyer, saya ingin **menerima email saat status pesanan berubah** (lunas, ticket terbit, dibatalkan), supaya tidak perlu terus mengecek halaman pesanan. | Could | Memakai konfigurasi SMTP yang sudah ada. |
+| US-25 | Sebagai admin/seller di lokasi, saya ingin **memindai QR ticket saat pickup**, supaya antrean lebih cepat dan tidak salah ketik kode. | Could | |
+| US-26 | Sebagai admin, saya ingin **membatalkan dan me-refund order QRIS yang sudah lunas**, supaya kasus produk batal tersedia bisa diselesaikan. | Could | Refund via Midtrans API; status order & stok ikut diperbarui. |
+
 ---
 
 ## 5. Out of Scope (Won't Have — kali ini)
 
 Dicatat eksplisit supaya tidak "diam-diam diharapkan" oleh siapa pun:
 
-- Payment gateway otomatis (Midtrans/Xendit dsb.) — pembayaran diverifikasi manual oleh admin, sama seperti pola di modul MarketDay.
+- Metode pembayaran gateway selain QRIS dinamis Midtrans (virtual account, kartu kredit, e-wallet lain, gateway lain seperti Xendit/DOKU) — transfer manual tetap tersedia sebagai alternatif.
 - Notifikasi otomatis email/WhatsApp saat status order berubah — buyer mengecek status sendiri lewat halaman "Pesanan Saya".
 - Scan QR otomatis untuk pickup — validasi ticket dilakukan admin/seller secara manual lewat kode unik.
 - Multi-bahasa & multi-currency.
