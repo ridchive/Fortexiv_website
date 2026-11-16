@@ -15,6 +15,7 @@ use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Http\Client\Request as ClientRequest;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\Http;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Notification;
 use Illuminate\Support\Facades\Storage;
 use Tests\TestCase;
@@ -1047,6 +1048,7 @@ class MarketplaceTest extends TestCase
     public function test_midtrans_settlement_marks_the_order_paid_and_issues_only_one_ticket(): void
     {
         config(['services.midtrans.server_key' => 'sandbox-server-key']);
+        Log::spy();
         $buyer = User::factory()->create();
         $order = $this->midtransOrder($buyer);
         $notification = $this->midtransNotification($order, [
@@ -1061,6 +1063,16 @@ class MarketplaceTest extends TestCase
         $this->postJson(route('midtrans.notifications'), $notification)->assertOk()->assertJson(['status' => 'ok']);
         $this->postJson(route('midtrans.notifications'), $notification)->assertOk();
 
+        Log::shouldHaveReceived('info')
+            ->with('Midtrans notification received.', [
+                'order_id' => $order->order_code,
+                'transaction_id' => 'midtrans-transaction-1',
+                'status_code' => '200',
+                'transaction_status' => 'settlement',
+                'payment_type' => 'qris',
+            ])
+            ->twice();
+
         $this->assertSame('paid', $order->fresh()->status);
         $this->assertDatabaseHas('payments', [
             'order_id' => $order->id,
@@ -1074,12 +1086,14 @@ class MarketplaceTest extends TestCase
     public function test_midtrans_notification_returns_403_for_an_invalid_signature(): void
     {
         config(['services.midtrans.server_key' => 'sandbox-server-key']);
+        Log::spy();
         $order = $this->midtransOrder(User::factory()->create());
         $notification = $this->midtransNotification($order);
         $notification['signature_key'] = str_repeat('0', 128);
 
         $this->postJson(route('midtrans.notifications'), $notification)->assertForbidden();
 
+        Log::shouldNotHaveReceived('info');
         $this->assertSame('pending_payment', $order->fresh()->status);
         $this->assertDatabaseHas('payments', ['order_id' => $order->id, 'status' => 'pending']);
         $this->assertDatabaseCount('tickets', 0);

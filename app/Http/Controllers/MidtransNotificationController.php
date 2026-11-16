@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Services\MidtransService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Log;
 
 class MidtransNotificationController extends Controller
 {
@@ -22,6 +23,14 @@ class MidtransNotificationController extends Controller
         ]);
 
         abort_unless($midtrans->hasValidSignature($notification), 403, 'Invalid Midtrans signature.');
+
+        Log::info('Midtrans notification received.', [
+            'order_id' => $notification['order_id'],
+            'transaction_id' => $notification['transaction_id'] ?? null,
+            'status_code' => $notification['status_code'],
+            'transaction_status' => $notification['transaction_status'],
+            'payment_type' => $notification['payment_type'] ?? null,
+        ]);
 
         $transaction = $midtrans->getTransactionStatus($notification['order_id']);
         $midtrans->handleNotification($notification, $transaction);
