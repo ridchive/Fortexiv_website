@@ -44,66 +44,144 @@ class MarketplaceSeeder extends Seeder
                 ->update(['is_published' => false]);
         }
 
+        $legacyClassNames = [
+            'XI Agribisnis 1',
+            'XI Tata Boga 2',
+            'X Desain Grafis',
+            'XII Kriya Kreatif',
+        ];
+
+        foreach (Project::query()->whereIn('class_name', $legacyClassNames)->get() as $legacyProject) {
+            $legacyProject->update(['is_published' => false]);
+            $legacyProject->products()->where('status', 'published')->update(['status' => 'draft']);
+        }
+
         $projects = [
             [
-                'class_name' => 'XI Agribisnis 1',
-                'grade' => 11,
-                'title' => 'Kebun Tempe Tanpa Plastik',
-                'introduction' => 'Kelas Agribisnis memproduksi tempe dengan bungkus daun pisang dari kebun sendiri dan mengompos sisanya.',
-                'goal' => 'Mengganti seluruh kemasan tempe kelas dengan daun pisang dan menurunkan sampah plastik kelas hingga nol selama satu periode PO.',
-                'story' => 'Setiap minggu kantin sekolah membuang puluhan bungkus plastik bekas tempe. Kelas XI Agribisnis 1 ingin membuktikan bahwa tempe tetap bisa dijual rapi tanpa plastik.',
+                'class_name' => 'kelas 1',
+                'grade' => 1,
+                'title' => 'Kartu Cerita dari Kertas Daur Ulang',
+                'introduction' => 'Kelas 1 mengolah kertas bekas menjadi kartu ucapan yang bisa dipakai kembali.',
+                'goal' => 'Mengenalkan pemilahan kertas dan kreativitas melalui produk sederhana yang bermanfaat.',
+                'story' => 'Kertas yang masih bersih dikumpulkan, dipilah, lalu diolah menjadi kartu dengan hiasan buatan siswa. Proyek ini mengajak kelas 1 mengurangi kertas terbuang sambil belajar membuat karya yang dapat dibagikan.',
                 'process' => [
-                    'Menanam dan merawat pisang di lahan belakang sekolah.',
-                    'Menguji daya simpan tempe dalam daun pisang selama lima hari.',
-                    'Mengemas, menimbang, dan memberi label tiap bungkus secara manual.',
-                    'Mengumpulkan sisa daun untuk kompos kebun.',
+                    'Mengumpulkan dan memilah kertas yang masih layak pakai.',
+                    'Membentuk kartu dan menghiasnya dengan bahan yang tersedia.',
+                    'Memeriksa hasil akhir dan menyiapkan kemasan sederhana.',
                 ],
-                'outcome' => 'Target PO ini: 120 bungkus tempe dan 60 cup es krim tanpa satu pun kemasan plastik.',
+                'outcome' => 'Kartu buatan tangan yang mendorong kebiasaan menggunakan kembali kertas.',
             ],
             [
-                'class_name' => 'XI Tata Boga 2',
-                'grade' => 11,
-                'title' => 'Dapur Pepes Zero Waste',
-                'introduction' => 'Tata Boga menukar aluminium foil dengan daun dan memakai ikan dari kolam sekolah.',
-                'goal' => 'Membuat menu pepes dan sambal yang seluruh kemasannya bisa dipakai ulang atau dikomposkan.',
-                'story' => 'Pepes biasanya dikukus dengan aluminium foil yang jarang didaur ulang. Kelas XI Tata Boga 2 mencari cara agar rasa tetap sama tanpa foil.',
+                'class_name' => 'kelas 2',
+                'grade' => 2,
+                'title' => 'Pot Mini untuk Kebun Kelas',
+                'introduction' => 'Kelas 2 membuat pot mini dari wadah yang sudah tidak terpakai.',
+                'goal' => 'Mengajak siswa merawat tanaman dan melihat manfaat guna ulang bahan sehari-hari.',
+                'story' => 'Wadah bekas yang dibersihkan dihias dan digunakan sebagai pot untuk tanaman kecil. Setiap kelompok merawat tanamannya dan mencatat perubahan yang terlihat.',
                 'process' => [
-                    'Menguji lima jenis daun untuk membungkus dan mengukus.',
-                    'Menentukan resep bumbu dari kebun herbal kelas.',
-                    'Mengumpulkan dan mensterilkan botol kaca dari kantin.',
-                    'Menghitung porsi supaya tidak ada makanan sisa.',
+                    'Memilih wadah bekas yang aman dan membersihkannya.',
+                    'Menghias wadah dan menyiapkannya sebagai pot.',
+                    'Menanam bibit dan membuat jadwal perawatan.',
                 ],
-                'outcome' => 'Hasil uji: daun pisang menahan uap paling baik. Target PO: 80 bungkus pepes dan 50 botol sambal.',
+                'outcome' => 'Pot mini dan pengalaman merawat tanaman bersama.',
             ],
             [
-                'class_name' => 'X Desain Grafis',
-                'grade' => 10,
-                'title' => 'Kertas Kedua',
-                'introduction' => 'Desain Grafis mengubah kertas ujian bekas menjadi buku catatan dan kanvas bekas menjadi tote bag.',
-                'goal' => 'Menunjukkan bahwa bahan bekas bisa diberi desain yang rapi dan pantas dijual.',
-                'story' => 'Sekolah menghasilkan berkarung-karung kertas ujian bekas tiap semester. Kelas X Desain Grafis mengubahnya menjadi produk yang layak pakai.',
+                'class_name' => 'kelas 3',
+                'grade' => 3,
+                'title' => 'Tempat Pensil Karton Guna Ulang',
+                'introduction' => 'Kelas 3 merancang tempat pensil dari karton yang dapat digunakan kembali.',
+                'goal' => 'Mengenalkan proses merancang, membuat, dan menghias benda fungsional.',
+                'story' => 'Potongan karton sisa disusun menjadi tempat pensil sederhana. Siswa mencoba beberapa bentuk, memilih desain yang stabil, lalu menghiasnya sesuai ide masing-masing.',
                 'process' => [
-                    'Memilah kertas bekas berdasarkan warna dan ketebalan.',
-                    'Membubur, mencetak, dan mengeringkan lembaran baru.',
-                    'Menjilid buku dengan benang katun.',
-                    'Menyablon tote bag dari kanvas spanduk bekas.',
+                    'Mengukur dan memotong karton sesuai pola.',
+                    'Menyatukan bagian-bagian menjadi tempat pensil.',
+                    'Menghias dan menguji kestabilan produk.',
                 ],
-                'outcome' => 'Target PO: 70 buku catatan dan 40 tote bag, dengan sampah kertas kelas berkurang sekitar 30 kg.',
+                'outcome' => 'Tempat pensil sederhana dari karton sisa yang masih layak pakai.',
             ],
             [
-                'class_name' => 'XII Kriya Kreatif',
-                'grade' => 12,
-                'title' => 'Dari Jelantah Jadi Cahaya',
-                'introduction' => 'Kriya Kreatif memberi hidup kedua pada jelantah, tanah liat, dan kulit jeruk dari kantin.',
-                'goal' => 'Mengurangi limbah dapur kantin sambil melatih keterampilan kriya yang bisa dijual.',
-                'story' => 'Minyak jelantah dan limbah kulit jeruk dari kantin sering berakhir di saluran air. Kelas XII Kriya Kreatif mengolahnya menjadi lilin, sabun, dan pot.',
+                'class_name' => 'kelas 4',
+                'grade' => 4,
+                'title' => 'Aksesori dari Kain Perca',
+                'introduction' => 'Kelas 4 mengubah sisa kain menjadi aksesori kecil yang dapat digunakan sehari-hari.',
+                'goal' => 'Mengurangi sisa bahan kain dan melatih keterampilan membuat produk.',
+                'story' => 'Sisa kain dengan warna dan motif berbeda dipilih, dipotong, lalu dirangkai menjadi aksesori. Setiap produk memiliki kombinasi kain yang berbeda.',
                 'process' => [
-                    'Mengumpulkan jelantah dan menyaringnya tiga kali.',
-                    'Mencor lilin ke gelas kaca bekas.',
-                    'Membuat sabun dingin dan memeramnya empat minggu.',
-                    'Membentuk dan membakar pot di tungku sekolah.',
+                    'Memilah dan membersihkan kain perca.',
+                    'Membuat pola dan merangkai potongan kain.',
+                    'Memeriksa jahitan dan merapikan hasilnya.',
                 ],
-                'outcome' => 'Target PO: 50 lilin, 60 sabun, dan 60 pot. Seluruh wadah memakai bahan bekas.',
+                'outcome' => 'Aksesori kain buatan kelas dengan bahan yang dimanfaatkan kembali.',
+            ],
+            [
+                'class_name' => 'kelas 5',
+                'grade' => 5,
+                'title' => 'Paket Kebun Mini',
+                'introduction' => 'Kelas 5 menyiapkan paket sederhana untuk mulai menanam di rumah.',
+                'goal' => 'Mendorong kegiatan menanam dan mengenalkan perawatan tanaman dasar.',
+                'story' => 'Paket kebun mini berisi kebutuhan awal untuk menanam. Kelas 5 menyusun panduan singkat agar pembeli dapat mencoba menanam dan merawat bibit sendiri.',
+                'process' => [
+                    'Memilih bibit dan wadah tanam yang sesuai.',
+                    'Menyiapkan media tanam dan panduan perawatan.',
+                    'Mengemas paket dengan bahan yang dapat digunakan ulang.',
+                ],
+                'outcome' => 'Paket awal untuk mencoba menanam dan merawat tanaman di rumah.',
+            ],
+            [
+                'class_name' => 'kelas 7',
+                'grade' => 7,
+                'title' => 'Tas Pakai Ulang',
+                'introduction' => 'Kelas 7 membuat tas sederhana yang dapat dipakai berulang kali.',
+                'goal' => 'Mengajak warga sekolah membawa tas sendiri saat berbelanja.',
+                'story' => 'Tas kain dirancang agar mudah dibawa dan digunakan kembali. Siswa memilih desain sederhana dan menghiasnya dengan gambar buatan kelas.',
+                'process' => [
+                    'Menyiapkan bahan dan menentukan ukuran tas.',
+                    'Merakit bagian tas dan memeriksa kekuatannya.',
+                    'Menghias tas dan menyiapkannya untuk digunakan.',
+                ],
+                'outcome' => 'Tas pakai ulang sebagai alternatif untuk membawa barang sehari-hari.',
+            ],
+            [
+                'class_name' => 'kelas 8',
+                'grade' => 8,
+                'title' => 'Dekorasi dari Bahan Guna Ulang',
+                'introduction' => 'Kelas 8 merancang dekorasi meja dari bahan yang masih bisa dimanfaatkan.',
+                'goal' => 'Mengembangkan kreativitas sambil mengurangi bahan yang terbuang.',
+                'story' => 'Bahan-bahan bersih yang tersedia di kelas dipilah dan disusun menjadi dekorasi meja. Siswa membuat desain yang berbeda dan memastikan setiap karya tetap fungsional.',
+                'process' => [
+                    'Memilah bahan yang aman dan masih layak digunakan.',
+                    'Membuat rancangan dan menyusun bagian dekorasi.',
+                    'Merapikan hasil karya dan menguji kestabilannya.',
+                ],
+                'outcome' => 'Dekorasi meja hasil karya siswa dengan bahan guna ulang.',
+            ],
+            [
+                'class_name' => 'ISTC basic & Intermediate',
+                'grade' => 1,
+                'title' => 'Kit Hidroponik Dasar',
+                'introduction' => 'Peserta ISTC basic & Intermediate mengenal sistem tanam sederhana melalui kit hidroponik.',
+                'goal' => 'Memberi pengalaman praktik merakit dan merawat tanaman dengan metode hidroponik.',
+                'story' => 'Kit ini dirancang untuk membantu peserta memahami kebutuhan dasar tanaman dan cara merawatnya. Materi proyek mencakup pengenalan alat, perakitan, serta pencatatan perkembangan tanaman.',
+                'process' => [
+                    'Mengenali komponen kit dan fungsi masing-masing.',
+                    'Merakit media tanam dan menempatkan bibit.',
+                    'Mengamati dan mencatat perkembangan tanaman.',
+                ],
+                'outcome' => 'Kit praktik dan panduan awal untuk belajar hidroponik.',
+            ],
+            [
+                'class_name' => 'ISTC Advance & Master',
+                'grade' => 2,
+                'title' => 'Lampu Meja Bahan Guna Ulang',
+                'introduction' => 'Peserta ISTC Advance & Master merancang lampu meja dekoratif dari bahan guna ulang.',
+                'goal' => 'Mengembangkan keterampilan desain dan perakitan melalui proyek produk yang lebih kompleks.',
+                'story' => 'Proyek ini menggabungkan perencanaan bentuk, pemilihan bahan, dan proses perakitan menjadi sebuah lampu meja dekoratif. Setiap produk diperiksa sebelum dipresentasikan.',
+                'process' => [
+                    'Membuat rancangan bentuk dan memilih bahan yang sesuai.',
+                    'Merakit bagian dekoratif dan dudukan lampu.',
+                    'Memeriksa hasil rakitan sebelum produk ditampilkan.',
+                ],
+                'outcome' => 'Prototipe lampu meja dekoratif yang dibuat melalui proses desain dan perakitan.',
             ],
         ];
 
@@ -117,24 +195,32 @@ class MarketplaceSeeder extends Seeder
         });
 
         $productsByClass = [
-            'XI Agribisnis 1' => [
-                ['Tempe Daun Pisang', 'makanan', 12000, 40, 'Tempe kedelai fermentasi, dibungkus daun pisang dari kebun sekolah.', 'Fermentasi tempe memakai ragi dan daun pisang dari kebun kelas, bukan plastik. Setiap bungkus ditimbang 250 gram. Sisa daun dikomposkan di kebun yang sama, jadi siklusnya tertutup.', 'published'],
-                ['Es Krim Ijo Pandan', 'makanan', 10000, 8, 'Es krim pandan alpukat dalam cup daun pisang yang dijahit lidi.', 'Cup daun pisang dipilih karena bisa dikomposkan dan tahan beku. Rasa pandan dan alpukat berasal dari tanaman kebun kelas. Stok terbatas karena dibuat sehari sebelum acara.', 'published'],
-                ['Keripik Tempe Panggang', 'makanan', 15000, 30, 'Keripik tempe dipanggang, bukan digoreng, dalam toples kaca.', 'Dipanggang dengan oven kelas agar tidak memakai minyak banyak. Toples kaca bisa dikembalikan saat PO berikutnya untuk potongan harga.', 'draft'],
+            'kelas 1' => [
+                ['Kartu Ucapan Daur Ulang', 'alat-tulis', 12000, 30, 'Kartu ucapan buatan tangan dari kertas yang dimanfaatkan kembali.', 'Setiap kartu dihias dengan ilustrasi sederhana buatan siswa. Cocok untuk pesan singkat dan dapat didaur ulang setelah digunakan.', 'published'],
             ],
-            'XI Tata Boga 2' => [
-                ['Pepes Ikan Nila', 'makanan', 22000, 25, 'Pepes ikan nila berbumbu kemangi, dibungkus daun pisang dan dikukus.', 'Ikan nila berasal dari kolam sekolah. Daun pisang menggantikan aluminium foil. Bumbu dibuat dari kebun herbal kelas Tata Boga.', 'published'],
-                ['Sambal Matah Botol Kaca', 'makanan', 18000, 0, 'Sambal matah segar dalam botol kaca bekas, tahan tiga hari di kulkas.', 'Botol kaca dikumpulkan dari kantin dan disterilkan. Karena dibuat segar, jumlahnya selalu terbatas dan cepat habis.', 'published'],
+            'kelas 2' => [
+                ['Pot Mini Kebun Kelas', 'dekorasi', 18000, 20, 'Pot mini hasil hiasan kelas untuk tanaman kecil.', 'Wadah dibersihkan dan dihias oleh siswa. Tanaman dan media tanam tidak termasuk.', 'published'],
             ],
-            'X Desain Grafis' => [
-                ['Tote Bag Kanvas Sablon', 'aksesori', 45000, 20, 'Tote bag kanvas dengan sablon tangan bertema ekosistem sekolah.', 'Kanvas berasal dari spanduk bekas yang dicuci dan dijahit ulang. Desain sablon dibuat siswa dengan tinta berbasis air.', 'published'],
-                ['Buku Catatan Kertas Daur Ulang', 'alat-tulis', 28000, 35, 'Buku catatan 80 halaman dari kertas ujian bekas yang dibubur ulang.', 'Kertas bekas dibubur, dicetak, lalu dijilid tangan. Tiap buku sedikit berbeda karena tekstur kertasnya berbeda.', 'published'],
-                ['Paket Stiker Satwa Sekolah', 'alat-tulis', 15000, 50, 'Sepuluh stiker vinil bergambar satwa yang hidup di kebun sekolah.', 'Ilustrasi dibuat dari pengamatan lapangan oleh siswa.', 'draft'],
+            'kelas 3' => [
+                ['Tempat Pensil Karton', 'alat-tulis', 15000, 25, 'Tempat pensil sederhana dari karton sisa yang masih layak pakai.', 'Dibuat dan dihias oleh siswa. Motif dan warna dapat berbeda pada setiap produk.', 'published'],
             ],
-            'XII Kriya Kreatif' => [
-                ['Pot Tanah Liat Mini', 'dekorasi', 1, 28, 'Pot tanah liat mini dengan bibit lidah buaya.', 'Dibentuk tangan dari tanah liat lokal dan dibakar di tungku sekolah. Setiap pot dijual bersama satu bibit.', 'published'],
-                ['Lilin Minyak Jelantah', 'dekorasi', 35000, 15, 'Lilin dari minyak jelantah kantin yang disaring, dalam gelas kaca bekas.', 'Jelantah dari kantin disaring tiga kali sebelum dicor menjadi lilin. Nyala bersih, tanpa bau gorengan.', 'published'],
-                ['Sabun Batang Kulit Jeruk', 'perawatan', 17000, 40, 'Sabun batang dengan serbuk kulit jeruk dan minyak kelapa.', 'Kulit jeruk dari kantin dikeringkan lalu digiling. Sabun dibuat dengan metode dingin dan diperam selama empat minggu.', 'draft'],
+            'kelas 4' => [
+                ['Gantungan Kunci Kain Perca', 'aksesori', 12000, 30, 'Gantungan kunci kecil dari potongan kain perca.', 'Setiap produk memakai kombinasi sisa kain yang berbeda dan dirangkai secara manual.', 'published'],
+            ],
+            'kelas 5' => [
+                ['Paket Kebun Mini', 'dekorasi', 25000, 20, 'Paket contoh untuk mulai menanam tanaman di rumah.', 'Berisi pot kecil, media tanam, dan panduan sederhana. Jenis bibit mengikuti ketersediaan.', 'published'],
+            ],
+            'kelas 7' => [
+                ['Tas Kain Pakai Ulang', 'aksesori', 35000, 18, 'Tas kain sederhana untuk membawa barang sehari-hari.', 'Dirancang agar dapat digunakan berulang kali. Motif hiasan dibuat oleh siswa.', 'published'],
+            ],
+            'kelas 8' => [
+                ['Dekorasi Meja Guna Ulang', 'dekorasi', 22000, 15, 'Dekorasi meja kecil dari bahan yang masih dapat dimanfaatkan.', 'Dibuat manual dari bahan yang telah dipilah dan dibersihkan. Bentuk produk dapat berbeda.', 'published'],
+            ],
+            'ISTC basic & Intermediate' => [
+                ['Kit Hidroponik Dasar', 'dekorasi', 45000, 12, 'Kit praktik sederhana untuk mengenal cara menanam secara hidroponik.', 'Paket contoh berisi komponen dasar dan panduan perakitan. Periksa petunjuk sebelum digunakan.', 'published'],
+            ],
+            'ISTC Advance & Master' => [
+                ['Lampu Meja Dekoratif', 'dekorasi', 55000, 10, 'Lampu meja dekoratif hasil rancangan dan perakitan peserta.', 'Produk contoh yang dibuat melalui proses desain kelas. Spesifikasi lampu mengikuti unit yang tersedia.', 'published'],
             ],
         ];
 
@@ -168,6 +254,7 @@ class MarketplaceSeeder extends Seeder
                         'price' => $price,
                         'stock' => $stock,
                         'status' => $status,
+                        'review_status' => 'approved',
                     ],
                 );
             }

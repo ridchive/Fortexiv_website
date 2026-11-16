@@ -9,6 +9,7 @@ use App\Models\Product;
 use App\Models\Project;
 use App\Models\Seller;
 use App\Models\User;
+use Database\Seeders\MarketplaceSeeder;
 use Illuminate\Auth\Notifications\VerifyEmail;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Http\Client\Request as ClientRequest;
@@ -21,6 +22,56 @@ use Tests\TestCase;
 class MarketplaceTest extends TestCase
 {
     use RefreshDatabase;
+
+    public function test_catalog_lists_the_replacement_classes_in_the_requested_order(): void
+    {
+        $legacyProject = Project::create([
+            'class_name' => 'X Desain Grafis',
+            'grade' => 10,
+            'title' => 'Proyek lama',
+            'introduction' => 'Proyek lama.',
+            'story' => 'Cerita lama.',
+            'outcome' => 'Hasil lama.',
+        ]);
+        $legacySeller = $this->seller('legacy-class@example.test');
+        $legacySeller->update(['project_id' => $legacyProject->id]);
+        Product::create([
+            'seller_id' => $legacySeller->id,
+            'project_id' => $legacyProject->id,
+            'name' => 'Produk kelas lama',
+            'slug' => 'produk-kelas-lama',
+            'description' => 'Produk dari kelas lama.',
+            'price' => 10000,
+            'stock' => 10,
+            'review_status' => 'approved',
+            'status' => 'published',
+        ]);
+
+        $this->seed(MarketplaceSeeder::class);
+
+        $this->get(route('catalog.index'))
+            ->assertOk()
+            ->assertSeeInOrder([
+                'kelas 1',
+                'kelas 2',
+                'kelas 3',
+                'kelas 4',
+                'kelas 5',
+                'kelas 7',
+                'kelas 8',
+                'ISTC basic &amp; Intermediate',
+                'ISTC Advance &amp; Master',
+            ], false)
+            ->assertDontSee('X Desain Grafis')
+            ->assertDontSee('Produk kelas lama')
+            ->assertSee('Kartu Ucapan Daur Ulang');
+
+        $this->assertDatabaseHas('products', [
+            'slug' => 'produk-kelas-lama',
+            'status' => 'draft',
+        ]);
+        $this->assertDatabaseCount('products', 10);
+    }
 
     public function test_homepage_uses_fortexiv_project_showcase_and_catalog_hides_unpublished_products(): void
     {

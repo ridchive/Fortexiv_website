@@ -80,7 +80,21 @@ class MarketplaceController extends Controller
 
         return view('marketplace.catalog', [
             'products' => $products,
-            'classes' => Project::query()->where('is_published', true)->orderBy('class_name')->get(['id', 'class_name']),
+            'classes' => Project::query()
+                ->where('is_published', true)
+                ->whereIn('class_name', [
+                    'kelas 1',
+                    'kelas 2',
+                    'kelas 3',
+                    'kelas 4',
+                    'kelas 5',
+                    'kelas 7',
+                    'kelas 8',
+                    'ISTC basic & Intermediate',
+                    'ISTC Advance & Master',
+                ])
+                ->orderBy('id')
+                ->get(['id', 'class_name']),
             'categories' => Category::query()->orderBy('name')->get(),
             'window' => $purchaseWindow->details(),
         ]);
