@@ -58,6 +58,29 @@
     <a class="btn" href="{{ route('admin.event.edit') }}">Kelola Jadwal PO</a>
   </div>
 </div>
+
+<div class="panel" style="margin-bottom: 24px; display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; gap: 16px;">
+  <div>
+    <div class="eyebrow">KONTEN EDITORIAL PROYEK KELAS</div>
+    <div style="font-weight: 700; font-size: 1.15rem; margin-top: 4px;">Kelola Cerita & Artikel Proyek Siswa</div>
+    <div class="muted" style="font-size: 13px; margin-top: 4px;">Tulis latar belakang, proses berkarya, dan hubungkan dengan produk kelas yang dapat dipesan pembeli.</div>
+  </div>
+  <div style="display: flex; gap: 10px; flex-wrap: wrap;">
+    <a class="btn sec" href="{{ route('admin.articles.index') }}">Daftar Artikel</a>
+    <a class="btn" href="{{ route('admin.articles.create') }}">+ Buat Artikel Baru</a>
+  </div>
+</div>
+
+<div class="panel" style="margin-bottom: 24px; display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; gap: 16px;">
+  <div>
+    <div class="eyebrow">GREEN ECOSYSTEM IMPACT TRACKER (GEIT)</div>
+    <div style="font-weight: 700; font-size: 1.15rem; margin-top: 4px;">Artikel Dampak Lingkungan & Banner Hero Beranda</div>
+    <div class="muted" style="font-size: 13px; margin-top: 4px;">Atur foto header & background Hero, narasi artikel (.md), baseline CO₂e, dan faktor reduksi per produk.</div>
+  </div>
+  <div style="display: flex; gap: 10px; flex-wrap: wrap;">
+    <a class="btn" href="{{ route('impact.index') }}">Buka Halaman & Editor GEIT ↗</a>
+  </div>
+</div>
 <div class="stats">
   <div class="stat"><strong>{{ $ordersCount }}</strong><span>Total pesanan</span></div>
   <div class="stat"><strong>{{ $pendingPayments }}</strong><span>Pembayaran menunggu verifikasi</span></div>

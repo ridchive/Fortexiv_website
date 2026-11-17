@@ -9,6 +9,7 @@ use App\Http\Controllers\SellerController;
 use Illuminate\Support\Facades\Route;
 
 Route::get('/', [MarketplaceController::class, 'home'])->name('home');
+Route::get('/impact', [MarketplaceController::class, 'impact'])->name('impact.index');
 Route::view('/preview/mobile', 'preview.mobile')->name('preview.mobile');
 Route::view('/preview/laptop', 'preview.laptop')->name('preview.laptop');
 Route::get('/projects', [MarketplaceController::class, 'projects'])->name('projects.index');
@@ -17,6 +18,14 @@ Route::get('/help', [MarketplaceController::class, 'help'])->name('help');
 Route::get('/terms', [MarketplaceController::class, 'terms'])->name('terms');
 Route::get('/products/{product:slug}', [MarketplaceController::class, 'product'])->name('products.show');
 Route::get('/projects/{project}', [MarketplaceController::class, 'project'])->name('projects.show');
+
+// Fallback rute file storage untuk shared hosting jika symlink public/storage tidak tersedia
+Route::get('/storage/{path}', function (string $path) {
+    $disk = \Illuminate\Support\Facades\Storage::disk('public');
+    abort_unless($disk->exists($path), 404);
+
+    return response()->file($disk->path($path));
+})->where('path', '.*')->name('storage.fallback');
 
 Route::middleware('guest')->group(function () {
     Route::get('/login', [AuthController::class, 'loginForm'])->name('login');
@@ -89,12 +98,14 @@ Route::prefix('admin')->name('admin.')->middleware(['auth', 'verified', 'role:ad
     Route::get('/reports/daily', [AdminController::class, 'report'])->name('reports');
     Route::get('/event-settings', [AdminEventController::class, 'edit'])->name('event.edit');
     Route::put('/event-settings', [AdminEventController::class, 'update'])->name('event.update');
+    Route::put('/impact', [AdminContentController::class, 'updateImpact'])->name('impact.update');
     Route::get('/articles', [AdminContentController::class, 'articles'])->name('articles.index');
     Route::get('/articles/create', [AdminContentController::class, 'createArticle'])->name('articles.create');
     Route::post('/articles', [AdminContentController::class, 'storeArticle'])->name('articles.store');
     Route::get('/articles/{project}/edit', [AdminContentController::class, 'editArticle'])->name('articles.edit');
     Route::put('/articles/{project}', [AdminContentController::class, 'updateArticle'])->name('articles.update');
     Route::patch('/articles/{project}/archive', [AdminContentController::class, 'archiveArticle'])->name('articles.archive');
+    Route::patch('/articles/{project}/publish', [AdminContentController::class, 'publishArticle'])->name('articles.publish');
     Route::get('/products', [AdminContentController::class, 'products'])->name('products.index');
     Route::get('/products/{product}/review', [AdminContentController::class, 'reviewProduct'])->name('products.review');
     Route::put('/products/{product}/review', [AdminContentController::class, 'decideProduct'])->name('products.decide');

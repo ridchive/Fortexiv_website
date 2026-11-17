@@ -16,15 +16,37 @@
     <div class="field"><label for="goal">Tujuan proyek</label><textarea class="input" id="goal" name="goal" maxlength="5000">{{ old('goal', $project->goal) }}</textarea></div>
     <div class="field"><label for="process_steps">Proses (satu langkah per baris)</label><textarea class="input" id="process_steps" name="process_steps" rows="6">{{ old('process_steps', is_array($project->process) ? implode("\n", $project->process) : '') }}</textarea></div>
     <div class="field"><label for="outcome">Hasil dan target</label><textarea class="input" id="outcome" name="outcome" maxlength="5000" required>{{ old('outcome', $project->outcome) }}</textarea></div>
-    <div class="field"><label for="image">Gambar sampul (JPG, PNG, WebP maks. 5 MB)</label><input class="input" id="image" name="image" type="file" accept=".jpg,.jpeg,.png,.webp"></div>
-    @if($project->image)<p>Gambar sampul saat ini: <img src="{{ Storage::disk('public')->url($project->image) }}" alt="" style="max-width:180px;border-radius:8px"></p>@endif
-    <fieldset class="panel"><legend>Produk terkait</legend><p class="muted">Pilih produk yang sesuai dengan cerita proyek ini.</p>
-      @foreach($products as $productOption)
-        <label class="chk"><input type="checkbox" name="product_ids[]" value="{{ $productOption->id }}" @checked(in_array($productOption->id, old('product_ids', $project->exists ? $project->products->pluck('id')->all() : [])))><span>{{ $productOption->name }} · {{ $productOption->seller->project?->class_name ?? $productOption->seller->store_name }}</span></label>
-      @endforeach
+    <div class="field">
+      <label for="image">Gambar sampul (JPG, PNG, WebP maks. 5 MB)</label>
+      <input class="input" id="image" name="image" type="file" accept=".jpg,.jpeg,.png,.webp">
+      @if($project->image)
+        <div style="margin-top:10px; display:flex; align-items:center; gap:16px;">
+          <img src="{{ Storage::disk('public')->url($project->image) }}" alt="Sampul saat ini" style="max-width:160px; max-height:100px; object-fit:cover; border-radius:8px; border:1px solid var(--line);">
+          <label class="chk" style="margin:0;"><input type="checkbox" name="remove_image" value="1"><span>Hapus gambar sampul saat ini</span></label>
+        </div>
+      @endif
+    </div>
+    <fieldset class="panel"><legend>Produk terkait</legend><p class="muted">Pilih produk yang terkait dengan cerita proyek ini agar pembeli dapat langsung memesan dari halaman artikel.</p>
+      <div style="display:grid; grid-template-columns:repeat(auto-fill, minmax(280px, 1fr)); gap:10px; margin-top:10px;">
+        @foreach($products as $productOption)
+          <label class="chk" style="padding:8px 12px; background:var(--bg); border:1px solid var(--line); border-radius:6px; display:flex; align-items:flex-start; gap:8px;">
+            <input type="checkbox" name="product_ids[]" value="{{ $productOption->id }}" @checked(in_array($productOption->id, old('product_ids', $project->exists ? $project->products->pluck('id')->all() : [])))>
+            <span>
+              <strong>{{ $productOption->name }}</strong><br>
+              <span class="muted" style="font-size:12px;">{{ $productOption->seller->project?->class_name ?? $productOption->seller->store_name }} &middot; {{ \App\Support\Money::format($productOption->price) }}</span>
+            </span>
+          </label>
+        @endforeach
+      </div>
     </fieldset>
     <label class="chk"><input type="checkbox" name="is_published" value="1" @checked(old('is_published', $project->exists ? $project->is_published : true))><span>Publikasikan artikel untuk umum</span></label>
-    <div class="stack"><button class="btn" type="submit">Simpan artikel</button><a class="btn sec" href="{{ route('admin.articles.index') }}">Kembali</a></div>
+    <div class="stack" style="display:flex; flex-wrap:wrap; gap:10px; align-items:center;">
+      <button class="btn" type="submit">Simpan artikel</button>
+      @if($project->exists)
+        <a class="btn sec" href="{{ route('projects.show', $project) }}" target="_blank" rel="noopener">Lihat Halaman Publik ↗</a>
+      @endif
+      <a class="btn sec" href="{{ route('admin.articles.index') }}">Kembali</a>
+    </div>
   </form>
 </section>
 @endsection

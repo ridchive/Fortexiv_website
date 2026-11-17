@@ -11,7 +11,21 @@
       <td><strong>{{ $project->title }}</strong></td><td>{{ $project->class_name }}</td><td>{{ $project->article_products_count }}</td>
       <td><span class="badge {{ $project->is_published ? 'approved' : 'draft' }}">{{ $project->is_published ? 'Dipublikasikan' : 'Draf/arsip' }}</span></td>
       <td>{{ $project->updated_at->format('d/m/Y H:i') }}</td>
-      <td class="stack"><a class="btn sec sm" href="{{ route('admin.articles.edit', $project) }}">Kelola</a>@if($project->is_published)<form method="post" action="{{ route('admin.articles.archive', $project) }}">@csrf @method('PATCH')<button class="btn sec sm" type="submit">Arsipkan</button></form>@endif</td>
+      <td class="stack" style="display:flex; flex-wrap:wrap; gap:6px; align-items:center;">
+        <a class="btn sec sm" href="{{ route('admin.articles.edit', $project) }}">Kelola</a>
+        @if($project->is_published)
+          <a class="btn sec sm" href="{{ route('projects.show', $project) }}" target="_blank" rel="noopener">Lihat ↗</a>
+          <form method="post" action="{{ route('admin.articles.archive', $project) }}" style="display:inline">
+            @csrf @method('PATCH')
+            <button class="btn sec sm" type="submit" onclick="return confirm('Arsipkan artikel ini dari publik?')">Arsipkan</button>
+          </form>
+        @else
+          <form method="post" action="{{ route('admin.articles.publish', $project) }}" style="display:inline">
+            @csrf @method('PATCH')
+            <button class="btn sm" type="submit" style="background:var(--good); color:#fff; border-color:var(--good);">Publikasikan</button>
+          </form>
+        @endif
+      </td>
     </tr>
   @empty
     <tr><td colspan="6">Belum ada artikel proyek.</td></tr>

@@ -18,6 +18,11 @@ class EventSetting extends Model
         'event_location',
         'pickup_instructions',
         'banner',
+        'impact_title',
+        'impact_intro',
+        'impact_body',
+        'impact_image',
+        'impact_baseline_co2',
         'change_reason',
         'updated_by',
     ];
@@ -32,6 +37,7 @@ class EventSetting extends Model
             'po_end' => 'datetime',
             'payment_deadline' => 'datetime',
             'event_at' => 'datetime',
+            'impact_baseline_co2' => 'decimal:2',
         ];
     }
 

@@ -57,7 +57,12 @@ class AdminContentController extends Controller
         $data['process'] = $this->processSteps($request->input('process_steps'));
         $data['is_published'] = $request->boolean('is_published');
 
-        if ($request->hasFile('image')) {
+        if ($request->boolean('remove_image')) {
+            if ($project->image) {
+                Storage::disk('public')->delete($project->image);
+            }
+            $data['image'] = null;
+        } elseif ($request->hasFile('image')) {
             $newImage = $request->file('image')->store('projects', 'public');
             if ($project->image) {
                 Storage::disk('public')->delete($project->image);
@@ -76,7 +81,14 @@ class AdminContentController extends Controller
     {
         $project->update(['is_published' => false]);
 
-        return back()->with('status', 'Artikel proyek diarsipkan dan tidak lagi tampil untuk publik.');
+        return back()->with('status', 'Artikel proyek "'.$project->title.'" diarsipkan dan tidak lagi tampil untuk publik.');
+    }
+
+    public function publishArticle(Project $project): RedirectResponse
+    {
+        $project->update(['is_published' => true]);
+
+        return back()->with('status', 'Artikel proyek "'.$project->title.'" berhasil dipublikasikan untuk umum.');
     }
 
     public function products(Request $request): View
@@ -132,6 +144,70 @@ class AdminContentController extends Controller
         ];
 
         return redirect()->route('admin.products.index', ['status' => 'pending_review'])->with('status', $messages[$data['decision']]);
+    }
+
+    public function updateImpact(Request $request): RedirectResponse
+    {
+        $request->validate([
+            'impact_title' => ['required', 'string', 'max:255'],
+            'impact_intro' => ['required', 'string', 'max:2000'],
+            'impact_body' => ['nullable', 'string', 'max:50000'],
+            'impact_baseline_co2' => ['required', 'numeric', 'min:0', 'max:99999'],
+            'impact_image' => ['nullable', 'image', 'mimes:jpg,jpeg,png,webp', 'max:5120'],
+            'md_file' => ['nullable', 'file', 'mimes:txt,md,markdown', 'max:2048'],
+            'products' => ['nullable', 'array'],
+            'products.*.co2_reduction' => ['nullable', 'numeric', 'min:0', 'max:999'],
+        ]);
+
+        $eventSetting = \App\Models\EventSetting::latest('id')->first();
+        if (! $eventSetting) {
+            $eventSetting = new \App\Models\EventSetting();
+        }
+
+        $impactBody = $request->input('impact_body');
+        if ($request->hasFile('md_file')) {
+            $impactBody = $request->file('md_file')->get();
+        }
+
+        $data = [
+            'impact_title' => $request->input('impact_title'),
+            'impact_intro' => $request->input('impact_intro'),
+            'impact_body' => $impactBody,
+            'impact_baseline_co2' => $request->input('impact_baseline_co2'),
+            'updated_by' => $request->user()->id,
+        ];
+
+        if ($request->boolean('remove_image')) {
+            if ($eventSetting->impact_image) {
+                Storage::disk('public')->delete($eventSetting->impact_image);
+            }
+            $data['impact_image'] = null;
+        } elseif ($request->hasFile('impact_image')) {
+            $newImage = $request->file('impact_image')->store('impact', 'public');
+            if ($eventSetting->impact_image) {
+                Storage::disk('public')->delete($eventSetting->impact_image);
+            }
+            $data['impact_image'] = $newImage;
+        }
+
+        if ($eventSetting->exists) {
+            $eventSetting->update($data);
+        } else {
+            $eventSetting->fill($data)->save();
+        }
+
+        // Update product emission factors
+        if ($request->has('products') && is_array($request->input('products'))) {
+            foreach ($request->input('products') as $productId => $prodData) {
+                if (isset($prodData['co2_reduction'])) {
+                    Product::where('id', $productId)->update([
+                        'co2_reduction' => (float) $prodData['co2_reduction'],
+                    ]);
+                }
+            }
+        }
+
+        return back()->with('status', 'Artikel GEIT, foto header & background Hero, dan parameter reduksi emisi berhasil diperbarui!');
     }
 
     private function validatedArticle(Request $request): array

@@ -30,14 +30,81 @@ class MarketplaceController extends Controller
 {
     public function home(PurchaseWindow $purchaseWindow): View
     {
+        $projects = Project::query()
+            ->where('is_published', true)
+            ->withCount(['products as published_products_count' => fn (Builder $query) => $query->where('status', 'published')->where('review_status', 'approved')])
+            ->orderBy('id')
+            ->get();
+
+        $totalPublishedProducts = Product::query()
+            ->where('status', 'published')
+            ->where('review_status', 'approved')
+            ->count();
+
+        $eventSettings = \App\Models\EventSetting::current();
+        $co2Base = (float) ($eventSettings?->impact_baseline_co2 ?? 20.0);
+
+        $fromOrders = DB::table('order_items')
+            ->join('orders', 'order_items.order_id', '=', 'orders.id')
+            ->join('products', 'order_items.product_id', '=', 'products.id')
+            ->whereIn('orders.status', ['paid', 'partially_picked_up', 'picked_up'])
+            ->sum(DB::raw('order_items.quantity * COALESCE(products.co2_reduction, 0.5)'));
+
+        $totalCo2 = $co2Base + (float) $fromOrders;
+        $co2Reduced = number_format($totalCo2, 1, ',', '.');
+
+        $impactStats = [
+            'co2_reduced' => $co2Reduced,
+            'classes_count' => $projects->count(),
+            'products_count' => $totalPublishedProducts,
+        ];
+
         return view('marketplace.home', [
-            'projects' => Project::query()
-                ->where('is_published', true)
-                ->withCount(['products as published_products_count' => fn (Builder $query) => $query->where('status', 'published')->where('review_status', 'approved')])
-                ->orderBy('id')
-                ->get(),
+            'projects' => $projects,
             'products' => $this->availableProducts()->where('stock', '>', 0)->limit(8)->get(),
             'window' => $purchaseWindow->details(),
+            'impactStats' => $impactStats,
+            'eventSettings' => $eventSettings,
+        ]);
+    }
+
+    public function impact(): View
+    {
+        $eventSettings = \App\Models\EventSetting::current();
+        if (! $eventSettings) {
+            $eventSettings = new \App\Models\EventSetting([
+                'impact_title' => 'Jejak Dampak Nyata Green Ecosystem: Konsumsi Bijak, Bumi Lestari',
+                'impact_intro' => 'Dokumentasi transparansi pengurangan jejak emisi karbon melalui proyek nyata dari kebun, dapur, dan studio karya sekolah.',
+                'impact_baseline_co2' => 20.00,
+            ]);
+        }
+
+        $co2Base = (float) ($eventSettings->impact_baseline_co2 ?? 20.0);
+
+        $products = Product::query()
+            ->with(['seller', 'project'])
+            ->withSum(['orderItems as sold_units' => function ($query) {
+                $query->whereHas('order', fn ($q) => $q->whereIn('status', ['paid', 'partially_picked_up', 'picked_up']));
+            }], 'quantity')
+            ->orderBy('id')
+            ->get();
+
+        $fromProducts = $products->sum(function ($p) {
+            $sold = (int) ($p->sold_units ?? 0);
+            $factor = (float) ($p->co2_reduction ?? 0.5);
+
+            return $sold * $factor;
+        });
+
+        $totalCo2 = $co2Base + $fromProducts;
+        $co2Reduced = number_format($totalCo2, 1, ',', '.');
+
+        return view('marketplace.impact', [
+            'eventSettings' => $eventSettings,
+            'products' => $products,
+            'totalCo2' => $totalCo2,
+            'co2Reduced' => $co2Reduced,
+            'co2Base' => $co2Base,
         ]);
     }
 
