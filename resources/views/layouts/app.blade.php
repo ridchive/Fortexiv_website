@@ -128,6 +128,11 @@
     .fld, .field { min-width: 0; margin: 0 0 14px; }
     .fld label, .field label { display: block; margin-bottom: 6px; font-size: 13px; font-weight: 700; }
     .input, .fld input, .fld select, .field input, .field select, .field textarea, textarea, select { width: 100%; min-height: 42px; padding: 9px 12px; border: 1px solid var(--line); border-radius: 6px; background: var(--surface); color: var(--ink); }
+    .password-input { position: relative; }
+    .password-input .input { padding-right: 48px; }
+    .password-toggle { position: absolute; top: 50%; right: 4px; display: grid; width: 36px; height: 36px; place-items: center; padding: 0; border: 0; border-radius: 6px; background: transparent; color: var(--muted); cursor: pointer; transform: translateY(-50%); }
+    .password-toggle:hover { background: var(--soft); color: var(--ink); }
+    .password-toggle:focus-visible { outline: 2px solid #A9CB5B; outline-offset: 1px; }
     textarea { min-height: 110px; }
     .input:focus, input:focus, select:focus, textarea:focus { outline: 2px solid #A9CB5B; outline-offset: 1px; }
     .pills, .chip-row { display: flex; flex-wrap: wrap; gap: 8px; }
@@ -666,6 +671,25 @@
     });
 
     updateThemeLabel();
+  })();
+  (() => {
+    document.querySelectorAll('[data-password-toggle]').forEach((toggle) => {
+      toggle.addEventListener('click', () => {
+        const passwordInput = toggle.closest('.password-input')?.querySelector('input');
+
+        if (!(passwordInput instanceof HTMLInputElement)) {
+          return;
+        }
+
+        const isVisible = passwordInput.type === 'password';
+
+        passwordInput.type = isVisible ? 'text' : 'password';
+        toggle.setAttribute('aria-pressed', String(isVisible));
+        toggle.setAttribute('aria-label', isVisible ? 'Sembunyikan kata sandi' : 'Tampilkan kata sandi');
+        toggle.querySelector('.icon-eye').hidden = isVisible;
+        toggle.querySelector('.icon-eye-off').hidden = !isVisible;
+      });
+    });
   })();
 </script>
 </body>
