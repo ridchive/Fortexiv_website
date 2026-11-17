@@ -2,8 +2,6 @@
 
 namespace App\Http\Controllers;
 
-use App\Models\Project;
-use App\Models\Seller;
 use App\Models\User;
 use App\Services\EmailService;
 use Illuminate\Auth\Events\PasswordReset;
@@ -15,7 +13,6 @@ use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Password;
 use Illuminate\Support\Str;
-use Illuminate\Validation\Rule;
 use Illuminate\View\View;
 
 class AuthController extends Controller
@@ -218,7 +215,7 @@ class AuthController extends Controller
 
     public function registerForm(): View
     {
-        return view('auth.register', ['projects' => Project::orderBy('class_name')->get()]);
+        return view('auth.register');
     }
 
     public function register(Request $request, EmailService $emailService): RedirectResponse
@@ -228,9 +225,6 @@ class AuthController extends Controller
             'email' => ['required', 'email', 'max:100', 'unique:users,email'],
             'phone' => ['nullable', 'string', 'max:30'],
             'password' => ['required', 'confirmed', 'min:8'],
-            'role' => ['required', Rule::in(['buyer', 'seller'])],
-            'store_name' => ['required_if:role,seller', 'nullable', 'string', 'max:100'],
-            'project_id' => ['nullable', 'integer', 'exists:projects,id'],
         ]);
 
         $user = User::create([
@@ -238,17 +232,9 @@ class AuthController extends Controller
             'email' => $data['email'],
             'phone' => $data['phone'] ?? null,
             'password' => $data['password'],
-            'role' => $data['role'],
+            'role' => 'buyer',
             'is_active' => true,
         ]);
-
-        if ($user->role === 'seller') {
-            Seller::create([
-                'user_id' => $user->id,
-                'project_id' => $data['project_id'] ?? null,
-                'store_name' => $data['store_name'],
-            ]);
-        }
 
         Auth::login($user);
         $request->session()->regenerate();

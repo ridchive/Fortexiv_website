@@ -190,7 +190,7 @@ class MarketplaceTest extends TestCase
             ->assertSee('Produk dari proyek ini');
     }
 
-    public function test_seller_registration_creates_a_seller_profile_without_exposing_admin_role(): void
+    public function test_public_registration_always_creates_buyer_accounts(): void
     {
         Notification::fake();
 
@@ -203,12 +203,12 @@ class MarketplaceTest extends TestCase
             'password_confirmation' => 'secure-password',
         ])->assertRedirect(route('verification.notice'));
 
-        $seller = User::where('email', 'seller@example.test')->firstOrFail();
-        $this->assertSame('seller', $seller->role);
-        $this->assertSame('Class 3 Makers', $seller->seller->store_name);
-        $this->assertTrue(password_verify('secure-password', $seller->password));
-        $this->assertNull($seller->email_verified_at);
-        Notification::assertSentTo($seller, VerifyEmail::class);
+        $buyer = User::where('email', 'seller@example.test')->firstOrFail();
+        $this->assertSame('buyer', $buyer->role);
+        $this->assertTrue(password_verify('secure-password', $buyer->password));
+        $this->assertNull($buyer->email_verified_at);
+        $this->assertDatabaseMissing('sellers', ['user_id' => $buyer->id]);
+        Notification::assertSentTo($buyer, VerifyEmail::class);
 
         $this->post(route('logout'));
         $this->post(route('register.store'), [
@@ -217,7 +217,11 @@ class MarketplaceTest extends TestCase
             'role' => 'admin',
             'password' => 'secure-password',
             'password_confirmation' => 'secure-password',
-        ])->assertSessionHasErrors('role');
+        ])->assertRedirect(route('verification.notice'));
+
+        $secondBuyer = User::where('email', 'admin@example.test')->firstOrFail();
+        $this->assertSame('buyer', $secondBuyer->role);
+        $this->assertDatabaseMissing('sellers', ['user_id' => $secondBuyer->id]);
     }
 
     public function test_buyers_can_sign_in_and_log_out_with_session_regeneration(): void
@@ -688,7 +692,12 @@ class MarketplaceTest extends TestCase
     {
         $buyer = User::factory()->create();
         $this->get(route('login'))->assertOk()->assertSee('Masuk');
-        $this->get(route('register'))->assertOk()->assertSee('Buat akun');
+        $this->get(route('register'))
+            ->assertOk()
+            ->assertSee('Buat akun')
+            ->assertDontSee('Saya ingin')
+            ->assertDontSee('Menjual sebagai proyek siswa')
+            ->assertDontSee('Nama toko atau kelas');
         $this->get(route('help'))->assertOk()->assertSee('pertanyaan umum')->assertSee('Cara memesan')->assertSee('Pengambilan barang');
         $this->get(route('terms'))->assertOk()->assertSee('Terms of Service');
         $this->actingAs($buyer)->get(route('account'))->assertOk()->assertSee('Account information');
