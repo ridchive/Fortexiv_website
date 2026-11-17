@@ -133,6 +133,14 @@
     .password-toggle { position: absolute; top: 50%; right: 4px; display: grid; width: 36px; height: 36px; place-items: center; padding: 0; border: 0; border-radius: 6px; background: transparent; color: var(--muted); cursor: pointer; transform: translateY(-50%); }
     .password-toggle:hover { background: var(--soft); color: var(--ink); }
     .password-toggle:focus-visible { outline: 2px solid #A9CB5B; outline-offset: 1px; }
+    .password-toggle .eye-open, .password-toggle .eye-closed { transform-box: fill-box; transform-origin: center; transition: opacity .18s ease, transform .18s ease; }
+    .password-toggle .eye-open { opacity: 0; transform: scaleY(.15); }
+    .password-toggle .eye-closed { opacity: 1; transform: scaleY(1); }
+    .password-toggle[aria-pressed="true"] .eye-open { opacity: 1; transform: scaleY(1); }
+    .password-toggle[aria-pressed="true"] .eye-closed { opacity: 0; transform: scaleY(.15); }
+    @media (prefers-reduced-motion: reduce) {
+      .password-toggle .eye-open, .password-toggle .eye-closed { transition: none; }
+    }
     textarea { min-height: 110px; }
     .input:focus, input:focus, select:focus, textarea:focus { outline: 2px solid #A9CB5B; outline-offset: 1px; }
     .pills, .chip-row { display: flex; flex-wrap: wrap; gap: 8px; }
@@ -686,8 +694,6 @@
         passwordInput.type = isVisible ? 'text' : 'password';
         toggle.setAttribute('aria-pressed', String(isVisible));
         toggle.setAttribute('aria-label', isVisible ? 'Sembunyikan kata sandi' : 'Tampilkan kata sandi');
-        toggle.querySelector('.icon-eye').hidden = isVisible;
-        toggle.querySelector('.icon-eye-off').hidden = !isVisible;
       });
     });
   })();
