@@ -55,7 +55,6 @@
     p { margin: .7rem 0; }
     a { color: inherit; }
     button, input, select, textarea { font: inherit; }
-    .prototype-note { padding: 5px 16px; background: #E9EDE5; color: #3E4A3E; font-size: 12px; text-align: center; }
     .nav { position: sticky; top: 0; z-index: 10; background: #101810; color: #F7FAF4; }
     .nav-inner { max-width: 1240px; margin: 0 auto; padding: 14px 24px; display: grid; grid-template-columns: 1fr auto; gap: 12px 24px; align-items: center; }
     .logo { display: inline-flex; align-items: center; gap: 8px; color: #FFF; font: 800 24px/1 var(--fd); text-decoration: none; letter-spacing: -.04em; }
@@ -301,7 +300,6 @@
       --info-bg: #17303F;
     }
     body { font-size: 15px; }
-    .prototype-note { background: var(--ink); color: var(--bg); font-size: 12px; }
     .app { width: 100%; padding: 0 0 56px; }
     .app.admin-app { width: min(100%, 1240px); margin-inline: auto; padding: 24px max(16px, env(safe-area-inset-right, 0px)) 56px max(16px, env(safe-area-inset-left, 0px)); }
     .wrap { width: 100%; max-width: 1180px; padding-right: max(16px, env(safe-area-inset-right, 0px)); padding-left: max(16px, env(safe-area-inset-left, 0px)); }
@@ -548,7 +546,6 @@
   </style>
 </head>
 <body>
-<div class="prototype-note">Prototype operasional FORTEXIV. Pembayaran dan QR pickup masih simulasi.</div>
 <header @class(['site-header wrap', 'admin-header' => request()->routeIs('admin.*')])>
   <div class="hd">
     <a class="brand" href="{{ route('home') }}"><i class="brand-mark"></i>FORTEXIV</a>
