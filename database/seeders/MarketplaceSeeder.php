@@ -184,9 +184,10 @@ class MarketplaceSeeder extends Seeder
         ];
 
         $projectModels = collect($projects)->mapWithKeys(function (array $project): array {
+            $articleBody = (new Project($project))->contentAsMarkdown();
             $model = Project::updateOrCreate(
                 ['class_name' => $project['class_name']],
-                [...$project, 'is_published' => true],
+                [...$project, 'article_body' => $articleBody, 'is_published' => true],
             );
 
             return [$project['class_name'] => $model];

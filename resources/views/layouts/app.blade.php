@@ -178,9 +178,22 @@
     .empty { padding: 32px 20px; border: 1px dashed #B7C5AE; border-radius: var(--radius); background: var(--surface); color: var(--muted); text-align: center; }
     .empty h3 { margin-bottom: 8px; color: var(--ink); }
     .auth-card, .form-card { width: min(100%, 560px); margin: 24px auto; padding: 26px; border: 1px solid var(--line); border-radius: var(--radius); background: var(--surface); }
+    .article-form-card { width: min(100%, 900px); }
     .auth-card { width: min(100%, 440px); }
     .errors { color: var(--bad); font-size: 13px; }
     .sr-only { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip: rect(0, 0, 0, 0); white-space: nowrap; border: 0; }
+    .upload-box { display: flex; flex-direction: column; gap: 10px; padding: 14px 16px; border: 1.5px dashed var(--line); border-radius: 10px; background: var(--soft); }
+    .md-upload-box { margin-bottom: 14px; border-color: color-mix(in srgb, var(--good) 35%, transparent); }
+    .upload-box-head { display: flex; align-items: flex-start; gap: 10px; }
+    .upload-icon { font-size: 1.4rem; line-height: 1; }
+    .upload-box-head strong { display: block; color: var(--ink); font-size: .92rem; }
+    .upload-box-head p { margin: 2px 0 0; color: var(--muted); font-size: .8rem; line-height: 1.4; }
+    .upload-box-actions { display: flex; flex-wrap: wrap; align-items: center; gap: 10px; }
+    .upload-box input:focus-visible + .btn { outline: 2px solid #A9CB5B; outline-offset: 2px; }
+    .upload-filename-text { color: var(--muted); font-size: .8rem; font-weight: 600; }
+    .markdown-field-head { display: flex; flex-wrap: wrap; align-items: baseline; justify-content: space-between; gap: 4px 12px; margin-bottom: 6px; }
+    .markdown-field-head label { margin: 0; font-size: 13px; font-weight: 700; }
+    .markdown-editor { min-height: 340px; font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; font-size: .9rem; line-height: 1.65; }
     .flash { padding: 12px 15px; }
     .table-wrap { margin: 14px 0 22px; overflow: auto; border: 1px solid var(--line); border-radius: var(--radius); background: var(--surface); }
     table { width: 100%; border-collapse: collapse; min-width: 620px; }
@@ -236,8 +249,15 @@
     .group-status strong { font-size: 11px; }
     .group-status span { color: var(--muted); font-size: 11px; }
     .project-story { max-width: 760px; }
-    .project-story ol { padding-left: 24px; }
-    .project-story li { margin: 9px 0; padding-left: 4px; }
+    .article-prose { font-size: 1rem; line-height: 1.75; }
+    .article-prose > :first-child { margin-top: 0; }
+    .article-prose h2 { margin: 1.8rem 0 .75rem; padding-bottom: .4rem; border-bottom: 1px solid var(--line); font-size: 1.45rem; }
+    .article-prose h3 { margin: 1.5rem 0 .6rem; font-size: 1.2rem; }
+    .article-prose p { margin: 0 0 1.15rem; }
+    .article-prose ul, .article-prose ol { margin: 0 0 1.2rem; padding-left: 1.5rem; }
+    .article-prose li { margin: 0 0 .4rem; }
+    .article-prose blockquote { margin: 1.4rem 0; padding: 10px 16px; border-left: 3.5px solid var(--good); border-radius: 0 8px 8px 0; background: rgba(44, 110, 49, .05); }
+    .article-prose strong { font-weight: 700; }
     .help-steps { margin-top: 18px; counter-reset: help-step; }
     .help-steps li { padding-top: 12px; border-top: 2px solid var(--ink); list-style: none; counter-increment: help-step; }
     .help-steps li::before { display: block; margin-bottom: 8px; color: var(--good); content: counter(help-step); font: 800 1.6rem var(--fd); }

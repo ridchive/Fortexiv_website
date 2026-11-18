@@ -29,18 +29,9 @@
 
   <div class="two">
     <article class="panel project-story">
-      <h2>Latar belakang</h2>
-      <p>{{ $project->story }}</p>
-      @if($project->goal)
-        <h2>Tujuan</h2>
-        <p>{{ $project->goal }}</p>
-      @endif
-      @if($project->process)
-        <h2>Proses</h2>
-        <ol>@foreach($project->process as $step)<li>{{ $step }}</li>@endforeach</ol>
-      @endif
-      <h2>Hasil dan target</h2>
-      <p>{{ $project->outcome }}</p>
+      <div class="article-prose">
+        {!! Str::markdown($project->contentAsMarkdown(), ['html_input' => 'strip', 'allow_unsafe_links' => false]) !!}
+      </div>
     </article>
     <aside>
       @include('marketplace.partials.po-notice', ['window' => $window])

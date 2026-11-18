@@ -3,7 +3,7 @@
 @section('title', ($project->exists ? 'Kelola' : 'Buat').' artikel proyek — Admin FORTEXIV')
 
 @section('content')
-<section class="form-card">
+<section class="form-card article-form-card">
   <div class="eyebrow">EDITOR ADMIN</div><h1>{{ $project->exists ? 'Kelola artikel proyek' : 'Buat artikel proyek' }}</h1>
   <p class="muted">Konten artikel, cerita, publikasi, dan relasi produk hanya dapat diubah oleh Admin.</p>
   <form method="post" enctype="multipart/form-data" action="{{ $project->exists ? route('admin.articles.update', $project) : route('admin.articles.store') }}">
@@ -12,10 +12,29 @@
     <div class="field"><label for="grade">Tingkat kelas</label><input class="input" id="grade" name="grade" type="number" min="1" max="12" value="{{ old('grade', $project->grade) }}" required></div>
     <div class="field"><label for="title">Judul artikel</label><input class="input" id="title" name="title" value="{{ old('title', $project->title) }}" maxlength="160" required></div>
     <div class="field"><label for="introduction">Ringkasan</label><textarea class="input" id="introduction" name="introduction" maxlength="2000" required>{{ old('introduction', $project->introduction) }}</textarea></div>
-    <div class="field"><label for="story">Cerita / latar belakang</label><textarea class="input" id="story" name="story" rows="7" maxlength="10000" required>{{ old('story', $project->story) }}</textarea></div>
-    <div class="field"><label for="goal">Tujuan proyek</label><textarea class="input" id="goal" name="goal" maxlength="5000">{{ old('goal', $project->goal) }}</textarea></div>
-    <div class="field"><label for="process_steps">Proses (satu langkah per baris)</label><textarea class="input" id="process_steps" name="process_steps" rows="6">{{ old('process_steps', is_array($project->process) ? implode("\n", $project->process) : '') }}</textarea></div>
-    <div class="field"><label for="outcome">Hasil dan target</label><textarea class="input" id="outcome" name="outcome" maxlength="5000" required>{{ old('outcome', $project->outcome) }}</textarea></div>
+    <div class="upload-box md-upload-box">
+      <div class="upload-box-head">
+        <span class="upload-icon" aria-hidden="true">📄</span>
+        <div>
+          <strong>Opsi Unggah File Markdown (.md)</strong>
+          <p>Pilih file .md dari komputer Anda untuk langsung mengisi area teks artikel di bawah.</p>
+        </div>
+      </div>
+      <div class="upload-box-actions">
+        <input class="sr-only" id="article-md-file-input" name="md_file" type="file" accept=".md,.markdown,.txt" data-article-markdown-file>
+        <label class="btn sec" for="article-md-file-input">📂 Pilih File .md</label>
+        <span class="upload-filename-text" role="status" aria-live="polite" data-article-markdown-status></span>
+      </div>
+    </div>
+    <div class="field">
+      <div class="markdown-field-head">
+        <label for="article_body">Isi Artikel (Mendukung Markdown)</label>
+        <span class="muted small">Gunakan ## judul, - poin, atau &gt; kutipan.</span>
+      </div>
+      <textarea class="input markdown-editor" id="article_body" name="article_body" rows="16" maxlength="50000" data-article-body>{{ old('article_body', $project->contentAsMarkdown()) }}</textarea>
+      @error('article_body')<p class="errors">{{ $message }}</p>@enderror
+      @error('md_file')<p class="errors">{{ $message }}</p>@enderror
+    </div>
     <div class="field">
       <label for="image">Gambar sampul (JPG, PNG, WebP maks. 5 MB)</label>
       <div class="project-image-preview">
@@ -58,6 +77,39 @@
 @push('scripts')
 <script>
   (() => {
+    const markdownFileInput = document.querySelector('[data-article-markdown-file]');
+    const articleBody = document.querySelector('[data-article-body]');
+    const markdownFileStatus = document.querySelector('[data-article-markdown-status]');
+    if (markdownFileInput && articleBody && markdownFileStatus) {
+      markdownFileInput.addEventListener('change', () => {
+        const selectedFile = markdownFileInput.files?.[0];
+        if (!selectedFile) {
+          return;
+        }
+
+        if (selectedFile.size > 2 * 1024 * 1024) {
+          markdownFileStatus.textContent = 'Ukuran file maksimal 2 MB.';
+          markdownFileInput.value = '';
+          return;
+        }
+
+        const reader = new FileReader();
+        reader.addEventListener('load', () => {
+          if (typeof reader.result !== 'string') {
+            markdownFileStatus.textContent = 'Isi file tidak dapat dibaca.';
+            return;
+          }
+
+          articleBody.value = reader.result;
+          markdownFileStatus.textContent = `${selectedFile.name} berhasil dimuat.`;
+        });
+        reader.addEventListener('error', () => {
+          markdownFileStatus.textContent = 'File tidak dapat dibaca.';
+        });
+        reader.readAsText(selectedFile);
+      });
+    }
+
     const imageInput = document.querySelector('[data-project-image-input]');
     const imagePreview = document.querySelector('[data-project-image-preview]');
     const generatedPreview = document.querySelector('[data-project-generated-preview]');

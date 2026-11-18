@@ -108,6 +108,7 @@ class MarketplaceTest extends TestCase
             'introduction' => 'Kelas mengolah tempe dengan daun pisang dari kebun sendiri.',
             'story' => 'Cerita kebun kelas.',
             'outcome' => 'Kebun kelas menghasilkan bahan pangan.',
+            'article_body' => "## Latar belakang\n\n<script>alert('unsafe')</script>",
             'is_published' => true,
         ]);
 
@@ -118,7 +119,8 @@ class MarketplaceTest extends TestCase
 
         $this->get(route('projects.show', $project))
             ->assertOk()
-            ->assertSee('images.unsplash.com');
+            ->assertSee('images.unsplash.com')
+            ->assertDontSee("<script>alert('unsafe')</script>", false);
 
         $admin = User::factory()->create(['role' => 'admin']);
         $this->actingAs($admin)
@@ -126,7 +128,174 @@ class MarketplaceTest extends TestCase
             ->assertOk()
             ->assertSee('project-image-preview', false)
             ->assertSee('data-project-image-input', false)
+            ->assertSee('Opsi Unggah File Markdown (.md)')
+            ->assertSee('Pilih File .md')
+            ->assertSee('for="article-md-file-input"', false)
             ->assertSee('images.unsplash.com');
+    }
+
+    public function test_admin_article_editor_combines_legacy_sections_into_markdown(): void
+    {
+        $project = Project::create([
+            'class_name' => 'XI Agribisnis 1',
+            'grade' => 11,
+            'title' => 'Kebun Tempe Tanpa Plastik',
+            'introduction' => 'Ringkasan proyek.',
+            'story' => 'Latar belakang lama.',
+            'goal' => 'Tujuan lama.',
+            'process' => ['Langkah pertama.', 'Langkah kedua.'],
+            'outcome' => 'Hasil lama.',
+        ]);
+        $admin = User::factory()->create(['role' => 'admin']);
+
+        $this->actingAs($admin)
+            ->get(route('admin.articles.edit', $project))
+            ->assertOk()
+            ->assertSee('name="article_body"', false)
+            ->assertSeeInOrder([
+                '## Cerita / latar belakang',
+                'Latar belakang lama.',
+                '## Tujuan proyek',
+                'Tujuan lama.',
+                '## Proses',
+                '- Langkah pertama.',
+                '- Langkah kedua.',
+                '## Hasil dan target',
+                'Hasil lama.',
+            ], false)
+            ->assertDontSee('name="story"', false)
+            ->assertDontSee('name="goal"', false)
+            ->assertDontSee('name="process_steps"', false)
+            ->assertDontSee('name="outcome"', false);
+    }
+
+    public function test_admin_can_update_project_article_markdown(): void
+    {
+        $project = Project::create([
+            'class_name' => 'XI Agribisnis 1',
+            'grade' => 11,
+            'title' => 'Artikel Lama',
+            'introduction' => 'Ringkasan lama.',
+            'story' => 'Cerita lama.',
+            'outcome' => 'Hasil lama.',
+            'is_published' => false,
+        ]);
+        $admin = User::factory()->create(['role' => 'admin']);
+        $markdown = "## Artikel diperbarui\n\nKonten **baru**.";
+
+        $this->actingAs($admin)
+            ->put(route('admin.articles.update', $project), [
+                'class_name' => 'XI Agribisnis 1',
+                'grade' => 11,
+                'title' => 'Artikel Lama',
+                'introduction' => 'Ringkasan lama.',
+                'article_body' => $markdown,
+                'is_published' => '0',
+            ])
+            ->assertRedirect(route('admin.articles.index'));
+
+        $this->assertDatabaseHas('projects', [
+            'id' => $project->id,
+            'article_body' => $markdown,
+        ]);
+    }
+
+    public function test_admin_can_create_and_render_a_project_article_from_markdown_file(): void
+    {
+        $seller = $this->seller('markdown-article@example.test');
+        $product = Product::create([
+            'seller_id' => $seller->id,
+            'name' => 'Pot Kebun Mini',
+            'slug' => 'pot-kebun-mini-markdown',
+            'description' => 'Pot mini untuk tanaman.',
+            'price' => 12000,
+            'stock' => 5,
+        ]);
+        $admin = User::factory()->create(['role' => 'admin']);
+        $markdown = "## Latar belakang\n\nArtikel **Markdown**.";
+
+        $this->actingAs($admin)
+            ->post(route('admin.articles.store'), [
+                'class_name' => 'XI Agribisnis 1',
+                'grade' => 11,
+                'title' => 'Artikel Kebun Markdown',
+                'introduction' => 'Ringkasan artikel.',
+                'article_body' => '',
+                'md_file' => UploadedFile::fake()->createWithContent('artikel.md', $markdown),
+                'product_ids' => [$product->id],
+                'is_published' => '1',
+            ])
+            ->assertRedirect(route('admin.articles.index'));
+
+        $project = Project::query()->where('title', 'Artikel Kebun Markdown')->firstOrFail();
+        $this->assertDatabaseHas('projects', [
+            'id' => $project->id,
+            'article_body' => $markdown,
+        ]);
+        $this->assertDatabaseHas('products', [
+            'id' => $product->id,
+            'project_id' => $project->id,
+        ]);
+
+        $this->get(route('projects.show', $project))
+            ->assertOk()
+            ->assertSee('<h2>Latar belakang</h2>', false)
+            ->assertSee('<strong>Markdown</strong>', false);
+    }
+
+    public function test_admin_article_creation_rejects_non_markdown_uploads(): void
+    {
+        $admin = User::factory()->create(['role' => 'admin']);
+
+        $this->actingAs($admin)
+            ->post(route('admin.articles.store'), [
+                'class_name' => 'XI Agribisnis 1',
+                'grade' => 11,
+                'title' => 'Artikel dengan file invalid',
+                'introduction' => 'Ringkasan artikel.',
+                'article_body' => '',
+                'md_file' => UploadedFile::fake()->createWithContent('artikel.pdf', "%PDF-1.4\nbukan markdown\n%%EOF"),
+                'is_published' => '0',
+            ])
+            ->assertSessionHasErrors('md_file');
+
+        $this->assertDatabaseMissing('projects', ['title' => 'Artikel dengan file invalid']);
+    }
+
+    public function test_admin_article_creation_requires_markdown_content(): void
+    {
+        $admin = User::factory()->create(['role' => 'admin']);
+
+        $this->actingAs($admin)
+            ->post(route('admin.articles.store'), [
+                'class_name' => 'XI Agribisnis 1',
+                'grade' => 11,
+                'title' => 'Artikel tanpa isi',
+                'introduction' => 'Ringkasan artikel.',
+                'is_published' => '0',
+            ])
+            ->assertSessionHasErrors('article_body');
+
+        $this->assertDatabaseMissing('projects', ['title' => 'Artikel tanpa isi']);
+    }
+
+    public function test_admin_article_creation_rejects_markdown_files_over_the_content_limit(): void
+    {
+        $admin = User::factory()->create(['role' => 'admin']);
+
+        $this->actingAs($admin)
+            ->post(route('admin.articles.store'), [
+                'class_name' => 'XI Agribisnis 1',
+                'grade' => 11,
+                'title' => 'Artikel terlalu panjang',
+                'introduction' => 'Ringkasan artikel.',
+                'article_body' => '',
+                'md_file' => UploadedFile::fake()->createWithContent('artikel.md', str_repeat('a', 50001)),
+                'is_published' => '0',
+            ])
+            ->assertSessionHasErrors('article_body');
+
+        $this->assertDatabaseMissing('projects', ['title' => 'Artikel terlalu panjang']);
     }
 
     public function test_homepage_uses_fortexiv_project_showcase_and_catalog_hides_unpublished_products(): void

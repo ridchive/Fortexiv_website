@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\EventSetting;
 use App\Models\Product;
 use App\Models\Project;
 use Illuminate\Http\RedirectResponse;
@@ -30,8 +31,7 @@ class AdminContentController extends Controller
     {
         $data = $this->validatedArticle($request);
         $productIds = $data['product_ids'] ?? [];
-        unset($data['product_ids'], $data['process_steps']);
-        $data['process'] = $this->processSteps($request->input('process_steps'));
+        unset($data['product_ids']);
         $data['image'] = $request->file('image')?->store('projects', 'public');
         $data['is_published'] = $request->boolean('is_published');
 
@@ -53,8 +53,7 @@ class AdminContentController extends Controller
     {
         $data = $this->validatedArticle($request);
         $productIds = $data['product_ids'] ?? [];
-        unset($data['product_ids'], $data['process_steps']);
-        $data['process'] = $this->processSteps($request->input('process_steps'));
+        unset($data['product_ids']);
         $data['is_published'] = $request->boolean('is_published');
 
         if ($request->boolean('remove_image')) {
@@ -159,9 +158,9 @@ class AdminContentController extends Controller
             'products.*.co2_reduction' => ['nullable', 'numeric', 'min:0', 'max:999'],
         ]);
 
-        $eventSetting = \App\Models\EventSetting::latest('id')->first();
+        $eventSetting = EventSetting::latest('id')->first();
         if (! $eventSetting) {
-            $eventSetting = new \App\Models\EventSetting();
+            $eventSetting = new EventSetting;
         }
 
         $impactBody = $request->input('impact_body');
@@ -212,27 +211,24 @@ class AdminContentController extends Controller
 
     private function validatedArticle(Request $request): array
     {
-        return $request->validate([
+        if ($request->hasFile('md_file')) {
+            $request->merge(['article_body' => $request->file('md_file')->get()]);
+        }
+
+        $data = $request->validate([
             'class_name' => ['required', 'string', 'max:100'],
             'grade' => ['required', 'integer', 'min:1', 'max:12'],
             'title' => ['required', 'string', 'max:160'],
             'introduction' => ['required', 'string', 'max:2000'],
-            'story' => ['required', 'string', 'max:10000'],
-            'goal' => ['nullable', 'string', 'max:5000'],
-            'process_steps' => ['nullable', 'string', 'max:10000'],
-            'outcome' => ['required', 'string', 'max:5000'],
+            'article_body' => ['required', 'string', 'max:50000'],
+            'md_file' => ['nullable', 'file', 'mimes:txt,md,markdown', 'max:2048'],
             'image' => ['nullable', 'image', 'mimes:jpg,jpeg,png,webp', 'max:5120'],
             'product_ids' => [$request->boolean('is_published') ? 'required' : 'nullable', 'array', 'min:1'],
             'product_ids.*' => ['integer', 'distinct', 'exists:products,id'],
         ]);
-    }
 
-    private function processSteps(?string $steps): array
-    {
-        return collect(preg_split('/\r\n|\r|\n/', $steps ?? ''))
-            ->map(fn (string $step): string => trim($step))
-            ->filter()
-            ->values()
-            ->all();
+        unset($data['md_file']);
+
+        return $data;
     }
 }
