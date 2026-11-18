@@ -100,7 +100,7 @@
     </div>
     <label class="chk" for="accepted_terms">
       <input id="accepted_terms" name="accepted_terms" type="checkbox" value="1" @checked(old('accepted_terms')) required>
-      <span>Saya telah membaca dan menyetujui <a href="{{ route('terms') }}" target="_blank" rel="noopener">Terms of Service</a> (versi {{ $termsVersion }}).</span>
+      <span>Saya telah membaca dan menyetujui <a href="{{ route('terms') }}" target="_blank" rel="noopener">Terms of Service</a>.</span>
     </label>
     @if($checkoutAvailable)
       <button class="btn" type="submit">Buat pesanan · {{ \App\Support\Money::format($total) }}</button>
