@@ -18,12 +18,16 @@
     <div class="field"><label for="outcome">Hasil dan target</label><textarea class="input" id="outcome" name="outcome" maxlength="5000" required>{{ old('outcome', $project->outcome) }}</textarea></div>
     <div class="field">
       <label for="image">Gambar sampul (JPG, PNG, WebP maks. 5 MB)</label>
-      <input class="input" id="image" name="image" type="file" accept=".jpg,.jpeg,.png,.webp">
-      @if($project->image)
-        <div style="margin-top:10px; display:flex; align-items:center; gap:16px;">
-          <img src="{{ Storage::disk('public')->url($project->image) }}" alt="Sampul saat ini" style="max-width:160px; max-height:100px; object-fit:cover; border-radius:8px; border:1px solid var(--line);">
-          <label class="chk" style="margin:0;"><input type="checkbox" name="remove_image" value="1"><span>Hapus gambar sampul saat ini</span></label>
+      <div class="project-image-preview">
+        <img data-project-image-preview @if($project->image) src="{{ Storage::disk('public')->url($project->image) }}" alt="Sampul {{ $project->title }}" @else alt="" hidden @endif>
+        <div data-project-generated-preview @if($project->image) hidden @endif>
+          @include('marketplace.partials.project-photo', ['project' => $project, 'alt' => 'Foto referensi proyek'])
         </div>
+      </div>
+      <p class="muted small">Foto referensi sementara dipilih dari tema proyek. Upload sampul sendiri untuk menggantinya.</p>
+      <input class="input" id="image" name="image" type="file" accept=".jpg,.jpeg,.png,.webp" data-project-image-input>
+      @if($project->image)
+        <label class="chk" style="margin:0;"><input type="checkbox" name="remove_image" value="1"><span>Hapus gambar sampul saat ini</span></label>
       @endif
     </div>
     <fieldset class="panel"><legend>Produk terkait</legend><p class="muted">Pilih produk yang terkait dengan cerita proyek ini agar pembeli dapat langsung memesan dari halaman artikel.</p>
@@ -50,3 +54,44 @@
   </form>
 </section>
 @endsection
+
+@push('scripts')
+<script>
+  (() => {
+    const imageInput = document.querySelector('[data-project-image-input]');
+    const imagePreview = document.querySelector('[data-project-image-preview]');
+    const generatedPreview = document.querySelector('[data-project-generated-preview]');
+
+    if (!imageInput || !imagePreview || !generatedPreview) {
+      return;
+    }
+
+    const savedImageUrl = imagePreview.getAttribute('src');
+    let activePreviewUrl;
+
+    imageInput.addEventListener('change', () => {
+      if (activePreviewUrl) {
+        URL.revokeObjectURL(activePreviewUrl);
+        activePreviewUrl = undefined;
+      }
+
+      const selectedFile = imageInput.files?.[0];
+      if (selectedFile?.type.startsWith('image/')) {
+        activePreviewUrl = URL.createObjectURL(selectedFile);
+        imagePreview.src = activePreviewUrl;
+        imagePreview.alt = 'Pratinjau sampul proyek';
+        imagePreview.hidden = false;
+        generatedPreview.hidden = true;
+
+        return;
+      }
+
+      imagePreview.hidden = !savedImageUrl;
+      generatedPreview.hidden = Boolean(savedImageUrl);
+      if (savedImageUrl) {
+        imagePreview.src = savedImageUrl;
+      }
+    });
+  })();
+</script>
+@endpush

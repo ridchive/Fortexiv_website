@@ -20,7 +20,7 @@
   <div class="grid3 project-list-grid">
     @forelse($projects as $project)
       <a class="story" href="{{ route('projects.show', $project) }}">
-        <div class="im">@include('marketplace.partials.project-art', ['project' => $project])</div>
+        <div class="im">@include('marketplace.partials.project-photo', ['project' => $project])</div>
         <span class="chip">{{ $project->class_name }}</span>
         <h3>{{ $project->title }}</h3>
         <p>{{ $project->introduction }}</p>

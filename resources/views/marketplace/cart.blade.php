@@ -37,11 +37,13 @@
         @foreach($groupItems as $item)
           @php($product = $item->product)
           <article class="cart-i">
-            @if($product->image)
-              <img src="{{ Storage::disk('public')->url($product->image) }}" alt="{{ $product->name }}">
-            @else
-              <div class="product-image" style="min-height:74px;padding:8px">{{ $product->category?->name ?? 'Produk' }}</div>
-            @endif
+            <div class="cart-image">
+              @if($product->image)
+                <img src="{{ Storage::disk('public')->url($product->image) }}" alt="{{ $product->name }}">
+              @else
+                @include('marketplace.partials.product-photo', ['category' => $product->category?->name, 'alt' => 'Foto referensi '.$product->name])
+              @endif
+            </div>
             <div>
               <h3><a href="{{ route('products.show', $product) }}">{{ $product->name }}</a></h3>
               <div class="muted">{{ $product->category?->name ?? 'Produk kelas' }} · {{ \App\Support\Money::format($product->price) }} / buah</div>

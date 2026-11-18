@@ -10,7 +10,7 @@
       @if($project->image)
         <img src="{{ Storage::disk('public')->url($project->image) }}" alt="{{ $project->title }}">
       @else
-        @include('marketplace.partials.project-art', ['project' => $project])
+        @include('marketplace.partials.project-photo', ['project' => $project])
       @endif
     </div>
     <div class="detail-copy">

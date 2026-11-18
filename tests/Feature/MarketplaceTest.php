@@ -91,6 +91,36 @@ class MarketplaceTest extends TestCase
         }
     }
 
+    public function test_project_articles_show_reference_photos_and_admin_can_preview_a_cover(): void
+    {
+        $project = Project::create([
+            'class_name' => 'XI Agribisnis 1',
+            'grade' => 11,
+            'title' => 'Kebun Tempe Tanpa Plastik',
+            'introduction' => 'Kelas mengolah tempe dengan daun pisang dari kebun sendiri.',
+            'story' => 'Cerita kebun kelas.',
+            'outcome' => 'Kebun kelas menghasilkan bahan pangan.',
+            'is_published' => true,
+        ]);
+
+        $this->get(route('projects.index'))
+            ->assertOk()
+            ->assertSee('images.unsplash.com')
+            ->assertSee('Foto referensi proyek Kebun Tempe Tanpa Plastik');
+
+        $this->get(route('projects.show', $project))
+            ->assertOk()
+            ->assertSee('images.unsplash.com');
+
+        $admin = User::factory()->create(['role' => 'admin']);
+        $this->actingAs($admin)
+            ->get(route('admin.articles.create'))
+            ->assertOk()
+            ->assertSee('project-image-preview', false)
+            ->assertSee('data-project-image-input', false)
+            ->assertSee('images.unsplash.com');
+    }
+
     public function test_homepage_uses_fortexiv_project_showcase_and_catalog_hides_unpublished_products(): void
     {
         $project = Project::create([
@@ -650,6 +680,50 @@ class MarketplaceTest extends TestCase
             ->assertSessionHasErrors([
                 'name' => 'Kolom nama produk wajib diisi.',
             ]);
+    }
+
+    public function test_sellers_see_product_image_previews_in_management_and_editor(): void
+    {
+        Storage::fake('public');
+        $seller = $this->seller('preview-seller@example.test');
+        $uploadedProduct = Product::create([
+            'seller_id' => $seller->id,
+            'name' => 'Tas Daur Ulang',
+            'slug' => 'tas-daur-ulang',
+            'description' => 'Tas dari kain daur ulang.',
+            'image' => 'products/tas-daur-ulang.jpg',
+            'price' => 14000,
+            'stock' => 2,
+            'status' => 'draft',
+        ]);
+        Product::create([
+            'seller_id' => $seller->id,
+            'name' => 'Pot Tanaman',
+            'slug' => 'pot-tanaman',
+            'description' => 'Pot dari bahan bekas.',
+            'price' => 9000,
+            'stock' => 1,
+            'status' => 'draft',
+        ]);
+
+        $this->actingAs($seller->user)
+            ->get(route('seller.products.index'))
+            ->assertOk()
+            ->assertSee('seller-product-thumb', false)
+            ->assertSee(Storage::disk('public')->url('products/tas-daur-ulang.jpg'))
+            ->assertSee('images.unsplash.com')
+            ->assertSee('Ilustrasi produk kelas');
+
+        $this->get(route('seller.products.create'))
+            ->assertOk()
+            ->assertSee('seller-image-preview', false)
+            ->assertSee('data-product-image-input', false)
+            ->assertSee('images.unsplash.com')
+            ->assertSee('data-product-generated-preview', false);
+
+        $this->get(route('seller.products.edit', $uploadedProduct))
+            ->assertOk()
+            ->assertSee(Storage::disk('public')->url('products/tas-daur-ulang.jpg'));
     }
 
     public function test_rejecting_a_manual_payment_returns_reserved_stock_once(): void

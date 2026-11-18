@@ -8,7 +8,18 @@
 <div class="table-wrap"><table><thead><tr><th>Produk</th><th>Kategori</th><th>Harga</th><th>Stok</th><th>Status</th><th>Tindakan</th></tr></thead><tbody>
   @forelse($products as $product)
     <tr>
-      <td>{{ $product->name }}@if($product->review_notes)<p class="muted small">Catatan admin: {{ $product->review_notes }}</p>@endif</td><td>{{ $product->category?->name ?? '—' }}</td><td>{{ \App\Support\Money::format($product->price) }}</td><td>{{ $product->stock }}</td><td><span class="badge {{ $product->review_status }}">{{ $reviewStatusLabels[$product->review_status] ?? $product->review_status }}</span></td>
+      <td>
+        <div class="seller-product-cell">
+          <div class="seller-product-thumb">
+            @if($product->image)
+              <img src="{{ Storage::disk('public')->url($product->image) }}" alt="Foto {{ $product->name }}">
+            @else
+              @include('marketplace.partials.product-photo', ['category' => $product->category?->name, 'alt' => 'Foto referensi '.$product->name])
+            @endif
+          </div>
+          <div>{{ $product->name }}@if($product->review_notes)<p class="muted small">Catatan admin: {{ $product->review_notes }}</p>@endif</div>
+        </div>
+      </td><td>{{ $product->category?->name ?? '—' }}</td><td>{{ \App\Support\Money::format($product->price) }}</td><td>{{ $product->stock }}</td><td><span class="badge {{ $product->review_status }}">{{ $reviewStatusLabels[$product->review_status] ?? $product->review_status }}</span></td>
       <td class="stack">
         <a href="{{ route('seller.products.edit', $product) }}">Ubah</a>
         @if($product->review_status !== 'pending_review')

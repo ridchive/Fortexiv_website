@@ -15,9 +15,60 @@
     <div class="field"><label for="stock">Stok</label><input class="input" id="stock" name="stock" type="number" min="0" max="100000" value="{{ old('stock', $product->exists ? $product->stock : 0) }}" required></div>
     <div class="field"><label for="category_id">Kategori</label><select class="input" id="category_id" name="category_id"><option value="">Pilih kategori</option>@foreach($categories as $category)<option value="{{ $category->id }}" @selected((string) old('category_id', $product->category_id) === (string) $category->id)>{{ $category->name }}</option>@endforeach</select></div>
     <div class="field"><span class="eyebrow">Proyek kelas</span><p>{{ auth()->user()->seller->project?->class_name ?? auth()->user()->seller->store_name }}@if(auth()->user()->seller->project) · {{ auth()->user()->seller->project->title }}@endif</p></div>
-    <div class="field"><label for="image">Gambar produk (JPG, PNG, atau WebP, maks. 5 MB)</label><input class="input" id="image" name="image" type="file" accept=".jpg,.jpeg,.png,.webp"></div>
-    @if($product->image)<p>Gambar saat ini: <img src="{{ Storage::disk('public')->url($product->image) }}" alt="" style="max-width:120px;border-radius:8px"></p>@endif
+    <div class="field">
+      <span class="eyebrow">Pratinjau gambar</span>
+      <div class="seller-image-preview">
+        <img data-product-image-preview @if($product->image) src="{{ Storage::disk('public')->url($product->image) }}" alt="Foto {{ $product->name }}" @else alt="" hidden @endif>
+        <div data-product-generated-preview @if($product->image) hidden @endif>
+          @include('marketplace.partials.product-photo', ['category' => $product->category?->name, 'alt' => 'Foto referensi '.($product->name ?: 'produk baru')])
+        </div>
+      </div>
+      <p class="muted small">Ilustrasi sementara digunakan jika belum ada foto. Pilih foto produk untuk melihat pratinjau.</p>
+      <label for="image">{{ $product->image ? 'Ganti gambar produk' : 'Upload gambar produk' }} (JPG, PNG, atau WebP, maks. 5 MB)</label>
+      <input class="input" id="image" name="image" type="file" accept=".jpg,.jpeg,.png,.webp" data-product-image-input>
+    </div>
     <div class="stack"><button class="btn" type="submit">{{ $product->exists ? 'Simpan perubahan sebagai draf' : 'Simpan sebagai draf' }}</button><a class="btn btn-outline" href="{{ route('seller.products.index') }}">Batal</a></div>
   </form>
 </section>
 @endsection
+
+@push('scripts')
+<script>
+  (() => {
+    const imageInput = document.querySelector('[data-product-image-input]');
+    const imagePreview = document.querySelector('[data-product-image-preview]');
+    const generatedPreview = document.querySelector('[data-product-generated-preview]');
+
+    if (!imageInput || !imagePreview || !generatedPreview) {
+      return;
+    }
+
+    const savedImageUrl = imagePreview.getAttribute('src');
+    let activePreviewUrl;
+
+    imageInput.addEventListener('change', () => {
+      if (activePreviewUrl) {
+        URL.revokeObjectURL(activePreviewUrl);
+        activePreviewUrl = undefined;
+      }
+
+      const selectedFile = imageInput.files?.[0];
+      if (selectedFile?.type.startsWith('image/')) {
+        activePreviewUrl = URL.createObjectURL(selectedFile);
+        imagePreview.src = activePreviewUrl;
+        imagePreview.alt = 'Pratinjau gambar produk';
+        imagePreview.hidden = false;
+        generatedPreview.hidden = true;
+
+        return;
+      }
+
+      imagePreview.hidden = !savedImageUrl;
+      generatedPreview.hidden = Boolean(savedImageUrl);
+      if (savedImageUrl) {
+        imagePreview.src = savedImageUrl;
+      }
+    });
+  })();
+</script>
+@endpush
