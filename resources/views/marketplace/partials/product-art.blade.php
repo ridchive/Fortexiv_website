@@ -8,7 +8,7 @@
       default => ['#D4E6AE', '#86AB47', '#2F5B2B'],
   };
 @endphp
-<svg class="product-art" viewBox="0 0 400 300" role="img" aria-label="Ilustrasi produk {{ $category ?? 'kelas' }}" @if($hidden ?? false) hidden @endif>
+<svg class="product-art" viewBox="0 0 400 300" role="img" aria-label="Ilustrasi produk {{ $category ?? 'kelas' }}">
   <rect width="400" height="300" fill="{{ $palette[0] }}"/>
   <circle cx="330" cy="62" r="86" fill="{{ $palette[1] }}" opacity=".22"/>
   <circle cx="56" cy="262" r="70" fill="{{ $palette[2] }}" opacity=".12"/>

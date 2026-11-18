@@ -20,7 +20,7 @@
       <div class="seller-image-preview">
         <img data-product-image-preview @if($product->image) src="{{ Storage::disk('public')->url($product->image) }}" alt="Foto {{ $product->name }}" @else alt="" hidden @endif>
         <div data-product-generated-preview @if($product->image) hidden @endif>
-          @include('marketplace.partials.product-photo', ['category' => $product->category?->name, 'alt' => 'Foto referensi '.($product->name ?: 'produk baru')])
+          @include('marketplace.partials.product-art', ['category' => $product->category?->name])
         </div>
       </div>
       <p class="muted small">Ilustrasi sementara digunakan jika belum ada foto. Pilih foto produk untuk melihat pratinjau.</p>

@@ -169,7 +169,7 @@
     .cart-i:last-child { border-bottom: 0; }
     .cart-image { width: 82px; height: 74px; overflow: hidden; border-radius: 6px; background: var(--soft); }
     .cart-image img, .cart-image .product-art { display: block; width: 100%; height: 100%; object-fit: cover; }
-    .cart-image [hidden], .seller-product-thumb [hidden] { display: none !important; }
+    .cart-image [hidden] { display: none !important; }
     .qty { display: flex; align-items: center; gap: 8px; }
     .qty button { width: 34px; height: 34px; border: 1px solid var(--line); border-radius: 50%; background: var(--soft); cursor: pointer; }
     .qty input { width: 72px; }

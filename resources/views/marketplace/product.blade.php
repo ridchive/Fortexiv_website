@@ -11,7 +11,7 @@
       @if($product->image)
         <img src="{{ Storage::disk('public')->url($product->image) }}" alt="{{ $product->name }}">
       @else
-        @include('marketplace.partials.product-photo', ['category' => $product->category?->name, 'alt' => 'Foto referensi '.$product->name])
+        @include('marketplace.partials.product-art', ['category' => $product->category?->name])
       @endif
     </div>
     <div class="detail-copy">
