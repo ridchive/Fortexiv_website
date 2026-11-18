@@ -168,7 +168,7 @@
     .cart-i { display: grid; grid-template-columns: 82px minmax(0, 1fr) auto; gap: 14px; align-items: center; padding: 14px 0; border-bottom: 1px solid var(--line); }
     .cart-i:last-child { border-bottom: 0; }
     .cart-image { width: 82px; height: 74px; overflow: hidden; border-radius: 6px; background: var(--soft); }
-    .cart-image img, .cart-image .product-art { display: block; width: 100%; height: 100%; object-fit: cover; }
+    .cart-image > img, .cart-image .product-visual { display: block; width: 100%; height: 100%; }
     .cart-image [hidden] { display: none !important; }
     .qty { display: flex; align-items: center; gap: 8px; }
     .qty button { width: 34px; height: 34px; border: 1px solid var(--line); border-radius: 50%; background: var(--soft); cursor: pointer; }
@@ -188,10 +188,10 @@
     th { color: var(--muted); font-size: 11px; letter-spacing: .04em; text-transform: uppercase; }
     .seller-product-cell { display: flex; min-width: 220px; align-items: center; gap: 12px; }
     .seller-product-thumb { width: 68px; aspect-ratio: 4 / 3; flex: 0 0 68px; overflow: hidden; border-radius: 6px; background: var(--soft); }
-    .seller-product-thumb img, .seller-product-thumb .product-art { display: block; width: 100%; height: 100%; object-fit: cover; }
+    .seller-product-thumb > img, .seller-product-thumb .product-visual { display: block; width: 100%; height: 100%; }
     .seller-image-preview { width: min(100%, 360px); aspect-ratio: 4 / 3; margin: 8px 0; overflow: hidden; border: 1px solid var(--line); border-radius: 8px; background: var(--soft); }
     .seller-image-preview > img, .seller-image-preview > div { width: 100%; height: 100%; }
-    .seller-image-preview img, .seller-image-preview .product-art { display: block; width: 100%; height: 100%; object-fit: cover; }
+    .seller-image-preview > img, .seller-image-preview .product-visual { display: block; width: 100%; height: 100%; }
     .seller-image-preview [hidden] { display: none; }
     .project-image-preview { width: min(100%, 360px); aspect-ratio: 4 / 3; margin: 8px 0; overflow: hidden; border: 1px solid var(--line); border-radius: 8px; background: var(--soft); }
     .project-image-preview > img, .project-image-preview > div { width: 100%; height: 100%; }
@@ -565,7 +565,10 @@
     .pcard { position: relative; display: flex; flex-direction: column; gap: 10px; }
     .pcard .pim { position: relative; display: block; aspect-ratio: 1; overflow: hidden; border-radius: 6px; background: var(--soft); }
     .pcard .pim > svg, .pcard .pim > img { width: 100%; height: 100%; object-fit: cover; transition: transform .4s; }
-    .pcard:hover .pim > svg, .pcard:hover .pim > img { transform: scale(1.03); }
+    .product-visual { position: relative; width: 100%; height: 100%; overflow: hidden; }
+    .product-visual > .product-art { display: block; width: 100%; height: 100%; object-fit: cover; }
+    .product-visual .product-reference-photo { position: absolute; right: 8px; bottom: 8px; width: clamp(28px, 30%, 104px); height: auto; aspect-ratio: 4 / 3; object-fit: cover; border: 2px solid var(--surface); border-radius: 7px; box-shadow: 0 2px 8px #0003; }
+    .pcard:hover .pim > svg, .pcard:hover .pim > img, .pcard:hover .product-visual > .product-art { transform: scale(1.03); }
     .pcard .bd { position: absolute; top: 8px; left: 8px; display: flex; flex-wrap: wrap; gap: 6px; }
     .pcard h3 a { text-decoration: none; }
     .pcard .pr { display: flex; justify-content: space-between; align-items: center; gap: 8px; }

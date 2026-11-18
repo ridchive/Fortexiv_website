@@ -711,12 +711,14 @@ class MarketplaceTest extends TestCase
             ->assertOk()
             ->assertSee('seller-product-thumb', false)
             ->assertSee(Storage::disk('public')->url('products/tas-daur-ulang.jpg'))
+            ->assertSee('images.unsplash.com')
             ->assertSee('Ilustrasi produk kelas');
 
         $this->get(route('seller.products.create'))
             ->assertOk()
             ->assertSee('seller-image-preview', false)
             ->assertSee('data-product-image-input', false)
+            ->assertSee('images.unsplash.com')
             ->assertSee('data-product-generated-preview', false);
 
         $this->get(route('seller.products.edit', $uploadedProduct))
