@@ -76,13 +76,21 @@ class MarketplaceTest extends TestCase
             ], false)
             ->assertDontSee('X Desain Grafis')
             ->assertDontSee('Produk kelas lama')
-            ->assertSee('Kartu Ucapan Daur Ulang');
+            ->assertSee('Kartu Ucapan Daur Ulang')
+            ->assertSee('Pot Tanah Liat Mini')
+            ->assertSee('Rp 1');
 
         $this->assertDatabaseHas('products', [
             'slug' => 'produk-kelas-lama',
             'status' => 'draft',
         ]);
-        $this->assertDatabaseCount('products', 10);
+        $this->assertDatabaseHas('products', [
+            'slug' => 'pot-tanah-liat-mini',
+            'price' => 1,
+            'status' => 'published',
+            'review_status' => 'approved',
+        ]);
+        $this->assertDatabaseCount('products', 11);
         foreach ([6, 9, 10, 11, 12] as $grade) {
             $this->assertDatabaseHas('projects', [
                 'class_name' => "kelas {$grade}",

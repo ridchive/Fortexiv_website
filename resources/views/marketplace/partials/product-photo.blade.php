@@ -9,6 +9,6 @@
   };
 @endphp
 <div class="product-visual">
-  @include('marketplace.partials.product-art', ['category' => $category ?? null])
-  <img class="product-reference-photo" src="{{ $referencePhoto }}" alt="{{ $alt ?? 'Foto referensi produk' }}" loading="lazy" onerror="this.hidden = true">
+  <img class="product-reference-photo" src="{{ $referencePhoto }}" alt="{{ $alt ?? 'Foto referensi produk' }}" loading="lazy" onerror="this.hidden = true; this.nextElementSibling.hidden = false">
+  @include('marketplace.partials.product-art', ['category' => $category ?? null, 'hidden' => true])
 </div>

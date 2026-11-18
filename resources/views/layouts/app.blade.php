@@ -566,9 +566,9 @@
     .pcard .pim { position: relative; display: block; aspect-ratio: 1; overflow: hidden; border-radius: 6px; background: var(--soft); }
     .pcard .pim > svg, .pcard .pim > img { width: 100%; height: 100%; object-fit: cover; transition: transform .4s; }
     .product-visual { position: relative; width: 100%; height: 100%; overflow: hidden; }
-    .product-visual > .product-art { display: block; width: 100%; height: 100%; object-fit: cover; }
-    .product-visual .product-reference-photo { position: absolute; right: 8px; bottom: 8px; width: clamp(28px, 30%, 104px); height: auto; aspect-ratio: 4 / 3; object-fit: cover; border: 2px solid var(--surface); border-radius: 7px; box-shadow: 0 2px 8px #0003; }
-    .pcard:hover .pim > svg, .pcard:hover .pim > img, .pcard:hover .product-visual > .product-art { transform: scale(1.03); }
+    .product-visual > .product-reference-photo, .product-visual > .product-art { position: absolute; inset: 0; display: block; width: 100%; height: 100%; object-fit: cover; }
+    .product-visual > [hidden] { display: none !important; }
+    .pcard:hover .pim > svg, .pcard:hover .pim > img, .pcard:hover .product-visual > .product-reference-photo, .pcard:hover .product-visual > .product-art { transform: scale(1.03); }
     .pcard .bd { position: absolute; top: 8px; left: 8px; display: flex; flex-wrap: wrap; gap: 6px; }
     .pcard h3 a { text-decoration: none; }
     .pcard .pr { display: flex; justify-content: space-between; align-items: center; gap: 8px; }

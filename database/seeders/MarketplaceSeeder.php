@@ -222,6 +222,7 @@ class MarketplaceSeeder extends Seeder
             ],
         ];
 
+        $sellersByClass = [];
         foreach ($productsByClass as $className => $products) {
             $project = $projectModels->get($className);
             $email = 'demo+'.Str::slug($className).'@fortexiv.invalid';
@@ -238,6 +239,7 @@ class MarketplaceSeeder extends Seeder
                 ['user_id' => $user->id],
                 ['project_id' => $project->id, 'store_name' => $className, 'description' => 'Kelas peserta FORTEXIV.'],
             );
+            $sellersByClass[$className] = $seller;
 
             foreach ($products as [$name, $categorySlug, $price, $stock, $description, $story, $status]) {
                 Product::query()->firstOrCreate(
@@ -257,5 +259,25 @@ class MarketplaceSeeder extends Seeder
                 );
             }
         }
+
+        $paymentTestProduct = Product::query()->firstOrNew(['slug' => 'pot-tanah-liat-mini']);
+        if (! $paymentTestProduct->exists) {
+            $paymentTestProject = $projectModels->get('kelas 2');
+            $paymentTestProduct->fill([
+                'seller_id' => $sellersByClass['kelas 2']->id,
+                'project_id' => $paymentTestProject->id,
+                'category_id' => $categories->get('dekorasi')->id,
+                'name' => 'Pot Tanah Liat Mini',
+                'description' => 'Pot tanah liat mini dengan bibit lidah buaya.',
+                'story' => 'Pot mini dibuat dari tanah liat dan disiapkan untuk tanaman kecil.',
+                'stock' => 28,
+            ]);
+        }
+
+        $paymentTestProduct->fill([
+            'price' => 1,
+            'status' => 'published',
+            'review_status' => 'approved',
+        ])->save();
     }
 }
