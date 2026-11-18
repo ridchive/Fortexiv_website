@@ -7,6 +7,7 @@ use App\Models\Order;
 use App\Models\OrderItem;
 use App\Models\Payment;
 use App\Models\Product;
+use App\Models\Project;
 use App\Models\Seller;
 use App\Models\User;
 use Illuminate\Http\RedirectResponse;
@@ -32,6 +33,7 @@ class AdminController extends Controller
                 ->limit(6)
                 ->get(),
             'orders' => Order::query()->with(['buyer', 'payment', 'items.seller.project'])->latest()->limit(12)->get(),
+            'classes' => Project::query()->with(['seller.user', 'products'])->withCount('products')->orderBy('grade')->orderBy('class_name')->get(),
         ]);
     }
 
@@ -97,11 +99,21 @@ class AdminController extends Controller
         return back()->with('status', 'Pembayaran ditolak dan stok dikembalikan.');
     }
 
-    public function users(): View
+    public function users(Request $request): View
     {
-        $users = User::whereIn('role', ['buyer', 'seller'])->with('seller')->latest()->paginate(25);
+        $role = $request->query('role');
+        $query = User::whereIn('role', ['buyer', 'seller'])->with(['seller.project'])->withCount('orders');
 
-        return view('admin.users', compact('users'));
+        if (in_array($role, ['buyer', 'seller'], true)) {
+            $query->where('role', $role);
+        }
+
+        $users = $query->latest()->paginate(25)->withQueryString();
+        $buyersCount = User::where('role', 'buyer')->count();
+        $sellersCount = User::where('role', 'seller')->count();
+        $totalCount = $buyersCount + $sellersCount;
+
+        return view('admin.users', compact('users', 'role', 'buyersCount', 'sellersCount', 'totalCount'));
     }
 
     public function toggleUser(User $user): RedirectResponse

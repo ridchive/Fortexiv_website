@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Models\EventSetting;
 use App\Models\Product;
 use App\Models\Project;
+use App\Models\Seller;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Storage;
@@ -21,39 +22,44 @@ class AdminContentController extends Controller
 
     public function createArticle(): View
     {
+        $availableClasses = Project::query()->orderBy('grade')->orderBy('class_name')->get(['id', 'grade', 'class_name']);
+
         return view('admin.articles.form', [
             'project' => new Project,
-            'products' => Product::query()->with('seller.project')->orderBy('name')->get(),
+            'availableClasses' => $availableClasses,
         ]);
     }
 
     public function storeArticle(Request $request): RedirectResponse
     {
         $data = $this->validatedArticle($request);
-        $productIds = $data['product_ids'] ?? [];
-        unset($data['product_ids']);
         $data['image'] = $request->file('image')?->store('projects', 'public');
         $data['is_published'] = $request->boolean('is_published');
 
         $project = Project::create($data);
-        Product::query()->whereIn('id', $productIds)->update(['project_id' => $project->id]);
+
+        // Auto-assign products belonging to the same class/seller
+        Product::whereHas('seller', function ($q) use ($project) {
+            $q->where('project_id', $project->id)
+              ->orWhere('store_name', $project->class_name);
+        })->update(['project_id' => $project->id]);
 
         return redirect()->route('admin.articles.index')->with('status', 'Artikel proyek berhasil dibuat.');
     }
 
     public function editArticle(Project $project): View
     {
+        $availableClasses = Project::query()->orderBy('grade')->orderBy('class_name')->get(['id', 'grade', 'class_name']);
+
         return view('admin.articles.form', [
             'project' => $project,
-            'products' => Product::query()->with('seller.project')->orderBy('name')->get(),
+            'availableClasses' => $availableClasses,
         ]);
     }
 
     public function updateArticle(Request $request, Project $project): RedirectResponse
     {
-        $data = $this->validatedArticle($request);
-        $productIds = $data['product_ids'] ?? [];
-        unset($data['product_ids']);
+        $data = $this->validatedArticle($request, $project);
         $data['is_published'] = $request->boolean('is_published');
 
         if ($request->boolean('remove_image')) {
@@ -70,8 +76,12 @@ class AdminContentController extends Controller
         }
 
         $project->update($data);
-        Product::query()->where('project_id', $project->id)->update(['project_id' => null]);
-        Product::query()->whereIn('id', $productIds)->update(['project_id' => $project->id]);
+
+        // Auto-assign products belonging to the same class/seller
+        Product::whereHas('seller', function ($q) use ($project) {
+            $q->where('project_id', $project->id)
+              ->orWhere('store_name', $project->class_name);
+        })->update(['project_id' => $project->id]);
 
         return redirect()->route('admin.articles.index')->with('status', 'Artikel proyek berhasil diperbarui.');
     }
@@ -88,6 +98,21 @@ class AdminContentController extends Controller
         $project->update(['is_published' => true]);
 
         return back()->with('status', 'Artikel proyek "'.$project->title.'" berhasil dipublikasikan untuk umum.');
+    }
+
+    public function destroyArticle(Project $project): RedirectResponse
+    {
+        if ($project->image) {
+            Storage::disk('public')->delete($project->image);
+        }
+
+        Product::query()->where('project_id', $project->id)->update(['project_id' => null]);
+        Seller::query()->where('project_id', $project->id)->update(['project_id' => null]);
+
+        $title = $project->title;
+        $project->delete();
+
+        return redirect()->route('admin.articles.index')->with('status', 'Artikel proyek "'.$title.'" berhasil dihapus.');
     }
 
     public function products(Request $request): View
@@ -148,6 +173,9 @@ class AdminContentController extends Controller
     public function updateImpact(Request $request): RedirectResponse
     {
         $request->validate([
+            'hero_title' => ['nullable', 'string', 'max:255'],
+            'hero_description' => ['nullable', 'string', 'max:2000'],
+            'hero_image' => ['nullable', 'image', 'mimes:jpg,jpeg,png,webp', 'max:5120'],
             'impact_title' => ['required', 'string', 'max:255'],
             'impact_intro' => ['required', 'string', 'max:2000'],
             'impact_body' => ['nullable', 'string', 'max:50000'],
@@ -169,12 +197,27 @@ class AdminContentController extends Controller
         }
 
         $data = [
+            'hero_title' => $request->input('hero_title'),
+            'hero_description' => $request->input('hero_description'),
             'impact_title' => $request->input('impact_title'),
             'impact_intro' => $request->input('impact_intro'),
             'impact_body' => $impactBody,
             'impact_baseline_co2' => $request->input('impact_baseline_co2'),
             'updated_by' => $request->user()->id,
         ];
+
+        if ($request->boolean('remove_hero_image')) {
+            if ($eventSetting->hero_image) {
+                Storage::disk('public')->delete($eventSetting->hero_image);
+            }
+            $data['hero_image'] = null;
+        } elseif ($request->hasFile('hero_image')) {
+            $newHeroImage = $request->file('hero_image')->store('hero', 'public');
+            if ($eventSetting->hero_image) {
+                Storage::disk('public')->delete($eventSetting->hero_image);
+            }
+            $data['hero_image'] = $newHeroImage;
+        }
 
         if ($request->boolean('remove_image')) {
             if ($eventSetting->impact_image) {
@@ -206,10 +249,10 @@ class AdminContentController extends Controller
             }
         }
 
-        return back()->with('status', 'Artikel GEIT, foto header & background Hero, dan parameter reduksi emisi berhasil diperbarui!');
+        return back()->with('status', 'Pengaturan Hero Beranda dan Artikel GEIT berhasil diperbarui!');
     }
 
-    private function validatedArticle(Request $request): array
+    private function validatedArticle(Request $request, ?Project $currentProject = null): array
     {
         if ($request->hasFile('md_file')) {
             $request->merge(['article_body' => $request->file('md_file')->get()]);
@@ -217,17 +260,18 @@ class AdminContentController extends Controller
 
         $data = $request->validate([
             'class_name' => ['required', 'string', 'max:100'],
-            'grade' => ['required', 'integer', 'min:1', 'max:12'],
             'title' => ['required', 'string', 'max:160'],
             'introduction' => ['required', 'string', 'max:2000'],
             'article_body' => ['required', 'string', 'max:50000'],
             'md_file' => ['nullable', 'file', 'mimes:txt,md,markdown', 'max:2048'],
             'image' => ['nullable', 'image', 'mimes:jpg,jpeg,png,webp', 'max:5120'],
-            'product_ids' => [$request->boolean('is_published') ? 'required' : 'nullable', 'array', 'min:1'],
-            'product_ids.*' => ['integer', 'distinct', 'exists:products,id'],
         ]);
 
         unset($data['md_file']);
+
+        // Auto-assign grade from class or fallback
+        $targetClass = Project::where('class_name', $data['class_name'])->first();
+        $data['grade'] = $targetClass?->grade ?? $currentProject?->grade ?? 1;
 
         return $data;
     }

@@ -20,20 +20,27 @@
 @endphp
 
 @php
-  $hasHeroImage = !empty($eventSettings?->impact_image);
+  $heroImagePath = $eventSettings?->hero_image ?: $eventSettings?->impact_image;
+  $hasHeroImage = !empty($heroImagePath);
   $heroBgStyle = $hasHeroImage
-    ? "background-image: linear-gradient(to right, rgba(13,31,18,0.92) 0%, rgba(20,46,27,0.80) 55%, rgba(20,46,27,0.38) 100%), url('" . Storage::disk('public')->url($eventSettings->impact_image) . "'); background-size: cover; background-position: center;"
+    ? "background-image: linear-gradient(to right, rgba(13,31,18,0.92) 0%, rgba(20,46,27,0.80) 55%, rgba(20,46,27,0.38) 100%), url('" . Storage::disk('public')->url($heroImagePath) . "'); background-size: cover; background-position: center;"
     : "";
+  $heroTitle = $eventSettings?->hero_title ?: 'Konsumsi Bijak, Bumi Lestari.';
+  $heroDescription = $eventSettings?->hero_description ?: 'Empat kelas mengerjakan proyek nyata dari kebun, dapur, dan studio sekolah. Baca ceritanya, lalu pesan produknya lewat satu periode PO terpadu.';
 @endphp
 
 <div class="wrap" style="padding-top:6px">
-  <section class="hero hero-impact {{ $hasHeroImage ? 'has-bg-image' : '' }}" @if($hasHeroImage) style="{{ $heroBgStyle }}" @endif aria-label="Green Ecosystem Impact Tracker">
+  <a href="{{ route('impact.index') }}" class="hero hero-impact {{ $hasHeroImage ? 'has-bg-image' : '' }}" @if($hasHeroImage) style="{{ $heroBgStyle }}" @endif aria-label="Green Ecosystem Impact Tracker">
     <div class="tx">
-      <span class="kick">Green Ecosystem · Impact Tracker</span>
-      <h1>Konsumsi Bijak, Bumi Lestari.</h1>
-      <p>Empat kelas mengerjakan proyek nyata dari kebun, dapur, dan studio sekolah. Baca ceritanya, lalu pesan produknya lewat satu periode PO terpadu.</p>
+      <h1>{{ $heroTitle }}</h1>
+      <p>{{ $heroDescription }}</p>
+    </div>
+    <div class="pic" aria-label="Ilustrasi karya Green Ecosystem">
+      @if(!$hasHeroImage)
+        @include('marketplace.partials.garden-scene', ['class' => 'main-scene'])
+      @endif
 
-      <a href="{{ route('impact.index') }}" class="hero-impact-card" role="region" aria-label="Impact Tracker Green Ecosystem: Klik untuk melihat artikel lengkap">
+      <div class="hero-impact-card" role="region" aria-label="Impact Tracker Green Ecosystem: Klik untuk melihat artikel lengkap">
         <div class="impact-header-row">
           <span class="impact-label">Berhasil mengurangi</span>
           <span class="impact-link-hint">Buka artikel &rarr;</span>
@@ -42,26 +49,9 @@
           <span class="impact-number">{{ $co2Reduced }}</span>
           <span class="impact-unit">kgCO₂e</span>
         </div>
-      </a>
-
-      <div class="btns">
-        <a class="btn dk" href="{{ route('projects.index') }}">Jelajahi Proyek</a>
-        <a class="btn dk" href="{{ route('catalog.index') }}">Lihat Katalog</a>
       </div>
     </div>
-    <div class="pic" aria-label="Ilustrasi karya Green Ecosystem">
-      @if(!$hasHeroImage)
-        @include('marketplace.partials.garden-scene', ['class' => 'main-scene'])
-      @else
-        <div class="hero-photo-badge">
-          <span style="font-size: 1.4rem;">🌱</span>
-          <strong>Proyek Nyata Sekolah</strong>
-          <p>Mendokumentasikan jejak dekarbonisasi dari kebun, kriya, dan dapur kelas.</p>
-          <a href="{{ route('impact.index') }}">Baca artikel lengkap &rarr;</a>
-        </div>
-      @endif
-    </div>
-  </section>
+  </a>
   <div class="band">
     <span>{{ $window['banner'] }}</span>
     <span class="chip {{ $window['status'] === 'open' ? 'good' : ($window['status'] === 'upcoming' ? 'warn' : 'bad') }}">{{ $poLabel }}</span>

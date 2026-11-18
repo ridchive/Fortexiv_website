@@ -25,6 +25,10 @@
             <button class="btn sm" type="submit" style="background:var(--good); color:#fff; border-color:var(--good);">Publikasikan</button>
           </form>
         @endif
+        <form method="post" action="{{ route('admin.articles.destroy', $project) }}" style="display:inline" onsubmit="return confirm('Apakah Anda yakin ingin menghapus artikel proyek &quot;{{ $project->title }}&quot; secara permanen?')">
+          @csrf @method('DELETE')
+          <button class="btn bad sm" type="submit">Hapus</button>
+        </form>
       </td>
     </tr>
   @empty

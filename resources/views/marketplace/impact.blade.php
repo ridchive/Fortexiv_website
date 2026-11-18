@@ -9,6 +9,9 @@
   $intro = $eventSettings->impact_intro ?: 'Dokumentasi transparansi pengurangan jejak emisi karbon melalui proyek nyata dari kebun, dapur, dan studio karya sekolah.';
   $body = $eventSettings->impact_body ?: "## Mengapa Green Ecosystem Impact Tracker?\n\nProyek FORTEXIV bukan sekadar marketplace produk sekolah biasa. Melalui tema **Green Ecosystem**, empat kelas berkolaborasi menjalankan aksi nyata untuk merawat bumi melalui kebun sekolah, pengolahan limbah daur ulang, dan produksi bernilai guna tinggi.\n\n> \"Setiap pilihan konsumsi yang kita buat memiliki jejak terhadap lingkungan. Di FORTEXIV, kami memilih konsumsi bijak demi bumi yang tetap lestari.\"\n\n### Tiga Pilar Reduksi Emisi Kami:\n- **Pemanfaatan Bahan Daur Ulang**: Mengolah limbah kertas, karton, dan kain perca menjadi kartu ucapan, tas belanja, dan tempat pensil tanpa menambang bahan baku baru.\n- **Pangan & Pertanian Organik**: Sayuran dan produk olahan dipanen langsung dari kebun kelas tanpa pestisida kimia sintetis dan bebas rantai pasok panjang.\n- **Nol Sampah Ekspedisi (Direct Pickup)**: Seluruh pesanan diambil langsung di acara tanpa kemasan bubble wrap, plastik kurir berlebih, maupun emisi bahan bakar kendaraan ekspedisi.\n\nKetika Anda memesan karya kelas di FORTEXIV, Anda secara langsung berpartisipasi menurunkan jejak karbon sekolah kita.";
   $hasCoverImage = !empty($eventSettings->impact_image);
+  $hasHeroImage = !empty($eventSettings->hero_image);
+  $heroTitle = $eventSettings->hero_title ?: 'Konsumsi Bijak, Bumi Lestari.';
+  $heroDescription = $eventSettings->hero_description ?: 'Empat kelas mengerjakan proyek nyata dari kebun, dapur, dan studio sekolah. Baca ceritanya, lalu pesan produknya lewat satu periode PO terpadu.';
 @endphp
 
 <div class="wrap impact-page-container" style="padding-top: 14px; padding-bottom: 48px;">
@@ -24,7 +27,7 @@
     @if($isAdmin)
       <div class="impact-admin-trigger">
         <button type="button" onclick="toggleInPageEditor()" id="btn-toggle-editor" class="btn-admin-edit">
-          <span>✏️</span> <span id="btn-editor-label">Edit Artikel & Banner Hero (Admin)</span>
+          <span>✏️</span> <span id="btn-editor-label">Edit Hero & Artikel GEIT (Admin)</span>
         </button>
       </div>
     @endif
@@ -53,7 +56,7 @@
       <div class="editor-header">
         <div>
           <span class="editor-badge">PANEL EDITOR ADMIN (IN-PAGE)</span>
-          <h2 class="editor-title">Edit Konten, Upload Foto Header & Hero, serta File Markdown</h2>
+          <h2 class="editor-title">Edit Hero Beranda & Konten Artikel GEIT</h2>
         </div>
         <button type="button" onclick="toggleInPageEditor()" class="editor-close-btn">Tutup Editor ✕</button>
       </div>
@@ -66,20 +69,83 @@
           <!-- Left Column: Content, Photo, & MD Upload -->
           <div class="editor-col-main">
 
-            <!-- PHOTO UPLOAD SECTION (For Article Header & Homepage Hero Banner Background) -->
+            <!-- BAGIAN 1: PENGATURAN HERO BERANDA -->
+            <div class="editor-section-header">
+              <span class="editor-section-pill">HERO BERANDA</span>
+              <strong>Pengaturan Hero Main Page (Beranda)</strong>
+            </div>
+
+            <!-- PHOTO UPLOAD SECTION FOR HERO -->
+            <div class="upload-box photo-upload-box">
+              <div class="upload-box-head">
+                <span class="upload-icon">🖼️</span>
+                <div>
+                  <strong>Foto Background Hero (Beranda)</strong>
+                  <p>Pilih foto khusus untuk background banner Hero di halaman utama (Beranda).</p>
+                </div>
+              </div>
+
+              <div class="upload-box-actions">
+                <input type="file" name="hero_image" id="hero-image-input" accept="image/*" class="visually-hidden" onchange="previewSelectedHeroPhoto(event)">
+                <button type="button" onclick="document.getElementById('hero-image-input').click()" class="btn btn-sm dk">
+                  📁 Pilih Foto Hero Beranda
+                </button>
+                <span id="selected-hero-photo-name" class="upload-filename-text">
+                  {{ $hasHeroImage ? basename($eventSettings->hero_image) : 'Belum ada foto yang dipilih' }}
+                </span>
+              </div>
+
+              @if($hasHeroImage)
+                <div class="current-photo-preview" id="current-hero-photo-box">
+                  <img src="{{ Storage::disk('public')->url($eventSettings->hero_image) }}" alt="Preview Foto Hero Aktif" id="img-hero-preview-tag" class="thumb-preview">
+                  <div class="photo-meta">
+                    <span class="photo-status">✓ Foto aktif sebagai Background Hero Beranda</span>
+                    <label class="photo-remove-label">
+                      <input type="checkbox" name="remove_hero_image" value="1"> Hapus foto hero (kembali ke background hijau default)
+                    </label>
+                  </div>
+                </div>
+              @else
+                <div class="current-photo-preview" id="current-hero-photo-box" style="display: none;">
+                  <img src="" alt="Preview Foto Hero Baru" id="img-hero-preview-tag" class="thumb-preview">
+                  <div class="photo-meta">
+                    <span class="photo-status">✓ Foto baru terpilih (akan disimpan)</span>
+                  </div>
+                </div>
+              @endif
+            </div>
+
+            <!-- Hero Title & Description -->
+            <div class="fld">
+              <label for="hero-title-input"><strong>Judul Hero Beranda</strong></label>
+              <input type="text" name="hero_title" id="hero-title-input" value="{{ old('hero_title', $heroTitle) }}" class="in" placeholder="Konsumsi Bijak, Bumi Lestari.">
+            </div>
+
+            <div class="fld">
+              <label for="hero-description-input"><strong>Deskripsi Hero Beranda</strong></label>
+              <textarea name="hero_description" id="hero-description-input" rows="2" class="in" placeholder="Empat kelas mengerjakan proyek nyata dari kebun, dapur, dan studio sekolah...">{{ old('hero_description', $heroDescription) }}</textarea>
+            </div>
+
+            <!-- BAGIAN 2: PENGATURAN ARTIKEL GEIT -->
+            <div class="editor-section-header" style="margin-top: 10px;">
+              <span class="editor-section-pill">ARTIKEL GEIT</span>
+              <strong>Pengaturan Artikel Green Ecosystem Impact Tracker</strong>
+            </div>
+
+            <!-- PHOTO UPLOAD SECTION FOR ARTICLE -->
             <div class="upload-box photo-upload-box">
               <div class="upload-box-head">
                 <span class="upload-icon">📸</span>
                 <div>
-                  <strong>Upload Foto Header Artikel & Background Hero</strong>
-                  <p>Foto yang diunggah di sini otomatis menjadi <strong>cover artikel GEIT</strong> sekaligus <strong>background banner Hero di Beranda</strong>.</p>
+                  <strong>Foto Cover Artikel GEIT</strong>
+                  <p>Pilih foto khusus untuk cover di dalam artikel GEIT ini.</p>
                 </div>
               </div>
 
               <div class="upload-box-actions">
                 <input type="file" name="impact_image" id="impact-image-input" accept="image/*" class="visually-hidden" onchange="previewSelectedPhoto(event)">
                 <button type="button" onclick="document.getElementById('impact-image-input').click()" class="btn btn-sm dk">
-                  📁 Pilih Foto dari Komputer
+                  📁 Pilih Foto Cover Artikel
                 </button>
                 <span id="selected-photo-name" class="upload-filename-text">
                   {{ $hasCoverImage ? basename($eventSettings->impact_image) : 'Belum ada foto yang dipilih' }}
@@ -88,11 +154,11 @@
 
               @if($hasCoverImage)
                 <div class="current-photo-preview" id="current-photo-box">
-                  <img src="{{ Storage::disk('public')->url($eventSettings->impact_image) }}" alt="Preview Foto Aktif" id="img-preview-tag" class="thumb-preview">
+                  <img src="{{ Storage::disk('public')->url($eventSettings->impact_image) }}" alt="Preview Foto Artikel Aktif" id="img-preview-tag" class="thumb-preview">
                   <div class="photo-meta">
-                    <span class="photo-status">✓ Foto aktif sebagai Header Artikel & Background Hero</span>
+                    <span class="photo-status">✓ Foto aktif sebagai Cover Artikel GEIT</span>
                     <label class="photo-remove-label">
-                      <input type="checkbox" name="remove_image" value="1"> Hapus foto (kembali ke warna hijau default)
+                      <input type="checkbox" name="remove_image" value="1"> Hapus foto cover artikel
                     </label>
                   </div>
                 </div>
@@ -408,6 +474,24 @@
     display: flex;
     flex-direction: column;
     gap: 16px;
+  }
+  .editor-section-header {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 8px 12px;
+    border-radius: 8px;
+    background: rgba(44, 110, 49, 0.08);
+    border: 1px solid rgba(44, 110, 49, 0.18);
+  }
+  .editor-section-pill {
+    font-size: 0.72rem;
+    font-weight: 800;
+    letter-spacing: 0.04em;
+    padding: 2px 8px;
+    border-radius: 999px;
+    background: var(--dark);
+    color: var(--dark-ink);
   }
   .upload-box {
     padding: 14px 16px;
@@ -867,12 +951,28 @@
     
     const label = document.getElementById('btn-editor-label');
     if (label) {
-      label.innerText = isHidden ? 'Tutup Editor' : 'Edit Artikel & Banner Hero (Admin)';
+      label.innerText = isHidden ? 'Tutup Editor' : 'Edit Hero & Artikel GEIT (Admin)';
     }
 
     if (isHidden) {
       editor.scrollIntoView({ behavior: 'smooth', block: 'start' });
     }
+  }
+
+  function previewSelectedHeroPhoto(event) {
+    const file = event.target.files[0];
+    if (!file) return;
+
+    document.getElementById('selected-hero-photo-name').innerText = file.name;
+    const photoBox = document.getElementById('current-hero-photo-box');
+    const imgTag = document.getElementById('img-hero-preview-tag');
+
+    const reader = new FileReader();
+    reader.onload = function(e) {
+      imgTag.src = e.target.result;
+      photoBox.style.display = 'flex';
+    };
+    reader.readAsDataURL(file);
   }
 
   function handleMdFileUpload(event) {
