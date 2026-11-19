@@ -20,7 +20,7 @@
   <div class="stat"><strong>{{ $productsCount }}</strong><span>Produk Anda</span></div>
   <div class="stat"><strong>{{ $pendingCount }}</strong><span>Produk menunggu review admin</span></div>
 </div>
-<div class="chip-row"><a class="chip" href="{{ route('seller.products.index') }}">Kelola produk</a><a class="chip" href="{{ route('seller.orders') }}">Pesanan dan pembeli</a></div>
+<div class="chip-row"><a class="chip" href="{{ route('seller.products.index') }}">Kelola produk</a><a class="chip" href="{{ route('seller.orders') }}">Pesanan dan pembeli</a><a class="chip" href="{{ route('seller.pickup.scan') }}">Scan Class QR / Scan Product QR</a></div>
 <h2>Pesanan terbaru</h2>
 <div class="table-wrap"><table><thead><tr><th>Pembeli</th><th>Produk</th><th>Jumlah</th><th>Pesanan</th><th>Status pesanan</th></tr></thead><tbody>
   @forelse($items as $item)

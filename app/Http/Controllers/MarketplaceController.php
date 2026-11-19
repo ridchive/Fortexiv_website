@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Models\CartItem;
 use App\Models\Category;
+use App\Models\EventSetting;
 use App\Models\Order;
 use App\Models\OrderFulfillment;
 use App\Models\Payment;
@@ -41,7 +42,7 @@ class MarketplaceController extends Controller
             ->where('review_status', 'approved')
             ->count();
 
-        $eventSettings = \App\Models\EventSetting::current();
+        $eventSettings = EventSetting::current();
         $co2Base = (float) ($eventSettings?->impact_baseline_co2 ?? 20.0);
 
         $fromOrders = DB::table('order_items')
@@ -70,9 +71,9 @@ class MarketplaceController extends Controller
 
     public function impact(): View
     {
-        $eventSettings = \App\Models\EventSetting::current();
+        $eventSettings = EventSetting::current();
         if (! $eventSettings) {
-            $eventSettings = new \App\Models\EventSetting([
+            $eventSettings = new EventSetting([
                 'impact_title' => 'Jejak Dampak Nyata Green Ecosystem: Konsumsi Bijak, Bumi Lestari',
                 'impact_intro' => 'Dokumentasi transparansi pengurangan jejak emisi karbon melalui proyek nyata dari kebun, dapur, dan studio karya sekolah.',
                 'impact_baseline_co2' => 20.00,
@@ -355,12 +356,14 @@ class MarketplaceController extends Controller
                     throw ValidationException::withMessages(['cart' => 'Stok atau ketersediaan produk berubah. Periksa kembali pesananmu.']);
                 }
 
+                $product->loadMissing(['project', 'seller.project']);
                 $subtotal = $product->price * $item['quantity'];
                 $total += $subtotal;
                 if ($total > 4_294_967_295) {
                     throw ValidationException::withMessages(['cart' => 'Total pesanan melebihi batas maksimum transaksi.']);
                 }
 
+                $projectId = $product->project_id ?? $product->seller->project_id;
                 $orderItems[] = [
                     'product_id' => $product->id,
                     'seller_id' => $product->seller_id,
@@ -368,8 +371,18 @@ class MarketplaceController extends Controller
                     'quantity' => $item['quantity'],
                     'price_at_order' => $product->price,
                     'subtotal' => $subtotal,
+                    'project_id' => $projectId,
+                    'class_key' => $projectId ? 'project-'.$projectId : 'seller-'.$product->seller_id,
+                    'class_name' => $product->project?->class_name ?? $product->seller->project?->class_name ?? $product->seller->store_name,
                 ];
                 $product->decrement('stock', $item['quantity']);
+            }
+
+            $classGroups = collect($orderItems)->groupBy('class_key');
+            foreach ($classGroups as $classItems) {
+                if ($classItems->pluck('seller_id')->unique()->count() > 1) {
+                    throw ValidationException::withMessages(['cart' => 'Setiap kelas hanya dapat berisi produk dari satu seller. Pisahkan produk kelas ini pada pesanan berbeda.']);
+                }
             }
 
             $eventAt = $purchaseWindow->eventAt();
@@ -389,14 +402,36 @@ class MarketplaceController extends Controller
                 'terms_version' => config('marketplace.terms_version'),
             ]);
             $order->update(['order_code' => 'FX-'.str_pad((string) $order->id, 8, '0', STR_PAD_LEFT)]);
-            $order->items()->createMany($orderItems);
 
-            foreach (collect($orderItems)->pluck('seller_id')->unique() as $sellerId) {
-                OrderFulfillment::query()->create([
+            $fulfillments = [];
+            foreach ($classGroups as $classKey => $classItems) {
+                $class = $classItems->first();
+                $fulfillments[$classKey] = OrderFulfillment::query()->create([
                     'order_id' => $order->id,
-                    'seller_id' => $sellerId,
-                    'pickup_code' => 'FTXG-'.Str::upper(Str::random(12)),
+                    'seller_id' => $class['seller_id'],
+                    'project_id' => $class['project_id'],
+                    'class_key' => $classKey,
+                    'class_name' => $class['class_name'],
+                    'pickup_code' => 'FTXC-'.Str::upper(Str::random(24)),
                 ]);
+            }
+
+            foreach ($orderItems as $item) {
+                $orderItem = $order->items()->create([
+                    'product_id' => $item['product_id'],
+                    'seller_id' => $item['seller_id'],
+                    'order_fulfillment_id' => $fulfillments[$item['class_key']]->id,
+                    'product_name' => $item['product_name'],
+                    'quantity' => $item['quantity'],
+                    'price_at_order' => $item['price_at_order'],
+                    'subtotal' => $item['subtotal'],
+                ]);
+
+                for ($unit = 0; $unit < $item['quantity']; $unit++) {
+                    $orderItem->units()->create([
+                        'qr_token' => 'FTXP-'.Str::upper(Str::random(28)),
+                    ]);
+                }
             }
 
             if ($data['mode'] === 'cart') {
@@ -457,7 +492,7 @@ class MarketplaceController extends Controller
     public function order(Request $request, Order $order): View
     {
         abort_unless($order->buyer_id === $request->user()->id, 404);
-        $order->load(['buyer', 'items.seller', 'fulfillments.seller.project', 'payment', 'ticket']);
+        $order->load(['buyer', 'fulfillments.seller.project', 'fulfillments.project', 'fulfillments.items.units', 'payment', 'ticket']);
 
         return view('marketplace.order', compact('order'));
     }
@@ -564,7 +599,7 @@ class MarketplaceController extends Controller
     {
         abort_unless($order->buyer_id === $request->user()->id, 404);
         abort_unless($order->ticket()->exists(), 404);
-        $order->load(['items', 'fulfillments.seller.project', 'ticket']);
+        $order->load(['fulfillments.seller.project', 'fulfillments.project', 'fulfillments.items.units', 'ticket']);
 
         return view('marketplace.ticket', compact('order'));
     }

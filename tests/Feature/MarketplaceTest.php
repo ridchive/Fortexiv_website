@@ -733,6 +733,7 @@ class MarketplaceTest extends TestCase
         $this->assertNotNull($order->terms_accepted_at);
         $this->assertSame('prototype-1.0', $order->terms_version);
         $this->assertNotEmpty($order->fulfillments->first()->pickup_code);
+        $productQrToken = $order->fresh('items.units')->items->first()->units->first()->qr_token;
 
         $this->actingAs($buyer)->post(route('payments.store', $order), [
             'method' => 'Transfer BCA',
@@ -750,7 +751,10 @@ class MarketplaceTest extends TestCase
         $this->actingAs($buyer)->get(route('tickets.show', $order))
             ->assertOk()
             ->assertSee($pickupCode)
-            ->assertSee('tidak dapat dipindai');
+            ->assertSee('QR KELAS')
+            ->assertSee('QR produk')
+            ->assertSee($productQrToken)
+            ->assertSee('data-qr-value="'.$pickupCode.'"', false);
 
         $this->actingAs($admin)->from(route('admin.pickup'))->post(route('admin.pickup.validate'), [
             'pickup_code' => $pickupCode,
@@ -816,7 +820,7 @@ class MarketplaceTest extends TestCase
         $this->assertDatabaseHas('order_fulfillments', [
             'order_id' => $order->id,
             'seller_id' => $firstSeller->id,
-            'status' => 'handed_over',
+            'status' => 'delivered',
             'handed_over_by' => $firstSeller->user->id,
         ]);
         $this->assertDatabaseHas('order_fulfillments', [
@@ -836,15 +840,220 @@ class MarketplaceTest extends TestCase
         $this->assertDatabaseHas('order_fulfillments', [
             'order_id' => $order->id,
             'seller_id' => $secondSeller->id,
-            'status' => 'handed_over',
+            'status' => 'delivered',
         ]);
 
         $this->actingAs($firstSeller->user)
             ->post(route('seller.pickup'), ['pickup_code' => $firstPickupCode])
             ->assertSessionHasErrors([
-                'pickup_code' => 'Grup kelas ini sudah diserahkan.',
+                'pickup_code' => 'QR kelas ini sudah pernah digunakan.',
             ]);
         $this->assertSame('picked_up', $order->fresh()->status);
+    }
+
+    public function test_product_qr_delivers_one_unit_and_class_qr_delivers_all_remaining_units(): void
+    {
+        $buyer = User::factory()->create();
+        $seller = $this->seller('qr-seller@example.test');
+        $product = Product::create([
+            'seller_id' => $seller->id,
+            'name' => 'QR Seed Kit',
+            'slug' => 'qr-seed-kit',
+            'description' => 'Seed kit for QR verification.',
+            'price' => 7000,
+            'stock' => 2,
+            'review_status' => 'approved',
+            'status' => 'published',
+        ]);
+        $secondProduct = Product::create([
+            'seller_id' => $seller->id,
+            'name' => 'QR Clay Pot',
+            'slug' => 'qr-clay-pot',
+            'description' => 'Clay pot for QR verification.',
+            'price' => 9000,
+            'stock' => 1,
+            'review_status' => 'approved',
+            'status' => 'published',
+        ]);
+        $buyer->cartItems()->create(['product_id' => $product->id, 'quantity' => 2]);
+        $buyer->cartItems()->create(['product_id' => $secondProduct->id, 'quantity' => 1]);
+
+        $this->actingAs($buyer)->post(route('checkout'), [
+            'mode' => 'cart',
+            'pickup_contact_name' => $buyer->name,
+            'pickup_contact_phone' => '081234567890',
+            'accepted_terms' => '1',
+        ])->assertRedirect();
+
+        $order = Order::with(['items.units', 'fulfillments'])->firstOrFail();
+        $fulfillment = $order->fulfillments->firstOrFail();
+        $units = $order->items->firstWhere('product_id', $product->id)->units;
+        $secondProductUnit = $order->items->firstWhere('product_id', $secondProduct->id)->units->firstOrFail();
+        $this->assertCount(2, $units);
+        $this->assertNotSame($units[0]->qr_token, $units[1]->qr_token);
+        $this->assertCount(1, $order->fulfillments);
+        $order->update(['status' => 'paid']);
+        $order->ticket()->create(['ticket_code' => 'FXT-QRORDER01', 'issued_at' => now()]);
+
+        $this->actingAs($seller->user)->get(route('seller.pickup.scan'))
+            ->assertOk()
+            ->assertSee('Scan Class QR')
+            ->assertSee('Scan Product QR')
+            ->assertSee('DETAIL SEBELUM KONFIRMASI');
+
+        $this->actingAs($seller->user)->postJson(route('seller.pickup.qr.preview'), [
+            'type' => 'product',
+            'token' => $units[0]->qr_token,
+        ])->assertOk()
+            ->assertJsonPath('data.products.0.name', $product->name)
+            ->assertJsonPath('data.pending_count', 1);
+
+        $this->actingAs($seller->user)->postJson(route('seller.pickup.qr.confirm'), [
+            'type' => 'product',
+            'token' => $units[0]->qr_token,
+        ])->assertOk()
+            ->assertJsonPath('status', 'delivered');
+
+        $this->assertDatabaseHas('order_item_units', ['id' => $units[0]->id, 'status' => 'delivered']);
+        $this->assertDatabaseHas('order_item_units', ['id' => $units[1]->id, 'status' => 'pending']);
+        $this->assertSame('partially_delivered', $fulfillment->fresh()->status);
+        $this->assertSame('partially_picked_up', $order->fresh()->status);
+        $this->actingAs($buyer)->get(route('orders.show', $order))
+            ->assertOk()
+            ->assertSee('Partially Delivered');
+
+        $this->actingAs($seller->user)->postJson(route('seller.pickup.qr.preview'), [
+            'type' => 'class',
+            'token' => $fulfillment->pickup_code,
+        ])->assertOk()
+            ->assertJsonPath('data.pending_count', 2)
+            ->assertJsonPath('data.products.0.delivered_count', 1)
+            ->assertJsonCount(2, 'data.products')
+            ->assertJsonFragment([
+                'name' => $secondProduct->name,
+                'quantity' => 1,
+                'delivered_count' => 0,
+                'pending_count' => 1,
+            ]);
+
+        $this->actingAs($seller->user)->postJson(route('seller.pickup.qr.confirm'), [
+            'type' => 'class',
+            'token' => $fulfillment->pickup_code,
+        ])->assertOk()
+            ->assertJsonPath('status', 'delivered');
+
+        $this->assertSame('picked_up', $order->fresh()->status);
+        $this->assertNotNull($order->fresh()->ticket->picked_up_at);
+        $this->assertDatabaseHas('order_item_units', ['id' => $units[1]->id, 'status' => 'delivered']);
+        $this->assertDatabaseHas('order_item_units', ['id' => $secondProductUnit->id, 'status' => 'delivered']);
+
+        $this->actingAs($seller->user)->postJson(route('seller.pickup.qr.preview'), [
+            'type' => 'product',
+            'token' => $units[0]->qr_token,
+        ])->assertUnprocessable()
+            ->assertJsonValidationErrors(['token' => 'QR produk ini sudah pernah digunakan.']);
+    }
+
+    public function test_seller_cannot_preview_or_confirm_another_sellers_product_qr(): void
+    {
+        $buyer = User::factory()->create();
+        $seller = $this->seller('qr-owner@example.test');
+        $otherSeller = $this->seller('qr-other@example.test');
+        $product = Product::create([
+            'seller_id' => $seller->id,
+            'name' => 'Owned Seed Kit',
+            'slug' => 'owned-seed-kit',
+            'description' => 'Seller-owned seed kit.',
+            'price' => 7000,
+            'stock' => 1,
+            'review_status' => 'approved',
+            'status' => 'published',
+        ]);
+        $buyer->cartItems()->create(['product_id' => $product->id, 'quantity' => 1]);
+
+        $this->actingAs($buyer)->post(route('checkout'), [
+            'mode' => 'cart',
+            'pickup_contact_name' => $buyer->name,
+            'pickup_contact_phone' => '081234567890',
+            'accepted_terms' => '1',
+        ])->assertRedirect();
+
+        $order = Order::with('items.units')->firstOrFail();
+        $unit = $order->items->firstOrFail()->units->firstOrFail();
+        $order->update(['status' => 'paid']);
+        $order->ticket()->create(['ticket_code' => 'FXT-QRORDER02', 'issued_at' => now()]);
+
+        $this->actingAs($otherSeller->user)->postJson(route('seller.pickup.qr.preview'), [
+            'type' => 'product',
+            'token' => $unit->qr_token,
+        ])->assertUnprocessable()
+            ->assertJsonValidationErrors(['token' => 'QR tidak valid atau bukan tanggung jawab seller ini.']);
+
+        $this->actingAs($otherSeller->user)->postJson(route('seller.pickup.qr.confirm'), [
+            'type' => 'product',
+            'token' => $unit->qr_token,
+        ])->assertUnprocessable()
+            ->assertJsonValidationErrors(['token' => 'QR tidak valid atau bukan tanggung jawab seller ini.']);
+
+        $this->assertDatabaseHas('order_item_units', ['id' => $unit->id, 'status' => 'pending']);
+        $this->assertSame('paid', $order->fresh()->status);
+    }
+
+    public function test_checkout_rejects_multiple_sellers_for_the_same_class(): void
+    {
+        $buyer = User::factory()->create();
+        $project = Project::create([
+            'class_name' => 'Kelas QR',
+            'grade' => 8,
+            'title' => 'Proyek QR',
+            'introduction' => 'Proyek kelas untuk verifikasi QR.',
+            'story' => 'Cerita kelas.',
+            'outcome' => 'Produk kelas.',
+        ]);
+        $firstSeller = $this->seller('qr-class-a@example.test');
+        $secondSeller = $this->seller('qr-class-b@example.test');
+        $firstSeller->update(['project_id' => $project->id]);
+        $secondSeller->update(['project_id' => $project->id]);
+        $firstProduct = Product::create([
+            'seller_id' => $firstSeller->id,
+            'project_id' => $project->id,
+            'name' => 'Class QR Product A',
+            'slug' => 'class-qr-product-a',
+            'description' => 'First class product.',
+            'price' => 7000,
+            'stock' => 1,
+            'review_status' => 'approved',
+            'status' => 'published',
+        ]);
+        $secondProduct = Product::create([
+            'seller_id' => $secondSeller->id,
+            'project_id' => $project->id,
+            'name' => 'Class QR Product B',
+            'slug' => 'class-qr-product-b',
+            'description' => 'Second class product.',
+            'price' => 7000,
+            'stock' => 1,
+            'review_status' => 'approved',
+            'status' => 'published',
+        ]);
+        $buyer->cartItems()->createMany([
+            ['product_id' => $firstProduct->id, 'quantity' => 1],
+            ['product_id' => $secondProduct->id, 'quantity' => 1],
+        ]);
+
+        $this->actingAs($buyer)->from(route('checkout.show'))->post(route('checkout'), [
+            'mode' => 'cart',
+            'pickup_contact_name' => $buyer->name,
+            'pickup_contact_phone' => '081234567890',
+            'accepted_terms' => '1',
+        ])->assertSessionHasErrors([
+            'cart' => 'Setiap kelas hanya dapat berisi produk dari satu seller. Pisahkan produk kelas ini pada pesanan berbeda.',
+        ]);
+
+        $this->assertDatabaseCount('orders', 0);
+        $this->assertSame(1, $firstProduct->fresh()->stock);
+        $this->assertSame(1, $secondProduct->fresh()->stock);
+        $this->assertDatabaseCount('cart_items', 2);
     }
 
     public function test_seller_validation_errors_use_indonesian_attribute_names(): void

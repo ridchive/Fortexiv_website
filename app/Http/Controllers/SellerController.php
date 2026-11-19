@@ -3,14 +3,17 @@
 namespace App\Http\Controllers;
 
 use App\Actions\CompleteOrderFulfillment;
+use App\Actions\CompleteOrderQr;
+use App\Actions\PreviewOrderQr;
 use App\Models\Category;
-use App\Models\OrderFulfillment;
 use App\Models\OrderItem;
 use App\Models\Product;
+use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
+use Illuminate\Validation\Rule;
 use Illuminate\View\View;
 
 class SellerController extends Controller
@@ -127,20 +130,54 @@ class SellerController extends Controller
     {
         $seller = $request->user()->seller;
         $items = OrderItem::where('seller_id', $seller->id)
-            ->with(['order.buyer', 'order.payment', 'order.ticket'])
+            ->with(['order.buyer', 'order.payment', 'fulfillment', 'units'])
             ->latest()
             ->paginate(20);
-        $fulfillments = OrderFulfillment::query()
-            ->whereIn('order_id', $items->pluck('order_id'))
-            ->where('seller_id', $seller->id)
-            ->get()
-            ->keyBy('order_id');
-
-        foreach ($items as $item) {
-            $item->setRelation('fulfillment', $fulfillments->get($item->order_id));
-        }
 
         return view('seller.orders', compact('items'));
+    }
+
+    public function qrScan(): View
+    {
+        return view('seller.qr-scan');
+    }
+
+    public function previewQr(Request $request, PreviewOrderQr $previewOrderQr): JsonResponse
+    {
+        $data = $request->validate([
+            'type' => ['required', Rule::in(['class', 'product'])],
+            'token' => ['required', 'string', 'max:80'],
+        ]);
+        $preview = $previewOrderQr->handle(Str::upper(trim($data['token'])), $data['type'], $request->user()->seller);
+
+        return response()->json(['data' => $preview]);
+    }
+
+    public function confirmQr(Request $request, CompleteOrderQr $completeOrderQr): JsonResponse
+    {
+        $data = $request->validate([
+            'type' => ['required', Rule::in(['class', 'product'])],
+            'token' => ['required', 'string', 'max:80'],
+        ]);
+        $token = Str::upper(trim($data['token']));
+        $seller = $request->user()->seller;
+
+        if ($data['type'] === 'class') {
+            $fulfillment = $completeOrderQr->completeClass($token, $seller, $request->user());
+
+            return response()->json([
+                'message' => "Seluruh produk kelas {$fulfillment->class_name} berhasil ditandai Delivered.",
+                'status' => $fulfillment->status,
+            ]);
+        }
+
+        $unit = $completeOrderQr->completeProduct($token, $seller, $request->user());
+        $unit->load('orderItem');
+
+        return response()->json([
+            'message' => "Produk {$unit->orderItem->product_name} berhasil ditandai Delivered.",
+            'status' => $unit->status,
+        ]);
     }
 
     public function pickup(Request $request, CompleteOrderFulfillment $completeOrderFulfillment): RedirectResponse

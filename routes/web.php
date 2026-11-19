@@ -8,6 +8,7 @@ use App\Http\Controllers\AuthController;
 use App\Http\Controllers\MarketplaceController;
 use App\Http\Controllers\SellerController;
 use Illuminate\Support\Facades\Route;
+use Illuminate\Support\Facades\Storage;
 
 Route::get('/', [MarketplaceController::class, 'home'])->name('home');
 Route::get('/impact', [MarketplaceController::class, 'impact'])->name('impact.index');
@@ -22,7 +23,7 @@ Route::get('/projects/{project}', [MarketplaceController::class, 'project'])->na
 
 // Fallback rute file storage untuk shared hosting jika symlink public/storage tidak tersedia
 Route::get('/storage/{path}', function (string $path) {
-    $disk = \Illuminate\Support\Facades\Storage::disk('public');
+    $disk = Storage::disk('public');
     abort_unless($disk->exists($path), 404);
 
     return response()->file($disk->path($path));
@@ -83,6 +84,9 @@ Route::prefix('seller')->name('seller.')->middleware(['auth', 'verified', 'role:
     Route::patch('/products/{product}/submit-review', [SellerController::class, 'submitForReview'])->name('products.submit-review');
     Route::delete('/products/{product}', [SellerController::class, 'destroy'])->name('products.destroy');
     Route::get('/orders', [SellerController::class, 'orders'])->name('orders');
+    Route::get('/pickup/scan', [SellerController::class, 'qrScan'])->name('pickup.scan');
+    Route::post('/pickup/qr/preview', [SellerController::class, 'previewQr'])->name('pickup.qr.preview');
+    Route::post('/pickup/qr/confirm', [SellerController::class, 'confirmQr'])->name('pickup.qr.confirm');
     Route::post('/pickup', [SellerController::class, 'pickup'])->name('pickup');
 });
 

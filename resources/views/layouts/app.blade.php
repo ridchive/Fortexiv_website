@@ -147,8 +147,8 @@
     .pill, .chip { display: inline-flex; align-items: center; padding: 6px 12px; border: 1px solid var(--line); border-radius: 999px; background: var(--soft); color: var(--ink); font-size: 12px; text-decoration: none; }
     .pill.on { border-color: #8CA66E; background: #DCE9C9; color: #264528; }
     .badge { display: inline-flex; align-items: center; padding: 4px 10px; border-radius: 999px; background: var(--info-bg); color: var(--info); font-size: 11px; font-weight: 700; }
-    .badge.paid, .badge.verified, .badge.picked_up, .badge.open, .badge.handed_over { background: var(--good-bg); color: var(--good); }
-    .badge.pending_payment, .badge.waiting_verification, .badge.pending, .badge.upcoming { background: var(--warn-bg); color: var(--warn); }
+    .badge.paid, .badge.verified, .badge.picked_up, .badge.open, .badge.handed_over, .badge.delivered { background: var(--good-bg); color: var(--good); }
+    .badge.pending_payment, .badge.waiting_verification, .badge.pending, .badge.upcoming, .badge.partially_delivered { background: var(--warn-bg); color: var(--warn); }
     .badge.cancelled, .badge.rejected, .badge.closed { background: var(--bad-bg); color: var(--bad); }
     .detail-card, .panel, .box { margin: 16px 0; padding: clamp(18px, 3vw, 28px); }
     .detail-card { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 28px; }
@@ -1287,6 +1287,9 @@
     </div>
   </div>
 </footer>
+@endif
+@if (! app()->runningUnitTests())
+  @vite('resources/js/app.js')
 @endif
 @stack('scripts')
 <script>

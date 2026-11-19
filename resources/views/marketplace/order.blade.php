@@ -38,15 +38,19 @@
   <section aria-labelledby="fulfillment-heading">
     <div class="section-head"><div><span class="eyebrow">PICKUP TERPISAH</span><h2 id="fulfillment-heading">Status per grup kelas</h2></div></div>
     @forelse($order->fulfillments as $fulfillment)
+      @php($classStatusLabel = ['pending' => 'Menunggu pengambilan', 'partially_delivered' => 'Partially Delivered', 'delivered' => 'Delivered'][$fulfillment->status] ?? $fulfillment->status)
       <article class="panel">
         <div class="row sp">
-          <div><span class="eyebrow">GRUP KELAS</span><h3>{{ $fulfillment->seller->project?->class_name ?? $fulfillment->seller->store_name }}</h3></div>
-          <span class="badge {{ $fulfillment->status === 'handed_over' ? 'handed_over' : ($order->status === 'paid' || $order->status === 'partially_picked_up' ? 'pending' : $order->status) }}">
-            {{ $fulfillment->status === 'handed_over' ? 'Sudah diserahkan' : (in_array($order->status, ['paid', 'partially_picked_up'], true) ? 'Menunggu pengambilan' : 'Menunggu pembayaran') }}
-          </span>
+          <div><span class="eyebrow">GRUP KELAS</span><h3>{{ $fulfillment->class_name ?? $fulfillment->project?->class_name ?? $fulfillment->seller->store_name }}</h3></div>
+          <span class="badge {{ $fulfillment->status }}">{{ $classStatusLabel }}</span>
         </div>
-        @foreach($order->items->where('seller_id', $fulfillment->seller_id) as $item)
-          <div class="kv"><span>{{ $item->product_name }} × {{ $item->quantity }}</span><strong>{{ \App\Support\Money::format($item->subtotal) }}</strong></div>
+        @foreach($fulfillment->items as $item)
+          @php($deliveredCount = $item->units->where('status', 'delivered')->count())
+          @php($itemStatus = $deliveredCount === $item->quantity ? 'Delivered' : ($deliveredCount > 0 ? 'Partially Delivered' : 'Menunggu pengambilan'))
+          <div class="kv">
+            <span>{{ $item->product_name }} × {{ $item->quantity }}</span>
+            <strong>{{ \App\Support\Money::format($item->subtotal) }} · {{ $itemStatus }}</strong>
+          </div>
         @endforeach
         @if($fulfillment->handed_over_at)
           <p class="muted">Diserahkan {{ $fulfillment->handed_over_at->format('d/m/Y H:i') }}.</p>
