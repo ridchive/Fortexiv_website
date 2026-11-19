@@ -123,7 +123,7 @@ class AdminContentController extends Controller
         ]);
 
         $path = $request->file('image')->store('articles/content', 'public');
-        $url = Storage::disk('public')->url($path);
+        $url = asset('storage/'.$path);
 
         return response()->json([
             'url' => $url,
