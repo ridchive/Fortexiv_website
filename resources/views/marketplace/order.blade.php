@@ -112,8 +112,21 @@
     </section>
   @endif
 
-  @if($order->ticket)
-    <a class="btn" href="{{ route('tickets.show', $order) }}">Lihat tiket pickup per kelas</a>
+  @if($order->ticket || in_array($order->status, ['paid', 'partially_picked_up', 'picked_up'], true))
+    <section class="panel" style="border: 2px solid var(--good); background: rgba(44, 110, 49, 0.05); margin-top: 20px; padding: 22px;">
+      <div style="display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; gap: 16px;">
+        <div>
+          <span class="badge good" style="margin-bottom: 8px;">PEMBAYARAN LUNAS</span>
+          <h2 style="margin: 0 0 6px;">Tiket & QR Code Pengambilan Siap!</h2>
+          <p class="muted" style="margin: 0; font-size: 14px;">Tunjukkan QR Code ini kepada petugas stan kelas di Hari H untuk mengambil produk Anda.</p>
+        </div>
+        <div>
+          <a class="btn lime" href="{{ route('tickets.show', $order) }}" style="font-size: 14px; padding: 10px 18px; text-decoration: none;">
+            🎟️ Buka Tiket & Tampilkan QR Code Lengkap ➔
+          </a>
+        </div>
+      </div>
+    </section>
   @endif
 </div>
 @endsection

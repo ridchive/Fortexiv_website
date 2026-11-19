@@ -1216,6 +1216,134 @@
       }
     }
   </script>
+@elseif(request()->routeIs('seller.*') || request()->is('seller*'))
+  <div class="admin-layout">
+    <div id="sellerBackdrop" class="admin-backdrop" onclick="toggleSellerSidebar(false)"></div>
+    <aside id="sellerSidebar" class="admin-sidebar">
+      <div class="admin-sidebar-header">
+        <a class="admin-brand" href="{{ route('seller.dashboard') }}">
+          <i class="brand-mark" style="background:var(--lime);"></i>FORTEXIV <span class="admin-brand-tag" style="background:var(--good-bg); color:var(--good); font-weight:800;">Seller</span>
+        </a>
+        <button type="button" class="admin-sidebar-close" onclick="toggleSellerSidebar(false)" aria-label="Tutup Menu">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
+        </button>
+      </div>
+
+      <nav class="admin-sidebar-nav" aria-label="Navigasi seller">
+        <div>
+          <div class="admin-nav-group-title">Manajemen Kelas</div>
+          <ul class="admin-nav-list">
+            <li>
+              <a href="{{ route('seller.dashboard') }}" @class(['admin-nav-item', 'active' => request()->routeIs('seller.dashboard')])>
+                <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor"><rect x="3" y="3" width="7" height="7"></rect><rect x="14" y="3" width="7" height="7"></rect><rect x="14" y="14" width="7" height="7"></rect><rect x="3" y="14" width="7" height="7"></rect></svg>
+                <span>Dashboard</span>
+              </a>
+            </li>
+            <li>
+              <a href="{{ route('seller.products.index') }}" @class(['admin-nav-item', 'active' => request()->routeIs('seller.products.index') || request()->routeIs('seller.products.create') || request()->routeIs('seller.products.edit')])>
+                <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor"><circle cx="9" cy="21" r="1"></circle><circle cx="20" cy="21" r="1"></circle><path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6"></path></svg>
+                <span>Kelola Produk</span>
+              </a>
+            </li>
+            <li>
+              <a href="{{ route('seller.products.status') }}" @class(['admin-nav-item', 'active' => request()->routeIs('seller.products.status')])>
+                <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor"><line x1="18" y1="20" x2="18" y2="10"></line><line x1="12" y1="20" x2="12" y2="4"></line><line x1="6" y1="20" x2="6" y2="14"></line></svg>
+                <span>Status Produk</span>
+              </a>
+            </li>
+          </ul>
+        </div>
+
+        <div>
+          <div class="admin-nav-group-title">Pesanan & Serah Terima</div>
+          <ul class="admin-nav-list">
+            <li>
+              <a href="{{ route('seller.orders') }}" @class(['admin-nav-item', 'active' => request()->routeIs('seller.orders')])>
+                <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="16" y1="13" x2="8" y2="13"></line><line x1="16" y1="17" x2="8" y2="17"></line></svg>
+                <span>Pesanan Kelas</span>
+              </a>
+            </li>
+            <li>
+              <a href="{{ route('seller.pickup.scan') }}" @class(['admin-nav-item', 'active' => request()->routeIs('seller.pickup.scan')])>
+                <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor"><rect x="3" y="3" width="18" height="18" rx="2"></rect><rect x="7" y="7" width="3" height="3"></rect><rect x="14" y="7" width="3" height="3"></rect><rect x="7" y="14" width="3" height="3"></rect><line x1="14" y1="14" x2="17" y2="17"></line></svg>
+                <span>Scan QR</span>
+              </a>
+            </li>
+          </ul>
+        </div>
+      </nav>
+
+      <div class="admin-sidebar-footer">
+        @auth
+          <div class="admin-user-card">
+            <div class="admin-user-avatar" style="background:var(--lime);color:var(--lime-ink);">{{ strtoupper(substr(auth()->user()->seller?->store_name ?? auth()->user()->name, 0, 1)) }}</div>
+            <div class="admin-user-info">
+              <div class="admin-user-name">{{ auth()->user()->seller?->store_name ?? auth()->user()->name }}</div>
+              <div class="admin-user-role">{{ auth()->user()->name }} (Seller)</div>
+            </div>
+          </div>
+        @endauth
+        <div style="display:flex;gap:8px;align-items:center;justify-content:space-between">
+          <button class="ib theme-toggle" type="button" data-theme-toggle aria-label="Aktifkan mode gelap" title="Aktifkan mode gelap" style="border:1px solid var(--line);border-radius:6px;width:34px;height:34px;display:inline-flex;align-items:center;justify-content:center;">
+            <svg class="icon-sun" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="12" r="4"></circle><path d="M12 2v2m0 16v2M4.93 4.93l1.42 1.42m11.3 11.3 1.42 1.42M2 12h2m16 0h2M4.93 19.07l1.42-1.42m11.3-11.3 1.42-1.42"></path></svg>
+            <svg class="icon-moon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M20.5 14.2A8.5 8.5 0 0 1 9.8 3.5 8.5 8.5 0 1 0 20.5 14.2Z"></path></svg>
+          </button>
+          <form method="post" action="{{ route('logout') }}" style="margin:0;flex:1">
+            @csrf
+            <button type="submit" class="btn btn-sm sm" style="width:100%;background:transparent;border:1px solid var(--line);color:var(--muted);font-size:0.8rem">Keluar</button>
+          </form>
+        </div>
+      </div>
+    </aside>
+
+    <div class="admin-main-wrapper">
+      <header class="admin-topbar">
+        @php
+          $sellerSubpage = 'Dashboard';
+          if (request()->routeIs('seller.products.status')) $sellerSubpage = 'Status Produk';
+          elseif (request()->routeIs('seller.products*')) $sellerSubpage = 'Kelola Produk';
+          elseif (request()->routeIs('seller.orders*')) $sellerSubpage = 'Pesanan Kelas';
+          elseif (request()->routeIs('seller.pickup*')) $sellerSubpage = 'Scan QR';
+        @endphp
+        <div class="admin-topbar-left">
+          <button type="button" class="admin-mobile-toggle" onclick="toggleSellerSidebar(true)" aria-label="Buka Menu" title="Buka Menu">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><line x1="3" y1="12" x2="21" y2="12"></line><line x1="3" y1="6" x2="21" y2="6"></line><line x1="3" y1="18" x2="21" y2="18"></line></svg>
+          </button>
+          <div class="admin-page-title-crumb">
+            <span>{{ auth()->user()->seller?->store_name ?? 'Seller' }}</span> — <strong>{{ $sellerSubpage }}</strong>
+          </div>
+        </div>
+        <div class="admin-topbar-right">
+          <a class="admin-topbar-link" href="{{ route('home') }}" target="_blank" title="Lihat Website" aria-label="Lihat Website">
+            <span class="desktop-only">Lihat Website</span>
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" aria-hidden="true"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"></path><polyline points="15 3 21 3 21 9"></polyline><line x1="10" y1="14" x2="21" y2="3"></line></svg>
+          </a>
+        </div>
+      </header>
+
+      <main class="admin-content-body">
+        @if(session('status'))<div class="flash" role="status">{{ session('status') }}</div>@endif
+        @if(session('error'))<div class="panel errors" role="alert">{{ session('error') }}</div>@endif
+        @if($errors->any())<div class="panel errors" role="alert"><strong>Periksa kembali:</strong><ul>@foreach($errors->all() as $error)<li>{{ $error }}</li>@endforeach</ul></div>@endif
+        @yield('content')
+      </main>
+    </div>
+  </div>
+  <script>
+    function toggleSellerSidebar(open) {
+      const sidebar = document.getElementById('sellerSidebar');
+      const backdrop = document.getElementById('sellerBackdrop');
+      if (sidebar && backdrop) {
+        if (open) {
+          sidebar.classList.add('open');
+          backdrop.classList.add('open');
+        } else {
+          sidebar.classList.remove('open');
+          backdrop.classList.remove('open');
+        }
+      }
+    }
+  </script>
 @else
 <header @class(['site-header wrap', 'admin-header' => request()->routeIs('admin.*')])>
   <div class="hd">

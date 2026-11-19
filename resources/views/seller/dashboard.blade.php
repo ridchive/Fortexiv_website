@@ -85,6 +85,7 @@
     <div class="muted" style="font-size: 13px; margin-top: 4px;">Atur nama produk, foto, harga, stok, dan ajukan draf ke admin untuk ditinjau sebelum terbit di katalog.</div>
   </div>
   <div style="display: flex; gap: 10px; flex-wrap: wrap;">
+    <a class="btn sec" href="{{ route('seller.products.status') }}">📊 Status & Rekap Produk</a>
     <a class="btn sec" href="{{ route('seller.products.index') }}">Daftar Produk ({{ $productsCount }})</a>
     <a class="btn" href="{{ route('seller.products.create') }}">+ Tambah Produk</a>
   </div>

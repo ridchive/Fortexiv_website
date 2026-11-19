@@ -39,6 +39,73 @@ class SellerController extends Controller
         return view('seller.products', compact('products'));
     }
 
+    public function productStatus(Request $request): View
+    {
+        $seller = $request->user()->seller;
+        $tab = $request->query('tab', 'totals');
+        $selectedProductId = $request->query('product_id');
+        $sort = $request->query('sort', 'newest');
+
+        $allProducts = $seller->products()->orderBy('name')->get();
+
+        $productsWithStats = $seller->products()
+            ->with(['category', 'orderItems.order', 'orderItems.units'])
+            ->get()
+            ->map(function (Product $product) {
+                $validItems = $product->orderItems->filter(function (OrderItem $item) {
+                    return in_array($item->order?->status, ['paid', 'partially_picked_up', 'picked_up'], true);
+                });
+
+                $soldUnits = $validItems->sum('quantity');
+                $revenue = $validItems->sum('subtotal');
+
+                $deliveredUnits = 0;
+                $pendingUnits = 0;
+                foreach ($validItems as $item) {
+                    $deliveredUnits += $item->units->where('status', 'delivered')->count();
+                    $pendingUnits += $item->units->where('status', 'pending')->count();
+                }
+
+                return [
+                    'product' => $product,
+                    'stock' => $product->stock,
+                    'sold_units' => $soldUnits,
+                    'delivered_units' => $deliveredUnits,
+                    'pending_units' => $pendingUnits,
+                    'revenue' => $revenue,
+                ];
+            });
+
+        $salesQuery = OrderItem::query()
+            ->where('seller_id', $seller->id)
+            ->whereHas('order', function ($q) {
+                $q->whereIn('status', ['paid', 'partially_picked_up', 'picked_up']);
+            })
+            ->with(['order.buyer', 'product', 'units']);
+
+        if (filled($selectedProductId)) {
+            $salesQuery->where('product_id', $selectedProductId);
+        }
+
+        if ($sort === 'oldest') {
+            $salesQuery->oldest();
+        } else {
+            $salesQuery->latest();
+        }
+
+        $sales = $salesQuery->paginate(20)->withQueryString();
+
+        return view('seller.product-status', [
+            'seller' => $seller,
+            'tab' => $tab,
+            'allProducts' => $allProducts,
+            'productsWithStats' => $productsWithStats,
+            'sales' => $sales,
+            'selectedProductId' => $selectedProductId,
+            'sort' => $sort,
+        ]);
+    }
+
     public function create(Request $request): View
     {
         return view('seller.product-form', [

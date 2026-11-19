@@ -492,6 +492,12 @@ class MarketplaceController extends Controller
     public function order(Request $request, Order $order): View
     {
         abort_unless($order->buyer_id === $request->user()->id, 404);
+        if (in_array($order->status, ['paid', 'partially_picked_up', 'picked_up'], true) && ! $order->ticket()->exists()) {
+            $order->ticket()->create([
+                'ticket_code' => 'FXT-'.Str::upper(Str::random(12)),
+                'issued_at' => now(),
+            ]);
+        }
         $order->load(['buyer', 'fulfillments.seller.project', 'fulfillments.project', 'fulfillments.items.units', 'payment', 'ticket']);
 
         return view('marketplace.order', compact('order'));
@@ -598,6 +604,12 @@ class MarketplaceController extends Controller
     public function ticket(Request $request, Order $order): View
     {
         abort_unless($order->buyer_id === $request->user()->id, 404);
+        if (in_array($order->status, ['paid', 'partially_picked_up', 'picked_up'], true) && ! $order->ticket()->exists()) {
+            $order->ticket()->create([
+                'ticket_code' => 'FXT-'.Str::upper(Str::random(12)),
+                'issued_at' => now(),
+            ]);
+        }
         abort_unless($order->ticket()->exists(), 404);
         $order->load(['fulfillments.seller.project', 'fulfillments.project', 'fulfillments.items.units', 'ticket']);
 

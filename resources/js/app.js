@@ -105,18 +105,41 @@ if (scannerPage) {
         scannerRunning = false;
     };
 
+    const detectQrType = (token) => {
+        if (!token) return activeType || 'class';
+        const clean = token.trim().toUpperCase();
+        if (clean.startsWith('FTXP-')) return 'product';
+        if (clean.startsWith('FTXC-')) return 'class';
+        return activeType || 'class';
+    };
+
     const showPreview = (data) => {
-        preview.querySelector('[data-qr-order]').textContent = `Order ID: ${data.order_code}`;
-        preview.querySelector('[data-qr-class]').textContent = data.class_name;
-        preview.querySelector('[data-qr-pending]').textContent = data.pending_count;
+        if (preview.querySelector('[data-qr-order]')) {
+            preview.querySelector('[data-qr-order]').textContent = `Order ID: ${data.order_code}`;
+        }
+        if (preview.querySelector('[data-qr-buyer]')) {
+            preview.querySelector('[data-qr-buyer]').textContent = data.buyer_name || '—';
+        }
+        if (preview.querySelector('[data-qr-phone]')) {
+            preview.querySelector('[data-qr-phone]').textContent = data.buyer_phone || '—';
+        }
+        if (preview.querySelector('[data-qr-class]')) {
+            preview.querySelector('[data-qr-class]').textContent = data.class_name;
+        }
+        if (preview.querySelector('[data-qr-pending]')) {
+            preview.querySelector('[data-qr-pending]').textContent = `${data.pending_count} unit`;
+        }
 
         const products = preview.querySelector('[data-qr-products]');
-        products.replaceChildren();
-        data.products.forEach((product) => {
-            const item = document.createElement('li');
-            item.textContent = `${product.name} × ${product.quantity} — ${product.delivered_count} Delivered, ${product.pending_count} belum diserahkan`;
-            products.append(item);
-        });
+        if (products) {
+            products.replaceChildren();
+            data.products.forEach((product) => {
+                const item = document.createElement('li');
+                item.style.marginBottom = '6px';
+                item.innerHTML = `<strong>${product.name}</strong> × ${product.quantity} unit &middot; <span class="badge ${product.pending_count === 0 ? 'good' : 'warn'}">${product.delivered_count} Delivered, ${product.pending_count} belum diserahkan</span>`;
+                products.append(item);
+            });
+        }
 
         preview.hidden = false;
         confirmButton.disabled = false;
@@ -125,14 +148,25 @@ if (scannerPage) {
     const previewToken = async (token) => {
         activeToken = token.trim();
         tokenInput.value = activeToken;
+        activeType = detectQrType(activeToken);
         preview.hidden = true;
         setMessage('Memeriksa QR…');
 
         try {
-            const payload = await post(scannerPage.dataset.previewUrl, {
-                type: activeType,
-                token: activeToken,
-            });
+            let payload;
+            try {
+                payload = await post(scannerPage.dataset.previewUrl, {
+                    type: activeType,
+                    token: activeToken,
+                });
+            } catch (firstErr) {
+                const altType = activeType === 'class' ? 'product' : 'class';
+                payload = await post(scannerPage.dataset.previewUrl, {
+                    type: altType,
+                    token: activeToken,
+                });
+                activeType = altType;
+            }
 
             showPreview(payload.data);
             setMessage('Periksa detail produk, lalu konfirmasikan penyerahan.', 'info');
@@ -195,14 +229,14 @@ if (scannerPage) {
 
     manualForm.addEventListener('submit', async (event) => {
         event.preventDefault();
-
-        if (!activeType) {
-            setMessage('Pilih Scan Class QR atau Scan Product QR terlebih dahulu.', 'warn');
-
+        const val = tokenInput.value.trim();
+        if (!val) {
+            setMessage('Masukkan kode token terlebih dahulu.', 'warn');
             return;
         }
 
-        await previewToken(tokenInput.value);
+        activeType = detectQrType(val);
+        await previewToken(val);
     });
 
     confirmButton.addEventListener('click', async () => {

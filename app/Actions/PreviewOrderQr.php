@@ -62,6 +62,9 @@ class PreviewOrderQr
             return [
                 'type' => 'class',
                 'order_code' => $fulfillment->order->order_code,
+                'buyer_name' => $fulfillment->order->pickup_contact_name ?? $fulfillment->order->buyer?->name ?? 'Pembeli',
+                'buyer_phone' => $fulfillment->order->pickup_contact_phone ?? $fulfillment->order->buyer?->phone ?? '—',
+                'pickup_contact_name' => $fulfillment->order->pickup_contact_name ?? $fulfillment->order->buyer?->name ?? '—',
                 'class_name' => $fulfillment->class_name ?? $fulfillment->project?->class_name ?? $fulfillment->seller->store_name,
                 'status' => $fulfillment->status,
                 'pending_count' => $pendingCount,
@@ -71,7 +74,7 @@ class PreviewOrderQr
 
         $unit = OrderItemUnit::query()
             ->where('qr_token', $token)
-            ->with(['orderItem.fulfillment.project', 'orderItem.fulfillment.seller', 'orderItem.order'])
+            ->with(['orderItem.fulfillment.project', 'orderItem.fulfillment.seller', 'orderItem.order.buyer'])
             ->first();
 
         if (! $unit || $unit->orderItem->seller_id !== $seller->id) {
@@ -89,6 +92,9 @@ class PreviewOrderQr
         return [
             'type' => 'product',
             'order_code' => $unit->orderItem->order->order_code,
+            'buyer_name' => $unit->orderItem->order->pickup_contact_name ?? $unit->orderItem->order->buyer?->name ?? 'Pembeli',
+            'buyer_phone' => $unit->orderItem->order->pickup_contact_phone ?? $unit->orderItem->order->buyer?->phone ?? '—',
+            'pickup_contact_name' => $unit->orderItem->order->pickup_contact_name ?? $unit->orderItem->order->buyer?->name ?? '—',
             'class_name' => $fulfillment?->class_name ?? $fulfillment?->project?->class_name ?? $fulfillment?->seller?->store_name ?? 'Kelas',
             'status' => $unit->status,
             'pending_count' => 1,

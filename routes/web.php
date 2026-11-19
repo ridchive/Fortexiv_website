@@ -77,6 +77,7 @@ Route::middleware(['auth', 'verified', 'role:buyer'])->group(function () {
 Route::prefix('seller')->name('seller.')->middleware(['auth', 'verified', 'role:seller'])->group(function () {
     Route::get('/', [SellerController::class, 'dashboard'])->name('dashboard');
     Route::get('/products', [SellerController::class, 'products'])->name('products.index');
+    Route::get('/products/status', [SellerController::class, 'productStatus'])->name('products.status');
     Route::get('/products/create', [SellerController::class, 'create'])->name('products.create');
     Route::post('/products', [SellerController::class, 'store'])->name('products.store');
     Route::get('/products/{product}/edit', [SellerController::class, 'edit'])->name('products.edit');
