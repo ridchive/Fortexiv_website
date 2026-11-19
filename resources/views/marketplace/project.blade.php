@@ -22,6 +22,8 @@
       <p>{{ $project->introduction }}</p>
       <div class="section-actions">
         <a class="btn" href="{{ route('catalog.index', ['class' => $project->id]) }}">Lihat produk kelas ini</a>
+        <a class="btn sec" href="{{ route('preview.laptop') }}" target="_blank" rel="noopener">Pratinjau laptop</a>
+        <a class="btn sec" href="{{ route('preview.mobile') }}" target="_blank" rel="noopener">Pratinjau HP</a>
         <a class="btn sec" href="{{ route('projects.index') }}">Kembali ke proyek</a>
       </div>
     </div>
