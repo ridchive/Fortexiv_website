@@ -32,6 +32,17 @@
     color: var(--dark, #0F140F);
     transform: translateX(-3px);
   }
+  .project-story .article-prose img {
+    display: block;
+    max-width: min(100%, 460px);
+    max-height: 420px;
+    width: auto;
+    height: auto;
+    object-fit: cover;
+    border-radius: 12px;
+    margin: 1.8rem auto;
+    box-shadow: 0 4px 14px rgba(0, 0, 0, 0.08);
+  }
 </style>
 <div class="wrap">
   <nav class="crumb"><a href="{{ route('home', absolute: false) }}">Beranda</a> / <a href="{{ route('projects.index') }}">Proyek</a> / <span>{{ $project->title }}</span></nav>

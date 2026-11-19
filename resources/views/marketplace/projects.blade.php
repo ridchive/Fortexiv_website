@@ -3,6 +3,21 @@
 @section('title', 'Proyek kelas — FORTEXIV')
 
 @section('content')
+<style>
+  .filters .pill {
+    max-width: 260px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+  .story .chip {
+    align-self: flex-start;
+    max-width: 100%;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+</style>
 <div class="wrap">
   <div class="pgh">
     <nav class="crumb"><a href="{{ route('home') }}">Beranda</a> / <span>Proyek</span></nav>
@@ -13,7 +28,7 @@
   <div class="filters" role="group" aria-label="Filter kelas">
     <a class="pill {{ request('class') ? '' : 'on' }}" href="{{ route('projects.index') }}">Semua kelas</a>
     @foreach($classes as $class)
-      <a class="pill {{ (string) request('class') === (string) $class->id ? 'on' : '' }}" href="{{ route('projects.index', ['class' => $class->id]) }}">{{ $class->class_name }}</a>
+      <a class="pill {{ (string) request('class') === (string) $class->id ? 'on' : '' }}" href="{{ route('projects.index', ['class' => $class->id]) }}" title="{{ $class->class_name }}">{{ Str::limit($class->class_name, 28) }}</a>
     @endforeach
   </div>
 
@@ -21,7 +36,7 @@
     @forelse($projects as $project)
       <a class="story" href="{{ route('projects.show', $project) }}">
         <div class="im">@include('marketplace.partials.project-photo', ['project' => $project])</div>
-        <span class="chip">{{ $project->class_name }}</span>
+        <span class="chip" title="{{ $project->class_name }}">{{ Str::limit($project->class_name, 28) }}</span>
         <h3>{{ $project->title }}</h3>
         <p>{{ $project->introduction }}</p>
         <span class="btn sec sm" style="align-self:flex-start">Baca proyek · {{ $project->published_products_count }} produk</span>

@@ -69,7 +69,7 @@
       @forelse($projects as $project)
         <a class="story" href="{{ route('projects.show', $project) }}">
           <div class="im">@include('marketplace.partials.project-photo', ['project' => $project])</div>
-          <span class="chip">{{ $project->class_name }}</span>
+          <span class="chip" title="{{ $project->class_name }}">{{ Str::limit($project->class_name, 28) }}</span>
           <h3>{{ $project->title }}</h3>
           <p>{{ $project->introduction }}</p>
           <span class="btn sec sm" style="align-self:flex-start">Baca proyek</span>
