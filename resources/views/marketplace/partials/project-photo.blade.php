@@ -11,5 +11,5 @@
       default => 'https://images.unsplash.com/photo-1501004318641-b39e6451bec6?auto=format&fit=crop&w=1000&q=80',
   };
 @endphp
-<img class="{{ $class ?? '' }} project-photo" src="{{ $referencePhoto }}" alt="{{ $alt ?? 'Foto referensi proyek '.$project->title }}" loading="lazy" onerror="this.hidden = true; this.nextElementSibling.hidden = false">
+<img class="{{ $class ?? '' }} project-photo" src="{{ $referencePhoto }}" alt="{{ $alt ?? 'Foto referensi proyek '.$project->title }}" loading="lazy" onerror="this.style.display='none'; if(this.nextElementSibling){ this.nextElementSibling.hidden=false; this.nextElementSibling.style.display='block'; }">
 @include('marketplace.partials.project-art', ['project' => $project, 'class' => $class ?? '', 'hidden' => true])

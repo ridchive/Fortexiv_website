@@ -44,6 +44,16 @@
         <label for="article_body">Isi Artikel (Mendukung Markdown)</label>
         <span class="muted small">Gunakan ## judul, - poin, atau &gt; kutipan.</span>
       </div>
+      <div class="editor-toolbar">
+        <div class="editor-toolbar-actions">
+          <input class="sr-only" id="article-image-upload-input" type="file" accept="image/*" data-article-image-input>
+          <label class="btn sec sm" for="article-image-upload-input" style="cursor: pointer; display: inline-flex; align-items: center; gap: 6px;">
+            <span>📷 Sisipkan Foto</span>
+          </label>
+          <span class="editor-status-text" data-article-image-status role="status" aria-live="polite"></span>
+        </div>
+        <span class="muted small">💡 Tip: Bisa langsung <strong>Drag &amp; Drop</strong> atau <strong>Paste (Ctrl+V)</strong> foto ke editor</span>
+      </div>
       <textarea class="input markdown-editor" id="article_body" name="article_body" rows="16" maxlength="50000" data-article-body>{{ old('article_body', $project->contentAsMarkdown()) }}</textarea>
       @error('article_body')<p class="errors">{{ $message }}</p>@enderror
       @error('md_file')<p class="errors">{{ $message }}</p>@enderror
@@ -131,6 +141,149 @@
           markdownFileStatus.textContent = 'File tidak dapat dibaca.';
         });
         reader.readAsText(selectedFile);
+      });
+    }
+
+    const articleImageInput = document.querySelector('[data-article-image-input]');
+    const articleImageStatus = document.querySelector('[data-article-image-status]');
+    const articleImageUploadUrl = @json(route('admin.articles.upload-image'));
+    const csrfToken = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content');
+
+    function insertAtCursor(textarea, textToInsert) {
+      const start = textarea.selectionStart ?? textarea.value.length;
+      const end = textarea.selectionEnd ?? textarea.value.length;
+      const originalValue = textarea.value;
+
+      textarea.value = originalValue.substring(0, start) + textToInsert + originalValue.substring(end);
+      textarea.selectionStart = textarea.selectionEnd = start + textToInsert.length;
+      textarea.focus();
+      textarea.dispatchEvent(new Event('input', { bubbles: true }));
+    }
+
+    function replacePlaceholder(textarea, placeholder, replacement) {
+      const idx = textarea.value.indexOf(placeholder);
+      if (idx !== -1) {
+        textarea.value = textarea.value.replace(placeholder, replacement);
+        textarea.selectionStart = textarea.selectionEnd = idx + replacement.length;
+        textarea.focus();
+        textarea.dispatchEvent(new Event('input', { bubbles: true }));
+      } else {
+        insertAtCursor(textarea, replacement);
+      }
+    }
+
+    async function uploadArticleImage(file) {
+      if (!file || !file.type.startsWith('image/')) {
+        if (articleImageStatus) {
+          articleImageStatus.classList.add('err');
+          articleImageStatus.textContent = 'File harus berupa gambar (JPG, PNG, WebP, GIF).';
+        }
+        return;
+      }
+
+      if (file.size > 5 * 1024 * 1024) {
+        if (articleImageStatus) {
+          articleImageStatus.classList.add('err');
+          articleImageStatus.textContent = 'Ukuran gambar maksimal 5 MB.';
+        }
+        return;
+      }
+
+      const tempId = `uploading_${Date.now()}`;
+      const placeholder = `\n\n![Mengunggah ${file.name || 'foto'}...](${tempId})\n\n`;
+      insertAtCursor(articleBody, placeholder);
+
+      if (articleImageStatus) {
+        articleImageStatus.classList.remove('err');
+        articleImageStatus.textContent = `Mengunggah ${file.name || 'foto'}...`;
+      }
+
+      const formData = new FormData();
+      formData.append('image', file);
+
+      try {
+        const response = await fetch(articleImageUploadUrl, {
+          method: 'POST',
+          headers: {
+            'X-CSRF-TOKEN': csrfToken,
+            'Accept': 'application/json',
+          },
+          body: formData,
+        });
+
+        if (!response.ok) {
+          const errData = await response.json().catch(() => ({}));
+          throw new Error(errData.message || 'Gagal mengunggah gambar.');
+        }
+
+        const data = await response.json();
+        const altText = (file.name || 'Foto artikel').replace(/\.[^/.]+$/, '');
+        const markdownImage = `\n\n![${altText}](${data.url})\n\n`;
+
+        replacePlaceholder(articleBody, placeholder, markdownImage);
+
+        if (articleImageStatus) {
+          articleImageStatus.classList.remove('err');
+          articleImageStatus.textContent = 'Foto berhasil disisipkan!';
+          setTimeout(() => {
+            if (articleImageStatus.textContent === 'Foto berhasil disisipkan!') {
+              articleImageStatus.textContent = '';
+            }
+          }, 4000);
+        }
+      } catch (err) {
+        replacePlaceholder(articleBody, placeholder, '');
+        if (articleImageStatus) {
+          articleImageStatus.classList.add('err');
+          articleImageStatus.textContent = err.message || 'Gagal mengunggah foto.';
+        }
+      }
+    }
+
+    if (articleBody) {
+      ['dragenter', 'dragover'].forEach(eventName => {
+        articleBody.addEventListener(eventName, (e) => {
+          e.preventDefault();
+          e.stopPropagation();
+          articleBody.classList.add('drag-over');
+        });
+      });
+
+      ['dragleave', 'drop'].forEach(eventName => {
+        articleBody.addEventListener(eventName, (e) => {
+          e.preventDefault();
+          e.stopPropagation();
+          articleBody.classList.remove('drag-over');
+        });
+      });
+
+      articleBody.addEventListener('drop', (e) => {
+        const files = Array.from(e.dataTransfer?.files || []).filter(f => f.type.startsWith('image/'));
+        if (files.length > 0) {
+          files.forEach(uploadArticleImage);
+        }
+      });
+
+      articleBody.addEventListener('paste', (e) => {
+        const items = Array.from(e.clipboardData?.items || []);
+        const imageItem = items.find(item => item.type.startsWith('image/'));
+        if (imageItem) {
+          const file = imageItem.getAsFile();
+          if (file) {
+            e.preventDefault();
+            uploadArticleImage(file);
+          }
+        }
+      });
+    }
+
+    if (articleImageInput) {
+      articleImageInput.addEventListener('change', () => {
+        const file = articleImageInput.files?.[0];
+        if (file) {
+          uploadArticleImage(file);
+          articleImageInput.value = '';
+        }
       });
     }
 

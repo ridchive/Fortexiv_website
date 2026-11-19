@@ -5,7 +5,7 @@
 @section('content')
 <div class="wrap">
   <nav class="crumb"><a href="{{ route('home', absolute: false) }}">Beranda</a> / <a href="{{ route('projects.index') }}">Proyek</a> / <span>{{ $project->title }}</span></nav>
-  <article class="detail-card">
+  <article class="detail-card project-detail-card">
     <div class="detail-image">
       @if($project->image)
         <img src="{{ Storage::disk('public')->url($project->image) }}" alt="{{ $project->title }}">
@@ -16,7 +16,6 @@
     <div class="detail-copy">
       <div class="row">
         <span class="chip">{{ $project->class_name }}</span>
-        <span class="muted">KELAS {{ $project->grade }}</span>
       </div>
       <h1>{{ $project->title }}</h1>
       <p>{{ $project->introduction }}</p>
@@ -29,27 +28,11 @@
     </div>
   </article>
 
-  <div class="two">
-    <article class="panel project-story">
-      <div class="article-prose">
-        {!! Str::markdown($project->contentAsMarkdown(), ['html_input' => 'strip', 'allow_unsafe_links' => false]) !!}
-      </div>
-    </article>
-    <aside>
-      @include('marketplace.partials.po-notice', ['window' => $window])
-      <section class="panel">
-        <h2>PO dan pengambilan</h2>
-        <p>Semua kelas memakai satu periode PO. Tidak ada pengiriman; produk diambil langsung saat acara.</p>
-        @if($window['eventAt'])
-          <p><strong>Hari H:</strong> {{ $window['eventAt']->format('d/m/Y H:i') }}</p>
-        @endif
-        @if($window['location'])
-          <p><strong>Lokasi:</strong> {{ $window['location'] }}</p>
-        @endif
-        <a href="{{ route('help') }}">Petunjuk pengambilan →</a>
-      </section>
-    </aside>
-  </div>
+  <article class="panel project-story full-width">
+    <div class="article-prose">
+      {!! Str::markdown($project->contentAsMarkdown(), ['html_input' => 'strip', 'allow_unsafe_links' => false]) !!}
+    </div>
+  </article>
 
   <section aria-labelledby="related-products-heading">
     <div class="section-head">

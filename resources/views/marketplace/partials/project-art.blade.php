@@ -6,7 +6,7 @@
       default => ['#F8E8AE', '#E3B63F', '#8B6310'],
   };
 @endphp
-<svg class="{{ $class ?? '' }}" viewBox="0 0 400 300" role="img" aria-label="Ilustrasi proyek {{ $project->title }}" @if($hidden ?? false) hidden @endif>
+<svg class="{{ $class ?? '' }}" viewBox="0 0 400 300" role="img" aria-label="Ilustrasi proyek {{ $project->title }}" @if($hidden ?? false) hidden style="display: none;" @endif>
   <rect width="400" height="300" fill="{{ $projectPalette[0] }}"/>
   <circle cx="326" cy="66" r="86" fill="{{ $projectPalette[1] }}" opacity=".25"/>
   <circle cx="64" cy="258" r="72" fill="{{ $projectPalette[2] }}" opacity=".14"/>

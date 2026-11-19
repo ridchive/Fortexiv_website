@@ -117,6 +117,7 @@ Route::prefix('admin')->name('admin.')->middleware(['auth', 'verified', 'role:ad
     Route::patch('/articles/{project}/archive', [AdminContentController::class, 'archiveArticle'])->name('articles.archive');
     Route::patch('/articles/{project}/publish', [AdminContentController::class, 'publishArticle'])->name('articles.publish');
     Route::delete('/articles/{project}', [AdminContentController::class, 'destroyArticle'])->name('articles.destroy');
+    Route::post('/articles/upload-image', [AdminContentController::class, 'uploadArticleImage'])->name('articles.upload-image');
     Route::get('/products', [AdminContentController::class, 'products'])->name('products.index');
     Route::get('/products/{product}/review', [AdminContentController::class, 'reviewProduct'])->name('products.review');
     Route::put('/products/{product}/review', [AdminContentController::class, 'decideProduct'])->name('products.decide');

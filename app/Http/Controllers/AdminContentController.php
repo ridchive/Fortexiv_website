@@ -6,6 +6,7 @@ use App\Models\EventSetting;
 use App\Models\Product;
 use App\Models\Project;
 use App\Models\Seller;
+use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Storage;
@@ -113,6 +114,21 @@ class AdminContentController extends Controller
         $project->delete();
 
         return redirect()->route('admin.articles.index')->with('status', 'Artikel proyek "'.$title.'" berhasil dihapus.');
+    }
+
+    public function uploadArticleImage(Request $request): JsonResponse
+    {
+        $request->validate([
+            'image' => ['required', 'image', 'mimes:jpg,jpeg,png,webp,gif', 'max:5120'],
+        ]);
+
+        $path = $request->file('image')->store('articles/content', 'public');
+        $url = Storage::disk('public')->url($path);
+
+        return response()->json([
+            'url' => $url,
+            'name' => $request->file('image')->getClientOriginalName(),
+        ]);
     }
 
     public function products(Request $request): View
