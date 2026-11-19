@@ -146,7 +146,7 @@
 
     const articleImageInput = document.querySelector('[data-article-image-input]');
     const articleImageStatus = document.querySelector('[data-article-image-status]');
-    const articleImageUploadUrl = @json(route('admin.articles.upload-image'));
+    const articleImageUploadUrl = @json(url('/admin/articles/upload-image'));
     const csrfToken = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content');
 
     function insertAtCursor(textarea, textToInsert) {
