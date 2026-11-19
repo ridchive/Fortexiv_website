@@ -29,7 +29,7 @@
           <p>{{ config('marketplace.pickup_instructions') }}</p>
         @endif
         @if($order->terms_accepted_at)
-          <p class="muted">Terms of Service versi {{ $order->terms_version }} disetujui pada {{ $order->terms_accepted_at->format('d/m/Y H:i') }}.</p>
+          <p class="muted">Terms of Service disetujui pada {{ $order->terms_accepted_at->format('d/m/Y H:i') }}.</p>
         @endif
       </div>
     </div>
