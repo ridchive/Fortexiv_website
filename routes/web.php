@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Controllers\AdminClassController;
 use App\Http\Controllers\AdminContentController;
 use App\Http\Controllers\AdminController;
 use App\Http\Controllers\AdminEventController;
@@ -98,6 +99,11 @@ Route::prefix('admin')->name('admin.')->middleware(['auth', 'verified', 'role:ad
     Route::get('/reports/daily', [AdminController::class, 'report'])->name('reports');
     Route::get('/event-settings', [AdminEventController::class, 'edit'])->name('event.edit');
     Route::put('/event-settings', [AdminEventController::class, 'update'])->name('event.update');
+    Route::get('/classes', [AdminClassController::class, 'index'])->name('classes.index');
+    Route::post('/classes', [AdminClassController::class, 'store'])->name('classes.store');
+    Route::put('/classes/{project}', [AdminClassController::class, 'update'])->name('classes.update');
+    Route::delete('/classes/{project}', [AdminClassController::class, 'destroy'])->name('classes.destroy');
+    Route::post('/classes/initialize-defaults', [AdminClassController::class, 'initializeDefaults'])->name('classes.initialize');
     Route::put('/impact', [AdminContentController::class, 'updateImpact'])->name('impact.update');
     Route::get('/articles', [AdminContentController::class, 'articles'])->name('articles.index');
     Route::get('/articles/create', [AdminContentController::class, 'createArticle'])->name('articles.create');
@@ -106,6 +112,7 @@ Route::prefix('admin')->name('admin.')->middleware(['auth', 'verified', 'role:ad
     Route::put('/articles/{project}', [AdminContentController::class, 'updateArticle'])->name('articles.update');
     Route::patch('/articles/{project}/archive', [AdminContentController::class, 'archiveArticle'])->name('articles.archive');
     Route::patch('/articles/{project}/publish', [AdminContentController::class, 'publishArticle'])->name('articles.publish');
+    Route::delete('/articles/{project}', [AdminContentController::class, 'destroyArticle'])->name('articles.destroy');
     Route::get('/products', [AdminContentController::class, 'products'])->name('products.index');
     Route::get('/products/{product}/review', [AdminContentController::class, 'reviewProduct'])->name('products.review');
     Route::put('/products/{product}/review', [AdminContentController::class, 'decideProduct'])->name('products.decide');

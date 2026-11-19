@@ -8,8 +8,21 @@
   <p class="muted">Konten artikel, cerita, publikasi, dan relasi produk hanya dapat diubah oleh Admin.</p>
   <form method="post" enctype="multipart/form-data" action="{{ $project->exists ? route('admin.articles.update', $project) : route('admin.articles.store') }}">
     @csrf @if($project->exists) @method('PUT') @endif
-    <div class="field"><label for="class_name">Nama kelas</label><input class="input" id="class_name" name="class_name" value="{{ old('class_name', $project->class_name) }}" maxlength="100" required></div>
-    <div class="field"><label for="grade">Tingkat kelas</label><input class="input" id="grade" name="grade" type="number" min="1" max="12" value="{{ old('grade', $project->grade) }}" required></div>
+    <div class="field">
+      <label for="class_name">Nama kelas</label>
+      <select class="input" id="class_name" name="class_name" required>
+        <option value="">-- Pilih Nama Kelas --</option>
+        @foreach($availableClasses as $c)
+          <option value="{{ $c->class_name }}" @selected(old('class_name', $project->class_name) === $c->class_name)>
+            {{ $c->class_name }} (No. Akun: #{{ $c->grade }})
+          </option>
+        @endforeach
+        @if($project->class_name && !$availableClasses->contains('class_name', $project->class_name))
+          <option value="{{ $project->class_name }}" selected>{{ $project->class_name }}</option>
+        @endif
+      </select>
+      <p class="muted small" style="margin-top: 4px;">Pilih nama kelas yang terdaftar dari Kelola Kelas.</p>
+    </div>
     <div class="field"><label for="title">Judul artikel</label><input class="input" id="title" name="title" value="{{ old('title', $project->title) }}" maxlength="160" required></div>
     <div class="field"><label for="introduction">Ringkasan</label><textarea class="input" id="introduction" name="introduction" maxlength="2000" required>{{ old('introduction', $project->introduction) }}</textarea></div>
     <div class="upload-box md-upload-box">
@@ -49,19 +62,30 @@
         <label class="chk" style="margin:0;"><input type="checkbox" name="remove_image" value="1"><span>Hapus gambar sampul saat ini</span></label>
       @endif
     </div>
-    <fieldset class="panel"><legend>Produk terkait</legend><p class="muted">Pilih produk yang terkait dengan cerita proyek ini agar pembeli dapat langsung memesan dari halaman artikel.</p>
-      <div style="display:grid; grid-template-columns:repeat(auto-fill, minmax(280px, 1fr)); gap:10px; margin-top:10px;">
-        @foreach($products as $productOption)
-          <label class="chk" style="padding:8px 12px; background:var(--bg); border:1px solid var(--line); border-radius:6px; display:flex; align-items:flex-start; gap:8px;">
-            <input type="checkbox" name="product_ids[]" value="{{ $productOption->id }}" @checked(in_array($productOption->id, old('product_ids', $project->exists ? $project->products->pluck('id')->all() : [])))>
-            <span>
-              <strong>{{ $productOption->name }}</strong><br>
-              <span class="muted" style="font-size:12px;">{{ $productOption->seller->project?->class_name ?? $productOption->seller->store_name }} &middot; {{ \App\Support\Money::format($productOption->price) }}</span>
-            </span>
-          </label>
-        @endforeach
+    @php
+      $classProducts = \App\Models\Product::whereHas('seller', function ($q) use ($project) {
+          $q->where('project_id', $project->id)
+            ->orWhere('store_name', $project->class_name);
+      })->orWhere('project_id', $project->id)->get();
+    @endphp
+    @if($classProducts->isNotEmpty())
+      <div class="panel" style="margin-bottom: 20px;">
+        <div class="eyebrow">PRODUK TERKAIT KELAS (OTOMATIS)</div>
+        <p class="muted" style="margin-bottom: 12px; font-size: 13px;">
+          Produk berikut otomatis terhubung berdasarkan kepemilikan kelas (<strong>{{ $project->class_name }}</strong>):
+        </p>
+        <div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(240px, 1fr)); gap: 10px;">
+          @foreach($classProducts as $cp)
+            <div style="padding: 10px 14px; background: var(--bg); border: 1px solid var(--line); border-radius: 6px;">
+              <div style="font-weight: 700; font-size: 14px;">{{ $cp->name }}</div>
+              <div class="muted" style="font-size: 12px; margin-top: 2px;">
+                {{ \App\Support\Money::format($cp->price) }} &middot; Stok: {{ $cp->stock }}
+              </div>
+            </div>
+          @endforeach
+        </div>
       </div>
-    </fieldset>
+    @endif
     <label class="chk"><input type="checkbox" name="is_published" value="1" @checked(old('is_published', $project->exists ? $project->is_published : true))><span>Publikasikan artikel untuk umum</span></label>
     <div class="stack" style="display:flex; flex-wrap:wrap; gap:10px; align-items:center;">
       <button class="btn" type="submit">Simpan artikel</button>

@@ -61,4 +61,9 @@ class Project extends Model
     {
         return $this->hasMany(Seller::class);
     }
+
+    public function seller(): \Illuminate\Database\Eloquent\Relations\HasOne
+    {
+        return $this->hasOne(Seller::class)->latestOfMany();
+    }
 }

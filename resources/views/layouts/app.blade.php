@@ -368,10 +368,39 @@
     .main-nav a:hover { border-color: var(--line); }
     .main-nav a.active { border-color: var(--good); color: var(--good); }
     .admin-header { position: relative; z-index: 40; }
-    .admin-shortcuts { position: sticky; top: 0; z-index: 30; display: flex; flex-wrap: nowrap; gap: 8px; margin: 0 calc(-1 * max(16px, env(safe-area-inset-left, 0px))); padding: 8px max(16px, env(safe-area-inset-right, 0px)) 8px max(16px, env(safe-area-inset-left, 0px)); overflow-x: auto; border-bottom: 1px solid var(--line); background: var(--bg); color: var(--ink); scrollbar-width: thin; -webkit-overflow-scrolling: touch; scroll-snap-type: x proximity; }
-    .admin-shortcuts a { flex: 0 0 auto; min-height: 44px; display: inline-flex; align-items: center; padding: 7px 12px; border: 1px solid var(--line); border-radius: 999px; background: var(--surface); color: var(--ink); font-size: 12px; font-weight: 700; text-decoration: none; white-space: nowrap; scroll-snap-align: start; }
-    .admin-shortcuts a:hover, .admin-shortcuts a.active { border-color: var(--good); background: var(--good-bg); color: var(--good); }
-    .admin-shortcuts .admin-back { border-color: var(--good); background: var(--good-bg); color: var(--good); }
+    /* Notion/Antigravity Admin Workspace Layout */
+    .admin-wrapper { display: flex; min-height: 100vh; width: 100%; background: var(--bg); }
+    .admin-sidebar-backdrop { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.45); z-index: 89; backdrop-filter: blur(2px); }
+    .admin-sidebar { width: 250px; flex: 0 0 250px; height: 100vh; position: sticky; top: 0; background: var(--surface); border-right: 1px solid var(--line); display: flex; flex-direction: column; z-index: 90; transition: transform .22s cubic-bezier(0.16, 1, 0.3, 1); }
+    .admin-sidebar-header { padding: 18px 16px 14px; border-bottom: 1px solid var(--line); display: flex; align-items: center; justify-content: space-between; }
+    .sidebar-exit-link { display: inline-flex; align-items: center; justify-content: center; width: 100%; font-size: 11px; font-weight: 700; color: var(--muted); text-decoration: none; padding: 6px 10px; border-radius: 6px; border: 1px dashed var(--line); background: var(--bg); transition: all .15s ease; }
+    .sidebar-exit-link:hover { color: var(--good); border-color: var(--good); background: var(--good-bg); }
+    .admin-sidebar-nav { flex: 1; overflow-y: auto; padding: 10px 10px 16px; display: flex; flex-direction: column; gap: 2px; }
+    .sidebar-group-title { font-size: 11px; font-weight: 800; letter-spacing: .06em; text-transform: uppercase; color: var(--muted); padding: 14px 10px 4px; }
+    .sidebar-link { display: flex; align-items: center; gap: 10px; padding: 8px 10px; border-radius: 6px; color: var(--ink); font-size: 13.5px; font-weight: 600; text-decoration: none; transition: background .12s ease, color .12s ease; opacity: 0.88; }
+    .sidebar-link:hover { background: rgba(0,0,0,0.04); opacity: 1; }
+    :root[data-theme="dark"] .sidebar-link:hover { background: var(--soft); }
+    .sidebar-link.active { background: var(--good-bg); color: var(--good); font-weight: 700; opacity: 1; }
+    .sidebar-link svg { flex: 0 0 18px; stroke-width: 1.8; }
+    .admin-sidebar-footer { padding: 14px 14px; border-top: 1px solid var(--line); background: var(--surface); }
+    .admin-user-profile { display: flex; align-items: center; gap: 10px; }
+    .admin-avatar { width: 32px; height: 32px; border-radius: 6px; background: var(--lime); color: var(--lime-ink); font-weight: 800; font-size: 14px; display: grid; place-items: center; flex: 0 0 32px; }
+    .admin-user-info { min-width: 0; flex: 1; }
+    .admin-user-name { display: block; font-size: 13px; font-weight: 700; color: var(--ink); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .admin-user-email { display: block; font-size: 11px; color: var(--muted); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .sidebar-logout-btn { display: inline-flex; align-items: center; justify-content: center; gap: 6px; width: 100%; padding: 6px 10px; font-size: 12px; font-weight: 700; color: var(--bad); background: transparent; border: 1px solid var(--line); border-radius: 6px; cursor: pointer; }
+    .sidebar-logout-btn:hover { background: var(--bad-bg); border-color: var(--bad); }
+    .admin-content-area { flex: 1; min-width: 0; display: flex; flex-direction: column; background: var(--bg); min-height: 100vh; }
+    .admin-mobile-topbar { display: none; }
+    .admin-main-body { padding: 28px 36px 64px; max-width: 1240px; width: 100%; margin: 0 auto; min-width: 0; }
+    @media (max-width: 860px) {
+      .admin-sidebar { position: fixed; inset: 0 auto 0 0; width: 270px; height: 100vh; transform: translateX(-100%); box-shadow: 4px 0 24px rgba(0,0,0,0.22); z-index: 100; }
+      .admin-sidebar.open { transform: translateX(0); }
+      .admin-sidebar-backdrop.active { display: block; }
+      .admin-mobile-topbar { display: flex; align-items: center; justify-content: space-between; padding: 12px 16px; border-bottom: 1px solid var(--line); background: var(--surface); position: sticky; top: 0; z-index: 40; }
+      .admin-mobile-toggle { display: grid; place-items: center; width: 36px; height: 36px; border: 1px solid var(--line); border-radius: 6px; background: transparent; color: var(--ink); cursor: pointer; }
+      .admin-main-body { padding: 18px 16px 48px; }
+    }
     .umenu { position: relative; }
     .umenu summary { list-style: none; cursor: pointer; }
     .umenu summary::-webkit-details-marker { display: none; }
@@ -394,6 +423,20 @@
       background: var(--lime);
       color: var(--lime-ink);
       box-shadow: 0 4px 20px rgba(10, 40, 10, 0.08);
+      text-decoration: none;
+    }
+    a.hero {
+      text-decoration: none;
+      cursor: pointer;
+      transition: transform .2s ease, box-shadow .2s ease;
+    }
+    a.hero:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 8px 24px rgba(10, 40, 10, 0.14);
+    }
+    a.hero:focus-visible {
+      outline: 3px solid var(--lime-ink);
+      outline-offset: 3px;
     }
     .hero .tx {
       display: flex;
@@ -405,12 +448,24 @@
     .hero .tx h1 { line-height: 1.06; }
     .hero .tx p { max-width: 50ch; margin: 0; color: inherit; font-size: 1.02rem; line-height: 1.45; }
     .hero .kick { font-size: .88rem; font-weight: 700; letter-spacing: .02em; text-transform: uppercase; opacity: 0.9; }
-    .hero .pic { position: relative; min-width: 0; min-height: 280px; overflow: hidden; background: var(--soft); }
+    .hero .pic {
+      position: relative;
+      min-width: 0;
+      min-height: 280px;
+      overflow: hidden;
+      background: var(--soft);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 24px;
+    }
     .hero .main-scene { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; }
     .hero .btns { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 4px; }
     .hero .btn { min-height: 42px; padding: 10px 18px; font-size: .92rem; font-weight: 700; border-radius: 8px; }
 
     .hero-impact-card {
+      position: relative;
+      z-index: 1;
       display: inline-flex;
       flex-direction: column;
       gap: 3px;
@@ -424,7 +479,8 @@
       text-decoration: none;
       transition: transform .2s ease, box-shadow .2s ease, border-color .2s ease;
     }
-    a.hero-impact-card:hover {
+    a.hero-impact-card:hover,
+    .hero:hover .hero-impact-card {
       transform: translateY(-2px);
       box-shadow: 0 8px 20px rgba(22, 48, 26, 0.18);
       border-color: rgba(22, 48, 26, 0.35);
@@ -452,7 +508,8 @@
       gap: 2px;
       transition: transform .2s ease, opacity .2s ease;
     }
-    a.hero-impact-card:hover .impact-link-hint {
+    a.hero-impact-card:hover .impact-link-hint,
+    .hero:hover .impact-link-hint {
       opacity: 1;
       transform: translateX(3px);
     }
@@ -544,7 +601,8 @@
       line-height: 1.45;
       color: rgba(255, 255, 255, 0.88);
     }
-    .hero-photo-badge a {
+    .hero-photo-badge a,
+    .hero-photo-badge .hero-badge-link {
       display: inline-block;
       margin-top: 10px;
       font-size: 0.82rem;
@@ -552,7 +610,8 @@
       color: #D4E6AE;
       text-decoration: none;
     }
-    .hero-photo-badge a:hover {
+    .hero-photo-badge a:hover,
+    .hero:hover .hero-badge-link {
       text-decoration: underline;
     }
     .band { display: flex; flex-wrap: wrap; justify-content: center; align-items: center; gap: 10px 18px; margin-top: 16px; padding: 12px 18px; border-radius: 6px; background: var(--band); font-weight: 600; text-align: center; }
@@ -626,18 +685,34 @@
       .hsearch { grid-column: 1 / -1; order: 3; max-width: none; }
       .hero {
         grid-template-columns: minmax(0, 1fr);
-        grid-template-rows: clamp(160px, 45vw, 220px) auto;
+        grid-template-rows: auto auto;
         min-height: 0;
       }
-      .hero .pic { grid-row: 1; min-height: 0; }
-      .hero .tx { grid-row: 2; align-items: flex-start; gap: 12px; padding: 22px 18px 24px; }
+      .hero .tx {
+        grid-row: 1;
+        align-items: flex-start;
+        gap: 12px;
+        padding: 22px 18px 10px;
+      }
+      .hero .pic {
+        grid-row: 2;
+        min-height: 0;
+        padding: 0 18px 22px;
+        background: transparent;
+        display: flex;
+        align-items: flex-start;
+        justify-content: stretch;
+      }
+      .hero.has-bg-image .pic {
+        padding: 0 18px 22px;
+      }
       .hero .tx h1 { font-size: clamp(1.65rem, 7vw, 2.1rem); line-height: 1.05; }
       .hero .tx p { max-width: 100%; font-size: .94rem; line-height: 1.42; }
       .hero .kick { font-size: .8rem; }
       .hero-impact-card {
         width: 100%;
         padding: 12px 16px;
-        margin: 4px 0 6px;
+        margin: 0;
       }
       .hero-impact-card .impact-value {
         font-size: 2.1rem;
@@ -679,9 +754,459 @@
     @media (max-width: 480px) {
       .ft .cols { grid-template-columns: minmax(0, 1fr); }
     }
+    /* Notion/Antigravity style Admin Layout */
+    .admin-layout {
+      display: flex;
+      min-height: 100vh;
+      background: var(--bg);
+    }
+    .admin-sidebar {
+      width: 260px;
+      flex-shrink: 0;
+      background: var(--surface);
+      border-right: 1px solid var(--line);
+      display: flex;
+      flex-direction: column;
+      position: sticky;
+      top: 0;
+      height: 100vh;
+      overflow-y: auto;
+      z-index: 100;
+      transition: transform 0.25s ease;
+    }
+    .admin-sidebar-header {
+      padding: 18px 20px 14px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      border-bottom: 1px solid var(--line);
+    }
+    .admin-brand {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      text-decoration: none;
+      font-family: var(--fd);
+      font-weight: 800;
+      font-size: 1.15rem;
+      letter-spacing: -0.03em;
+      color: var(--ink);
+    }
+    .admin-brand .brand-mark {
+      width: 10px;
+      height: 10px;
+      border-radius: 50%;
+      background: var(--lime);
+      display: inline-block;
+    }
+    .admin-brand-tag {
+      font-size: 0.65rem;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      padding: 2px 6px;
+      border-radius: 4px;
+      background: var(--soft);
+      color: var(--muted);
+    }
+    .admin-sidebar-close {
+      display: none;
+      background: none;
+      border: 0;
+      padding: 6px;
+      cursor: pointer;
+      color: var(--muted);
+      border-radius: 6px;
+    }
+    .admin-sidebar-close:hover {
+      background: var(--soft);
+      color: var(--ink);
+    }
+    .admin-sidebar-nav {
+      flex: 1;
+      padding: 16px 12px;
+      display: flex;
+      flex-direction: column;
+      gap: 18px;
+    }
+    .admin-nav-group-title {
+      font-size: 0.72rem;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      color: var(--muted);
+      padding: 0 10px 4px;
+    }
+    .admin-nav-list {
+      list-style: none;
+      padding: 0;
+      margin: 0;
+      display: flex;
+      flex-direction: column;
+      gap: 2px;
+    }
+    .admin-nav-item {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 8px 12px;
+      border-radius: 6px;
+      color: var(--ink);
+      text-decoration: none;
+      font-size: 0.88rem;
+      font-weight: 500;
+      transition: background 0.15s ease, color 0.15s ease;
+    }
+    .admin-nav-item:hover {
+      background: var(--soft);
+      color: var(--ink);
+    }
+    .admin-nav-item.active {
+      background: var(--soft);
+      color: var(--ink);
+      font-weight: 700;
+    }
+    .admin-nav-item .nav-icon {
+      width: 18px;
+      height: 18px;
+      flex-shrink: 0;
+      opacity: 0.75;
+      stroke-width: 2;
+    }
+    .admin-nav-item.active .nav-icon {
+      opacity: 1;
+      color: var(--good);
+    }
+    .admin-sidebar-footer {
+      padding: 14px 16px;
+      border-top: 1px solid var(--line);
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+      background: var(--surface);
+    }
+    .admin-user-card {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+    .admin-user-avatar {
+      width: 34px;
+      height: 34px;
+      border-radius: 50%;
+      background: var(--soft);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-weight: 700;
+      font-size: 0.85rem;
+      color: var(--ink);
+    }
+    .admin-user-info {
+      flex: 1;
+      min-width: 0;
+    }
+    .admin-user-name {
+      font-size: 0.85rem;
+      font-weight: 700;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+    .admin-user-role {
+      font-size: 0.75rem;
+      color: var(--muted);
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+    .admin-main-wrapper {
+      flex: 1;
+      min-width: 0;
+      display: flex;
+      flex-direction: column;
+    }
+    .admin-topbar {
+      height: 56px;
+      padding: 0 24px;
+      border-bottom: 1px solid var(--line);
+      background: var(--surface);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      position: sticky;
+      top: 0;
+      z-index: 50;
+    }
+    .admin-topbar-left {
+      display: flex;
+      align-items: center;
+      gap: 14px;
+    }
+    .admin-mobile-toggle {
+      display: none;
+      background: none;
+      border: 1px solid var(--line);
+      border-radius: 6px;
+      padding: 6px 10px;
+      cursor: pointer;
+      color: var(--ink);
+    }
+    .admin-page-title-crumb {
+      font-size: 0.88rem;
+      font-weight: 600;
+      color: var(--muted);
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+    .admin-page-title-crumb strong {
+      color: var(--ink);
+    }
+    .admin-topbar-right {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      flex-shrink: 0;
+    }
+    .admin-topbar-link {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      font-size: 0.82rem;
+      font-weight: 600;
+      color: var(--muted);
+      text-decoration: none;
+      padding: 6px 10px;
+      border-radius: 6px;
+      white-space: nowrap;
+      border: 1px solid var(--line);
+      transition: background 0.15s, color 0.15s;
+    }
+    .admin-topbar-link:hover {
+      background: var(--soft);
+      color: var(--ink);
+    }
+    .admin-content-body {
+      flex: 1;
+      padding: 24px;
+      max-width: 1400px;
+      width: 100%;
+      margin: 0 auto;
+    }
+    .admin-backdrop {
+      display: none;
+      position: fixed;
+      inset: 0;
+      background: rgba(0,0,0,0.45);
+      z-index: 90;
+      backdrop-filter: blur(2px);
+    }
+    @media (max-width: 860px) {
+      .admin-sidebar {
+        position: fixed;
+        left: 0;
+        top: 0;
+        bottom: 0;
+        height: 100vh;
+        transform: translateX(-100%);
+        box-shadow: 0 10px 25px rgba(0,0,0,0.15);
+      }
+      .admin-sidebar.open {
+        transform: translateX(0);
+      }
+      .admin-sidebar-close {
+        display: block;
+      }
+      .admin-mobile-toggle {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        padding: 6px 8px;
+        line-height: 1;
+      }
+      .admin-topbar-link .desktop-only {
+        display: none;
+      }
+      .admin-topbar-link {
+        padding: 6px 8px;
+      }
+      .admin-backdrop.open {
+        display: block;
+      }
+      .admin-content-body {
+        padding: 16px;
+      }
+    }
   </style>
 </head>
 <body>
+@if(request()->routeIs('admin.*') || request()->is('admin*'))
+  <div class="admin-layout">
+    <div id="adminBackdrop" class="admin-backdrop" onclick="toggleAdminSidebar(false)"></div>
+    <aside id="adminSidebar" class="admin-sidebar">
+      <div class="admin-sidebar-header">
+        <a class="admin-brand" href="{{ route('admin.dashboard') }}">
+          <i class="brand-mark"></i>FORTEXIV <span class="admin-brand-tag">Admin</span>
+        </a>
+        <button type="button" class="admin-sidebar-close" onclick="toggleAdminSidebar(false)" aria-label="Tutup Menu">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
+        </button>
+      </div>
+
+      <nav class="admin-sidebar-nav" aria-label="Navigasi admin">
+        <div>
+          <div class="admin-nav-group-title">Utama & Jadwal</div>
+          <ul class="admin-nav-list">
+            <li>
+              <a href="{{ route('admin.dashboard') }}" @class(['admin-nav-item', 'active' => request()->routeIs('admin.dashboard')])>
+                <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor"><rect x="3" y="3" width="7" height="7"></rect><rect x="14" y="3" width="7" height="7"></rect><rect x="14" y="14" width="7" height="7"></rect><rect x="3" y="14" width="7" height="7"></rect></svg>
+                <span>Dashboard Pesanan</span>
+              </a>
+            </li>
+            <li>
+              <a href="{{ route('admin.event.edit') }}" @class(['admin-nav-item', 'active' => request()->routeIs('admin.event*')])>
+                <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect><line x1="16" y1="2" x2="16" y2="6"></line><line x1="8" y1="2" x2="8" y2="6"></line><line x1="3" y1="10" x2="21" y2="10"></line></svg>
+                <span>Jadwal PO & Acara</span>
+              </a>
+            </li>
+            <li>
+              <a href="{{ route('admin.reports') }}" @class(['admin-nav-item', 'active' => request()->routeIs('admin.reports*')])>
+                <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor"><line x1="12" y1="20" x2="12" y2="10"></line><line x1="18" y1="20" x2="18" y2="4"></line><line x1="6" y1="20" x2="6" y2="16"></line></svg>
+                <span>Laporan Harian</span>
+              </a>
+            </li>
+          </ul>
+        </div>
+
+        <div>
+          <div class="admin-nav-group-title">Operasional & User</div>
+          <ul class="admin-nav-list">
+            <li>
+              <a href="{{ route('admin.classes.index') }}" @class(['admin-nav-item', 'active' => request()->routeIs('admin.classes*')])>
+                <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"></path><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"></path></svg>
+                <span>Kelola Kelas</span>
+              </a>
+            </li>
+            <li>
+              <a href="{{ route('admin.payments') }}" @class(['admin-nav-item', 'active' => request()->routeIs('admin.payments*')])>
+                <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor"><rect x="1" y="4" width="22" height="16" rx="2" ry="2"></rect><line x1="1" y1="10" x2="23" y2="10"></line></svg>
+                <span>Verifikasi Bayar</span>
+              </a>
+            </li>
+            <li>
+              <a href="{{ route('admin.pickup') }}" @class(['admin-nav-item', 'active' => request()->routeIs('admin.pickup*')])>
+                <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path><polyline points="22 4 12 14.01 9 11.01"></polyline></svg>
+                <span>Validasi Pengambilan</span>
+              </a>
+            </li>
+            <li>
+              <a href="{{ route('admin.users') }}" @class(['admin-nav-item', 'active' => request()->routeIs('admin.users*')])>
+                <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path><circle cx="9" cy="7" r="4"></circle><path d="M23 21v-2a4 4 0 0 0-3-3.87"></path><path d="M16 3.13a4 4 0 0 1 0 7.75"></path></svg>
+                <span>Kelola Akun (Users)</span>
+              </a>
+            </li>
+          </ul>
+        </div>
+
+        <div>
+          <div class="admin-nav-group-title">Katalog & Konten</div>
+          <ul class="admin-nav-list">
+            <li>
+              <a href="{{ route('admin.articles.index') }}" @class(['admin-nav-item', 'active' => request()->routeIs('admin.articles*')])>
+                <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="16" y1="13" x2="8" y2="13"></line><line x1="16" y1="17" x2="8" y2="17"></line><polyline points="10 9 9 9 8 9"></polyline></svg>
+                <span>Kelola Artikel</span>
+              </a>
+            </li>
+            <li>
+              <a href="{{ route('admin.products.index') }}" @class(['admin-nav-item', 'active' => request()->routeIs('admin.products*')])>
+                <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor"><circle cx="9" cy="21" r="1"></circle><circle cx="20" cy="21" r="1"></circle><path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6"></path></svg>
+                <span>Review Produk</span>
+              </a>
+            </li>
+          </ul>
+        </div>
+      </nav>
+
+      <div class="admin-sidebar-footer">
+        @auth
+          <div class="admin-user-card">
+            <div class="admin-user-avatar">{{ strtoupper(substr(auth()->user()->name, 0, 1)) }}</div>
+            <div class="admin-user-info">
+              <div class="admin-user-name">{{ auth()->user()->name }}</div>
+              <div class="admin-user-role">{{ auth()->user()->email }}</div>
+            </div>
+          </div>
+        @endauth
+        <div style="display:flex;gap:8px;align-items:center;justify-content:space-between">
+          <button class="ib theme-toggle" type="button" data-theme-toggle aria-label="Aktifkan mode gelap" title="Aktifkan mode gelap" style="border:1px solid var(--line);border-radius:6px;width:34px;height:34px;display:inline-flex;align-items:center;justify-content:center;">
+            <svg class="icon-sun" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="12" r="4"></circle><path d="M12 2v2m0 16v2M4.93 4.93l1.42 1.42m11.3 11.3 1.42 1.42M2 12h2m16 0h2M4.93 19.07l1.42-1.42m11.3-11.3 1.42-1.42"></path></svg>
+            <svg class="icon-moon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M20.5 14.2A8.5 8.5 0 0 1 9.8 3.5 8.5 8.5 0 1 0 20.5 14.2Z"></path></svg>
+          </button>
+          <form method="post" action="{{ route('logout') }}" style="margin:0;flex:1">
+            @csrf
+            <button type="submit" class="btn btn-sm sm" style="width:100%;background:transparent;border:1px solid var(--line);color:var(--muted);font-size:0.8rem">Keluar</button>
+          </form>
+        </div>
+      </div>
+    </aside>
+
+    <div class="admin-main-wrapper">
+      <header class="admin-topbar">
+        @php
+          $subpageName = 'Dashboard';
+          if (request()->routeIs('admin.classes*') || request()->is('admin/classes*')) $subpageName = 'Classes';
+          elseif (request()->routeIs('admin.users*') || request()->is('admin/users*')) $subpageName = 'Users';
+          elseif (request()->routeIs('admin.articles*') || request()->is('admin/articles*')) $subpageName = 'Articles';
+          elseif (request()->routeIs('admin.products*') || request()->is('admin/products*')) $subpageName = 'Products';
+          elseif (request()->routeIs('admin.event*') || request()->is('admin/event*')) $subpageName = 'Jadwal';
+          elseif (request()->routeIs('admin.reports*') || request()->is('admin/reports*')) $subpageName = 'Reports';
+          elseif (request()->routeIs('admin.payments*') || request()->is('admin/payments*')) $subpageName = 'Payments';
+          elseif (request()->routeIs('admin.pickup*') || request()->is('admin/pickup*')) $subpageName = 'Pickup';
+        @endphp
+        <div class="admin-topbar-left">
+          <button type="button" class="admin-mobile-toggle" onclick="toggleAdminSidebar(true)" aria-label="Buka Menu" title="Buka Menu">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><line x1="3" y1="12" x2="21" y2="12"></line><line x1="3" y1="6" x2="21" y2="6"></line><line x1="3" y1="18" x2="21" y2="18"></line></svg>
+          </button>
+          <div class="admin-page-title-crumb">
+            <span>Admin</span> — <strong>{{ $subpageName }}</strong>
+          </div>
+        </div>
+        <div class="admin-topbar-right">
+          <a class="admin-topbar-link" href="{{ route('home') }}" target="_blank" title="Lihat Website" aria-label="Lihat Website">
+            <span class="desktop-only">Lihat Website</span>
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" aria-hidden="true"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"></path><polyline points="15 3 21 3 21 9"></polyline><line x1="10" y1="14" x2="21" y2="3"></line></svg>
+          </a>
+        </div>
+      </header>
+
+      <main class="admin-content-body">
+        @if(session('status'))<div class="flash" role="status">{{ session('status') }}</div>@endif
+        @if(session('error'))<div class="panel errors" role="alert">{{ session('error') }}</div>@endif
+        @if($errors->any())<div class="panel errors" role="alert"><strong>Periksa kembali:</strong><ul>@foreach($errors->all() as $error)<li>{{ $error }}</li>@endforeach</ul></div>@endif
+        @yield('content')
+      </main>
+    </div>
+  </div>
+  <script>
+    function toggleAdminSidebar(open) {
+      const sidebar = document.getElementById('adminSidebar');
+      const backdrop = document.getElementById('adminBackdrop');
+      if (sidebar && backdrop) {
+        if (open) {
+          sidebar.classList.add('open');
+          backdrop.classList.add('open');
+        } else {
+          sidebar.classList.remove('open');
+          backdrop.classList.remove('open');
+        }
+      }
+    }
+  </script>
+@else
 <header @class(['site-header wrap', 'admin-header' => request()->routeIs('admin.*')])>
   <div class="hd">
     <a class="brand" href="{{ route('home') }}"><i class="brand-mark"></i>FORTEXIV</a>
@@ -743,19 +1268,6 @@
   </nav>
 </header>
 <main @class(['app', 'admin-app' => request()->routeIs('admin.*')])>
-  @if(request()->routeIs('admin.*'))
-    <nav class="admin-shortcuts" aria-label="Navigasi admin">
-      <a class="admin-back" href="{{ route('admin.dashboard') }}">← Dashboard</a>
-      <a href="{{ route('admin.dashboard') }}#all-orders" @class(['active' => request()->routeIs('admin.dashboard')])>Daftar pesanan</a>
-      <a href="{{ route('admin.event.edit') }}" @class(['active' => request()->routeIs('admin.event*')])>Jadwal PO & Acara</a>
-      <a href="{{ route('admin.payments') }}" @class(['active' => request()->routeIs('admin.payments*')])>Verifikasi pembayaran</a>
-      <a href="{{ route('admin.users') }}" @class(['active' => request()->routeIs('admin.users*')])>Kelola akun</a>
-      <a href="{{ route('admin.pickup') }}" @class(['active' => request()->routeIs('admin.pickup*')])>Validasi pengambilan</a>
-      <a href="{{ route('admin.reports') }}" @class(['active' => request()->routeIs('admin.reports*')])>Laporan harian</a>
-      <a href="{{ route('admin.articles.index') }}" @class(['active' => request()->routeIs('admin.articles*')])>Kelola artikel proyek</a>
-      <a href="{{ route('admin.products.index') }}" @class(['active' => request()->routeIs('admin.products*')])>Review produk</a>
-    </nav>
-  @endif
   @if(session('status'))<div class="flash" role="status">{{ session('status') }}</div>@endif
   @if(session('error'))<div class="panel errors" role="alert">{{ session('error') }}</div>@endif
   @if($errors->any())<div class="panel errors" role="alert"><strong>Periksa kembali:</strong><ul>@foreach($errors->all() as $error)<li>{{ $error }}</li>@endforeach</ul></div>@endif
@@ -775,6 +1287,7 @@
     </div>
   </div>
 </footer>
+@endif
 @stack('scripts')
 <script>
   (() => {

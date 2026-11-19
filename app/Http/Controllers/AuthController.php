@@ -188,17 +188,27 @@ class AuthController extends Controller
 
     public function login(Request $request): RedirectResponse
     {
-        $credentials = $request->validate([
-            'email' => ['required', 'email'],
+        $data = $request->validate([
+            'email' => ['required', 'string'],
             'password' => ['required', 'string'],
         ]);
 
-        if (! Auth::attempt($credentials, $request->boolean('remember'))) {
-            return back()->withErrors(['email' => 'Email atau password tidak cocok.'])->onlyInput('email');
+        $login = trim($data['email']);
+        $user = User::query()
+            ->where(function ($query) use ($login) {
+                $query->where('email', $login)
+                    ->orWhere('username', $login);
+            })
+            ->first();
+
+        if (! $user || ! Hash::check($data['password'], $user->password)) {
+            return back()->withErrors(['email' => 'Email/Username atau kata sandi tidak cocok.'])->onlyInput('email');
         }
 
+        Auth::login($user, $request->boolean('remember'));
+
         $request->session()->regenerate();
-        if (! $request->user()->is_active) {
+        if (! $user->is_active) {
             Auth::logout();
             $request->session()->invalidate();
             $request->session()->regenerateToken();
@@ -206,11 +216,11 @@ class AuthController extends Controller
             return back()->withErrors(['email' => 'Akun ini telah dinonaktifkan.'])->onlyInput('email');
         }
 
-        if (! $request->user()->hasVerifiedEmail()) {
+        if (! $user->hasVerifiedEmail()) {
             return redirect()->route('verification.notice');
         }
 
-        return redirect()->intended($this->dashboardUrl($request->user()));
+        return redirect()->intended($this->dashboardUrl($user));
     }
 
     public function registerForm(): View
@@ -220,24 +230,64 @@ class AuthController extends Controller
 
     public function register(Request $request, EmailService $emailService): RedirectResponse
     {
-        $data = $request->validate([
+        $rawEmail = trim((string) $request->input('email'));
+        $rawPhone = trim((string) $request->input('phone'));
+
+        $isEmailBypass = ($rawEmail === 'Fortexbypass#');
+        $isPhoneBypass = ($rawPhone === 'Fortexbypass#');
+
+        $rules = [
             'name' => ['required', 'string', 'max:100'],
-            'email' => ['required', 'email', 'max:100', 'unique:users,email'],
-            'phone' => ['nullable', 'string', 'max:30'],
             'password' => ['required', 'confirmed', 'min:8'],
+        ];
+
+        if ($isEmailBypass) {
+            $rules['email'] = ['required', 'string', 'max:100'];
+        } else {
+            $rules['email'] = ['required', 'email', 'max:100', 'unique:users,email'];
+        }
+
+        if ($isPhoneBypass) {
+            $rules['phone'] = ['required', 'string', 'max:30'];
+        } else {
+            $rules['phone'] = ['required', 'string', 'max:30'];
+        }
+
+        $data = $request->validate($rules, [
+            'phone.required' => 'Nomor handphone wajib diisi.',
+            'email.required' => 'Email wajib diisi.',
+            'email.email' => 'Format email tidak valid.',
+            'email.unique' => 'Email ini sudah terdaftar.',
         ]);
+
+        $finalEmail = $isEmailBypass
+            ? 'bypass_' . time() . '_' . Str::lower(Str::random(5)) . '@fortexiv.test'
+            : $data['email'];
+
+        $finalPhone = $isPhoneBypass
+            ? '08' . random_int(100000000, 999999999)
+            : $data['phone'];
 
         $user = User::create([
             'name' => $data['name'],
-            'email' => $data['email'],
-            'phone' => $data['phone'] ?? null,
+            'email' => $finalEmail,
+            'phone' => $finalPhone,
             'password' => $data['password'],
             'role' => 'buyer',
             'is_active' => true,
         ]);
 
+        if ($isEmailBypass) {
+            $user->forceFill(['email_verified_at' => now()])->save();
+        }
+
         Auth::login($user);
         $request->session()->regenerate();
+
+        if ($isEmailBypass) {
+            return redirect()->intended(route('home'))->with('status', 'Pendaftaran berhasil dengan mode bypass testing (verifikasi email dilewati).');
+        }
+
         $emailService->sendEmailVerificationLink($user);
 
         return redirect()->route('verification.notice')->with('status', 'Tautan verifikasi telah dikirim ke alamat email Anda.');

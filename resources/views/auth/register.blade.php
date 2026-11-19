@@ -9,8 +9,14 @@
   <form method="post" action="{{ route('register.store') }}">
     @csrf
     <div class="field"><label for="name">Nama lengkap</label><input class="input" id="name" name="name" value="{{ old('name') }}" maxlength="100" required></div>
-    <div class="field"><label for="email">Email</label><input class="input" id="email" name="email" type="email" value="{{ old('email') }}" autocomplete="email" required></div>
-    <div class="field"><label for="phone">Nomor telepon (opsional)</label><input class="input" id="phone" name="phone" value="{{ old('phone') }}" maxlength="30"></div>
+    <div class="field">
+      <label for="email">Email <span style="color:var(--bad);">*</span></label>
+      <input class="input" id="email" name="email" type="text" inputmode="email" value="{{ old('email') }}" placeholder="nama@email.com" autocomplete="email" required>
+    </div>
+    <div class="field">
+      <label for="phone">Nomor handphone / WhatsApp <span style="color:var(--bad);">*</span></label>
+      <input class="input" id="phone" name="phone" type="text" value="{{ old('phone') }}" maxlength="30" placeholder="Contoh: 08123456789" required>
+    </div>
     <div class="field">
       <label for="password">Kata sandi (minimal 8 karakter)</label>
       <div class="password-input">
