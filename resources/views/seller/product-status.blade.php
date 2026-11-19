@@ -67,12 +67,14 @@
       </thead>
       <tbody>
         @forelse($productsWithStats as $item)
-          @php($p = $item['product'])
+          @php
+            $p = $item['product'];
+          @endphp
           <tr>
             <td>
               <div style="display: flex; align-items: center; gap: 12px;">
                 @if($p->image)
-                  <img src="{{ Storage::disk('public')->url($p->image) }}" alt="{{ $p->name }}" style="width: 44px; height: 44px; border-radius: 6px; object-fit: cover;">
+                  <img src="{{ $p->imageUrl() ?? Storage::disk('public')->url($p->image) }}" alt="{{ $p->name }}" style="width: 44px; height: 44px; border-radius: 6px; object-fit: cover;">
                 @else
                   <div style="width: 44px; height: 44px; border-radius: 6px; background: var(--soft); display: flex; align-items: center; justify-content: center; font-size: 18px;">📦</div>
                 @endif
@@ -179,7 +181,9 @@
             <td><strong>{{ \App\Support\Money::format($item->subtotal) }}</strong></td>
             <td>{{ $item->order->buyer?->name ?? '—' }}</td>
             <td>
-              @php($phone = $item->order->pickup_contact_phone ?? $item->order->buyer?->phone)
+              @php
+                $phone = $item->order->pickup_contact_phone ?? $item->order->buyer?->phone;
+              @endphp
               @if($phone)
                 <a href="https://wa.me/{{ preg_replace('/[^0-9]/', '', $phone) }}" target="_blank" rel="noopener" style="font-weight: 600; text-decoration: none; color: var(--good);">
                   💬 {{ $phone }}
