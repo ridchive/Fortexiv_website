@@ -7,7 +7,7 @@
     </div>
     <div class="muted" style="font-size: 13px;">
       Total <strong>{{ $classes->count() }} Kelas</strong> &middot; 
-      <strong>{{ $classes->filter(fn($c) => $c->seller?->user)->count() }} Kelas Memiliki Akun Seller</strong>.
+      <strong>{{ $classes->filter(fn($c) => $c->seller?->user && $c->seller->user->is_active && $c->seller->user->username)->count() }} Kelas Memiliki Akun Seller</strong>.
       Setiap kelas memiliki nomor akun unik dan artikel tersendiri.
     </div>
   </div>
@@ -69,8 +69,8 @@
     <tbody>
       @forelse($classes as $c)
         @php
-          $hasAccount = (bool) ($c->seller?->user);
-          $username = $c->seller?->user?->username ?? '';
+          $hasAccount = (bool) ($c->seller?->user && $c->seller->user->is_active && $c->seller->user->username);
+          $username = $hasAccount ? ($c->seller->user->username ?? '') : '';
         @endphp
         <tr style="border-bottom: 1px solid var(--line);">
           <td style="text-align: center; font-weight: 800; font-size: 1.15rem; color: var(--good);">

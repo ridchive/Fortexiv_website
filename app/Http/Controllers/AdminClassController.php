@@ -9,6 +9,7 @@ use App\Models\User;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Str;
 use Illuminate\Validation\Rule;
 use Illuminate\View\View;
@@ -129,10 +130,31 @@ class AdminClassController extends Controller
             // If admin opted to remove the account
             if ($request->boolean('remove_account')) {
                 if ($seller) {
-                    $user = $seller->user;
-                    $seller->delete();
-                    $user?->delete();
+                    $hasHistory = $seller->products()->exists()
+                        || OrderItem::where('seller_id', $seller->id)->exists()
+                        || $seller->fulfillments()->exists();
+
+                    if ($hasHistory) {
+                        $seller->user?->update([
+                            'username' => null,
+                            'is_active' => false,
+                            'password' => Hash::make(Str::random(40)),
+                        ]);
+                    } else {
+                        try {
+                            $user = $seller->user;
+                            $seller->delete();
+                            $user?->delete();
+                        } catch (\Throwable) {
+                            $seller->user?->update([
+                                'username' => null,
+                                'is_active' => false,
+                                'password' => Hash::make(Str::random(40)),
+                            ]);
+                        }
+                    }
                 }
+
                 return;
             }
 
@@ -143,8 +165,11 @@ class AdminClassController extends Controller
                 if ($currentUser) {
                     $currentUser->username = $username;
                     $currentUser->name = 'Tim ' . $className;
+                    $currentUser->is_active = true;
                     if (filled($data['password'] ?? null)) {
                         $currentUser->password = $data['password'];
+                    } elseif (! $currentUser->password) {
+                        $currentUser->password = 'password123';
                     }
                     $currentUser->save();
 
@@ -179,7 +204,11 @@ class AdminClassController extends Controller
             }
         });
 
-        return redirect()->route('admin.classes.index')->with('status', "Data kelas {$project->class_name} berhasil diperbarui.");
+        $statusMsg = $request->boolean('remove_account')
+            ? "Akun login seller untuk kelas {$project->class_name} berhasil dinonaktifkan."
+            : "Data kelas {$project->class_name} berhasil diperbarui.";
+
+        return redirect()->route('admin.classes.index')->with('status', $statusMsg);
     }
 
     public function destroy(Project $project): RedirectResponse
