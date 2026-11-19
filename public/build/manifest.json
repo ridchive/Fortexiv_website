@@ -27,6 +27,24 @@
     "file": "assets/instrument-sans-600-normal-B9e8oLYv.woff",
     "src": "_instrument-sans-600-normal-B9e8oLYv.woff"
   },
+  "node_modules/html5-qrcode/esm/index.js": {
+    "file": "assets/esm-Xt7GGE2n.js",
+    "name": "esm",
+    "src": "node_modules/html5-qrcode/esm/index.js",
+    "isDynamicEntry": true,
+    "imports": [
+      "resources/js/app.js"
+    ]
+  },
+  "node_modules/qrcode/lib/browser.js": {
+    "file": "assets/browser-BOUSb4w6.js",
+    "name": "browser",
+    "src": "node_modules/qrcode/lib/browser.js",
+    "isDynamicEntry": true,
+    "imports": [
+      "resources/js/app.js"
+    ]
+  },
   "resources/css/app.css": {
     "file": "assets/app-j7F5iv0j.css",
     "name": "app",
@@ -37,9 +55,13 @@
     "isEntry": true
   },
   "resources/js/app.js": {
-    "file": "assets/app-B0H3oHh_.js",
+    "file": "assets/app-DqoRMV9b.js",
     "name": "app",
     "src": "resources/js/app.js",
-    "isEntry": true
+    "isEntry": true,
+    "dynamicImports": [
+      "node_modules/qrcode/lib/browser.js",
+      "node_modules/html5-qrcode/esm/index.js"
+    ]
   }
 }
