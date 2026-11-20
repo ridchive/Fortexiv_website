@@ -1255,7 +1255,7 @@ class MarketplaceTest extends TestCase
         $this->actingAs($buyer)->get(route('checkout.show', ['mode' => 'cart']))
             ->assertOk()
             ->assertSee('Pesanan tetap akan disimpan')
-            ->assertSee('Buat pesanan');
+            ->assertSee('Buat Pesanan & Lanjutkan Pembayaran');
 
         $response = $this->actingAs($buyer)->post(route('checkout'), [
             'mode' => 'cart',
