@@ -345,6 +345,7 @@
         --info: #8CC4E2;
         --info-bg: #17303F;
       }
+      :root:not([data-theme="light"]) .brand-logo-image { filter: invert(1); mix-blend-mode: screen; }
     }
     :root[data-theme="dark"] {
       color-scheme: dark;
@@ -375,7 +376,9 @@
     .site-header { background: var(--bg); color: var(--ink); }
     .hd { display: grid; grid-template-columns: auto minmax(180px, 1fr) auto; gap: 20px; align-items: center; padding-block: 18px; }
     .brand { display: inline-flex; align-items: center; gap: 8px; color: var(--ink); font: 800 22px/1 var(--fd); text-decoration: none; }
-    .brand-mark { width: 12px; height: 12px; flex: 0 0 12px; border-radius: 50% 0 50% 50%; background: var(--lime); transform: rotate(-20deg); }
+    .brand-logo-frame { position: relative; display: block; width: 100px; height: 47px; flex: 0 0 100px; overflow: hidden; }
+    .brand-logo-image { position: absolute; top: -26.6%; left: -16.3%; width: 130.5%; max-width: none; height: auto; mix-blend-mode: multiply; }
+    :root[data-theme="dark"] .brand-logo-image { filter: invert(1); mix-blend-mode: screen; }
     .hsearch { display: flex; align-items: center; width: min(100%, 560px); justify-self: center; padding: 0 6px 0 16px; border: 2px solid var(--ink); border-radius: 999px; background: var(--surface); }
     .hsearch input { flex: 1; min-width: 0; padding: 9px 0; border: 0; outline: 0; background: transparent; color: var(--ink); }
     .hsearch button { display: grid; width: 36px; height: 36px; place-items: center; border: 0; background: transparent; color: var(--ink); cursor: pointer; }
@@ -815,13 +818,6 @@
       letter-spacing: -0.03em;
       color: var(--ink);
     }
-    .admin-brand .brand-mark {
-      width: 10px;
-      height: 10px;
-      border-radius: 50%;
-      background: var(--lime);
-      display: inline-block;
-    }
     .admin-brand-tag {
       font-size: 0.65rem;
       font-weight: 700;
@@ -1073,7 +1069,7 @@
     <aside id="adminSidebar" class="admin-sidebar">
       <div class="admin-sidebar-header">
         <a class="admin-brand" href="{{ route('admin.dashboard') }}">
-          <i class="brand-mark"></i>FORTEXIV <span class="admin-brand-tag">Admin</span>
+          <span class="brand-logo-frame"><img class="brand-logo-image" src="{{ asset('fortexiv-logo.jpg') }}" alt="FORTEXIV"></span><span class="admin-brand-tag">Admin</span>
         </a>
         <button type="button" class="admin-sidebar-close" onclick="toggleAdminSidebar(false)" aria-label="Tutup Menu">
           <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
@@ -1235,7 +1231,7 @@
     <aside id="sellerSidebar" class="admin-sidebar">
       <div class="admin-sidebar-header">
         <a class="admin-brand" href="{{ route('seller.dashboard') }}">
-          <i class="brand-mark" style="background:var(--lime);"></i>FORTEXIV <span class="admin-brand-tag" style="background:var(--good-bg); color:var(--good); font-weight:800;">Seller</span>
+          <span class="brand-logo-frame"><img class="brand-logo-image" src="{{ asset('fortexiv-logo.jpg') }}" alt="FORTEXIV"></span><span class="admin-brand-tag" style="background:var(--good-bg); color:var(--good); font-weight:800;">Seller</span>
         </a>
         <button type="button" class="admin-sidebar-close" onclick="toggleSellerSidebar(false)" aria-label="Tutup Menu">
           <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
@@ -1360,7 +1356,7 @@
 @else
 <header @class(['site-header wrap', 'admin-header' => request()->routeIs('admin.*')])>
   <div class="hd">
-    <a class="brand" href="{{ route('home') }}"><i class="brand-mark"></i>FORTEXIV</a>
+    <a class="brand" href="{{ route('home') }}"><span class="brand-logo-frame"><img class="brand-logo-image" src="{{ asset('fortexiv-logo.jpg') }}" alt="FORTEXIV"></span></a>
     <form class="hsearch" method="get" action="{{ route('catalog.index') }}" role="search">
       <input name="search" type="search" value="{{ request('search') }}" placeholder="Cari produk atau proyek" aria-label="Cari">
       <button type="submit" aria-label="Cari">
@@ -1428,7 +1424,7 @@
   <div class="wrap">
     <div class="cols">
       <div>
-        <a class="brand" href="{{ route('home') }}"><i class="brand-mark"></i>FORTEXIV</a>
+        <a class="brand" href="{{ route('home') }}"><span class="brand-logo-frame"><img class="brand-logo-image" src="{{ asset('fortexiv-logo.jpg') }}" alt="FORTEXIV"></span></a>
         <p class="muted" style="max-width:36ch;margin-top:10px">Dokumentasi proyek kelas Green Ecosystem dan katalog pre-order dari kelas yang berpartisipasi.</p>
         <p class="small muted" style="margin-top:10px">Kontak contoh: <span class="code">bantuan-contoh@fortexiv.test</span></p>
       </div>
