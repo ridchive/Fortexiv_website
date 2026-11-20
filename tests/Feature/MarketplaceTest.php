@@ -740,12 +740,22 @@ class MarketplaceTest extends TestCase
             'proof' => UploadedFile::fake()->createWithContent('receipt.pdf', "%PDF-1.4\ntransfer receipt\n%%EOF"),
         ])->assertRedirect();
         $this->assertSame('waiting_verification', $order->fresh()->status);
+        $this->actingAs($buyer)->get(route('orders.show', $order))
+            ->assertOk()
+            ->assertSee('Menunggu konfirmasi')
+            ->assertDontSee('Pembayaran berhasil')
+            ->assertDontSee('Buka Tiket & Tampilkan QR');
 
         $admin = User::factory()->create(['role' => 'admin']);
         $payment = $order->fresh()->payment;
         $this->actingAs($admin)->post(route('admin.payments.verify', $payment))->assertRedirect();
         $this->assertSame('paid', $order->fresh()->status);
         $this->assertNotNull($order->fresh()->ticket);
+        $this->actingAs($buyer)->get(route('orders.show', $order))
+            ->assertOk()
+            ->assertSee('Pembayaran berhasil')
+            ->assertSee('Aktif untuk pickup')
+            ->assertSee('Buka Tiket & Tampilkan QR', false);
 
         $pickupCode = $order->fresh()->fulfillments->first()->pickup_code;
         $this->actingAs($buyer)->get(route('tickets.show', $order))
@@ -829,6 +839,14 @@ class MarketplaceTest extends TestCase
             'status' => 'pending',
             'handed_over_by' => null,
         ]);
+        $this->actingAs($buyer)->get(route('orders.show', $order))
+            ->assertOk()
+            ->assertSee('Sebagian selesai')
+            ->assertSee('Class A tote')
+            ->assertSee('Class B card')
+            ->assertSee('Diserahkan')
+            ->assertSee('Menunggu pemenuhan')
+            ->assertSee('Buka Tiket & Tampilkan QR', false);
 
         $this->actingAs($firstSeller->user)->post(route('seller.pickup'), ['pickup_code' => $firstPickupCode])
             ->assertSessionHasErrors('pickup_code');
@@ -842,6 +860,9 @@ class MarketplaceTest extends TestCase
             'seller_id' => $secondSeller->id,
             'status' => 'delivered',
         ]);
+        $this->actingAs($buyer)->get(route('orders.show', $order))
+            ->assertOk()
+            ->assertSee('Selesai');
 
         $this->actingAs($firstSeller->user)
             ->post(route('seller.pickup'), ['pickup_code' => $firstPickupCode])
@@ -920,7 +941,7 @@ class MarketplaceTest extends TestCase
         $this->assertSame('partially_picked_up', $order->fresh()->status);
         $this->actingAs($buyer)->get(route('orders.show', $order))
             ->assertOk()
-            ->assertSee('Partially Delivered');
+            ->assertSee('Sebagian diserahkan');
 
         $this->actingAs($seller->user)->postJson(route('seller.pickup.qr.preview'), [
             'type' => 'class',
@@ -1264,7 +1285,9 @@ class MarketplaceTest extends TestCase
         $this->actingAs($buyer)->get(route('orders.show', $order))
             ->assertOk()
             ->assertSee('Menunggu pembayaran')
-            ->assertSee('Pesanan tersimpan dan menunggu informasi pembayaran.');
+            ->assertSee('Pesanan menunggu informasi pembayaran.')
+            ->assertDontSee('Pembayaran berhasil')
+            ->assertDontSee('Buka Tiket & Tampilkan QR');
     }
 
     public function test_seller_cannot_handover_a_ticket_without_a_group_in_the_order(): void

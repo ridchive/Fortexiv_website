@@ -507,7 +507,7 @@ class MarketplaceController extends Controller
         ]);
     }
 
-    public function order(Request $request, Order $order): View
+    public function order(Request $request, Order $order, PurchaseWindow $purchaseWindow): View
     {
         abort_unless($order->buyer_id === $request->user()->id, 404);
         if (in_array($order->status, ['paid', 'partially_picked_up', 'picked_up'], true) && ! $order->ticket()->exists()) {
@@ -517,8 +517,16 @@ class MarketplaceController extends Controller
             ]);
         }
         $order->load(['buyer', 'fulfillments.seller.project', 'fulfillments.project', 'fulfillments.items.units', 'payment', 'ticket']);
+        $eventAt = $purchaseWindow->eventAt();
 
-        return view('marketplace.order', compact('order'));
+        return view('marketplace.order', [
+            'order' => $order,
+            'pickupTime' => $eventAt?->toDateString() === $order->pickup_date->toDateString()
+                ? $eventAt->format('H:i')
+                : null,
+            'pickupLocation' => $purchaseWindow->location(),
+            'pickupInstructions' => $purchaseWindow->pickupInstructions(),
+        ]);
     }
 
     public function retryMidtransPayment(Request $request, Order $order, MidtransService $midtrans): RedirectResponse
