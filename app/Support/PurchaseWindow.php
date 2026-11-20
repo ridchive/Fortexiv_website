@@ -107,8 +107,7 @@ class PurchaseWindow
             return $setting->event_location;
         }
 
-        return config('marketplace.event_location')
-            ?: (app()->environment('local', 'testing') ? 'Aula Utama SAI, Jl. Cemara Hijau No. 7, Bandung (lokasi contoh)' : null);
+        return config('marketplace.event_location');
     }
 
     public function pickupInstructions(): ?string

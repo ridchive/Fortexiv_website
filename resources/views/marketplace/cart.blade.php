@@ -87,7 +87,7 @@
             </svg>
             <div>
               <span>Lokasi</span>
-              <strong>Komplek Sekolah Alam Indonesia, Mampang, Pancoran Mas, Depok City, West Java 16433</strong>
+              <strong>{{ $window['location'] ?: 'Informasi lokasi belum tersedia.' }}</strong>
             </div>
           </div>
         </div>

@@ -317,7 +317,7 @@ class MarketplaceTest extends TestCase
             ->assertOk()
             ->assertSee('Konsumsi Bijak, Bumi Lestari.')
             ->assertSee('Catatan dari tim kelas')
-            ->assertSee('Aula Utama SAI');
+            ->assertSee('Komplek Sekolah Alam Indonesia');
 
         $this->get(route('catalog.index'))
             ->assertOk()
@@ -1254,6 +1254,7 @@ class MarketplaceTest extends TestCase
             ->assertSee('Lanjut ke Checkout');
         $this->actingAs($buyer)->get(route('checkout.show', ['mode' => 'cart']))
             ->assertOk()
+            ->assertSee('Komplek Sekolah Alam Indonesia, Mampang, Pancoran Mas, Depok City, West Java 16433')
             ->assertSee('Pesanan tetap akan disimpan')
             ->assertSee('Buat Pesanan & Lanjutkan Pembayaran');
 
@@ -1293,6 +1294,7 @@ class MarketplaceTest extends TestCase
 
         $this->actingAs($buyer)->get(route('orders.show', $order))
             ->assertOk()
+            ->assertSee('Komplek Sekolah Alam Indonesia, Mampang, Pancoran Mas, Depok City, West Java 16433')
             ->assertSee('Menunggu pembayaran')
             ->assertSee('Pesanan menunggu informasi pembayaran.')
             ->assertDontSee('Pembayaran berhasil')

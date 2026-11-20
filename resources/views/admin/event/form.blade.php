@@ -147,7 +147,7 @@
           name="event_location"
           type="text"
           value="{{ old('event_location', $setting?->event_location ?? $window['location']) }}"
-          placeholder="Contoh: Aula Utama SAI, Jl. Cemara Hijau No. 7, Bandung"
+          placeholder="Contoh: Komplek Sekolah Alam Indonesia, Mampang, Pancoran Mas, Depok City, West Java 16433"
           maxlength="255"
           required
         >

@@ -28,7 +28,7 @@ return new class extends Migration
             'po_end' => config('marketplace.po_end'),
             'payment_deadline' => config('marketplace.payment_deadline'),
             'event_at' => config('marketplace.event_at') ?: now()->startOfDay()->addDays(25)->setTime(9, 0)->toDateTimeString(),
-            'event_location' => config('marketplace.event_location') ?: 'Aula Utama SAI, Jl. Cemara Hijau No. 7, Bandung',
+            'event_location' => config('marketplace.event_location') ?: 'Komplek Sekolah Alam Indonesia, Mampang, Pancoran Mas, Depok City, West Java 16433',
             'pickup_instructions' => config('marketplace.pickup_instructions') ?: 'Bawa QR pesanan dari halaman Pesanan Saya. Setiap kelas punya meja sendiri, jadi satu pesanan lintas kelas punya lebih dari satu QR. Tunjukkan QR kepada petugas kelas, cek isi pesanan, lalu petugas mengonfirmasi penyerahan.',
             'banner' => config('marketplace.banner') ?: 'Satu periode PO untuk semua kelas. Semua pesanan diambil langsung di acara, tidak ada pengiriman.',
             'change_reason' => 'Inisialisasi konfigurasi jadwal acara dan jendela PO.',

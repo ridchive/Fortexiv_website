@@ -389,7 +389,7 @@ function seed(){
   const d=new Date();d.setHours(0,0,0,0);const t0=d.getTime(),now=Date.now();
   const S={v:1,seq:1008,rseq:4,aseq:6,pseq:20,session:null,cart:[],buyNow:null,wish:[],lastRoute:null,report:null,
     po:{start:t0-7*DAY+8*HR,end:t0+14*DAY+23*HR+59*MIN,pay:t0+16*DAY+23*HR,event:t0+25*DAY+9*HR,mode:'auto',
-      place:'Aula Utama SAI, Jl. Cemara Hijau No. 7, Bandung (lokasi contoh)',
+      place:'Komplek Sekolah Alam Indonesia, Mampang, Pancoran Mas, Depok City, West Java 16433',
       how:'Bawa QR pesanan dari halaman Pesanan Saya. Setiap kelas punya meja sendiri, jadi satu pesanan lintas kelas punya lebih dari satu QR. Tunjukkan QR kepada petugas kelas, cek isi pesanan, lalu petugas mengonfirmasi penyerahan.',
       banner:'Satu periode PO untuk semua kelas. Semua pesanan diambil langsung di acara, tidak ada pengiriman.'},
     cats:['Makanan','Alat Tulis','Aksesori','Dekorasi','Perawatan'],
@@ -804,7 +804,7 @@ function viewFaq(){
   ['Pembayaran gagal atau QR bermasalah, apa yang harus dilakukan?','Buka detail pesanan dan cek statusnya. Kalau masih ada kendala, hubungi kontak bantuan di bawah dan sebutkan nomor pesananmu.']];
   return pub(`<div class="wrap"><div class="pgh"><nav class="crumb"><a href="#/">Beranda</a> / <span>Bantuan</span></nav><h1>Bantuan dan pertanyaan umum</h1></div>
   <div class="two"><div>${f.map(x=>`<details class="faq"><summary>${esc(x[0])}</summary><p>${esc(x[1])}</p></details>`).join('')}</div>
-  <aside class="box stack"><h3>Kontak bantuan</h3>${note('Data contoh. Alamat dan nomor di bawah bukan kontak sungguhan.','warn')}<div class="kv"><span class="muted">Email</span><span class="code">bantuan-contoh@fortexiv.test</span></div><div class="kv"><span class="muted">WhatsApp</span><span class="code">0800-0000-0000</span></div><div class="kv"><span class="muted">Meja bantuan</span><span>Aula Utama SAI, hari acara</span></div></aside></div><div style="height:56px"></div></div>`);
+  <aside class="box stack"><h3>Kontak bantuan</h3>${note('Data contoh. Alamat dan nomor di bawah bukan kontak sungguhan.','warn')}<div class="kv"><span class="muted">Email</span><span class="code">bantuan-contoh@fortexiv.test</span></div><div class="kv"><span class="muted">WhatsApp</span><span class="code">0800-0000-0000</span></div><div class="kv"><span class="muted">Meja bantuan</span><span>Komplek Sekolah Alam Indonesia, Mampang, Pancoran Mas, Depok City, West Java 16433</span></div></aside></div><div style="height:56px"></div></div>`);
 }
 function viewLogin(notice){
   const shortcuts=[['buyer','Buyer','Belanja, bayar, dan lihat pesanan.'],['seller','Seller','Kelola produk dan pesanan kelas.'],['admin','Admin','Kelola artikel, pesanan, dan operasional.']];
