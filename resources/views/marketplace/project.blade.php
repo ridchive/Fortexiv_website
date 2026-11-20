@@ -55,11 +55,7 @@
         </svg>
       </a>
       <div class="detail-image">
-        @if($project->image)
-          <img src="{{ $project->imageUrl() ?? Storage::disk('public')->url($project->image) }}" alt="{{ $project->title }}">
-        @else
-          @include('marketplace.partials.project-photo', ['project' => $project])
-        @endif
+        @include('marketplace.partials.project-photo', ['project' => $project])
       </div>
     </div>
     <div class="detail-copy">

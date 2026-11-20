@@ -4,6 +4,7 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\Relations\HasOne;
 
 class Project extends Model
 {
@@ -24,7 +25,9 @@ class Project extends Model
             return $this->image;
         }
 
-        return asset('storage/'.ltrim($this->image, '/'));
+        return route('storage.fallback', [
+            'path' => ltrim($this->image, '/'),
+        ]);
     }
 
     public function contentAsMarkdown(): string
@@ -92,7 +95,7 @@ class Project extends Model
         return $this->hasMany(Seller::class);
     }
 
-    public function seller(): \Illuminate\Database\Eloquent\Relations\HasOne
+    public function seller(): HasOne
     {
         return $this->hasOne(Seller::class)->latestOfMany();
     }

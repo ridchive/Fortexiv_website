@@ -391,7 +391,7 @@
     .site-header { background: var(--bg); color: var(--ink); }
     .hd { display: grid; grid-template-columns: auto minmax(180px, 1fr) auto; gap: 20px; align-items: center; padding-block: 18px; }
     .brand { display: inline-flex; align-items: center; gap: 8px; color: var(--ink); font: 800 22px/1 var(--fd); text-decoration: none; }
-    .brand-logo-frame { display: block; width: 112px; aspect-ratio: 16 / 9; flex: 0 0 112px; overflow: visible; }
+    .brand-logo-frame { display: block; width: 128px; aspect-ratio: 16 / 9; flex: 0 0 128px; overflow: visible; }
     .brand-logo-image { display: block; width: 100%; height: 100%; object-fit: contain; object-position: center; max-width: none; mix-blend-mode: multiply; }
     :root[data-theme="dark"] .brand-logo-image { filter: invert(1); mix-blend-mode: screen; }
     .hsearch { display: flex; align-items: center; width: min(100%, 560px); justify-self: center; padding: 0 6px 0 16px; border: 2px solid var(--ink); border-radius: 999px; background: var(--surface); }

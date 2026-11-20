@@ -22,7 +22,7 @@ Route::get('/products/{product:slug}', [MarketplaceController::class, 'product']
 Route::get('/projects/{project}', [MarketplaceController::class, 'project'])->name('projects.show');
 
 // Fallback rute file storage untuk shared hosting jika symlink public/storage tidak tersedia
-Route::get('/storage/{path}', function (string $path) {
+Route::get('/storage/fallback/{path}', function (string $path) {
     $disk = Storage::disk('public');
     abort_unless($disk->exists($path), 404);
 
