@@ -179,9 +179,12 @@
     .cart-summary { position: sticky; top: 24px; }
     .cart-summary > h2 { margin-bottom: 14px; font-size: clamp(1.4rem, 2.5vw, 1.75rem); }
     .cart-summary .cart-total { border-bottom: 0; font-size: 1.05rem; }
-    .cart-pickup { margin: 18px 0; padding: 14px; border: 1px solid var(--line); border-radius: var(--radius); background: var(--soft); }
-    .cart-pickup h3 { font-size: 1.05rem; }
-    .cart-pickup p:last-child { margin-bottom: 0; }
+    .cart-pickup { margin: 14px 0; padding: 12px; border: 1px solid var(--line); border-radius: var(--radius); background: var(--soft); }
+    .cart-pickup h3 { margin: 0 0 10px; font-size: 1.05rem; }
+    .cart-pickup-location { display: flex; align-items: flex-start; gap: 9px; color: var(--muted); font-size: 13px; line-height: 1.5; }
+    .cart-pickup-location svg { flex: 0 0 18px; width: 18px; height: 18px; margin-top: 2px; color: var(--ink); }
+    .cart-pickup-location div { display: grid; gap: 2px; }
+    .cart-pickup-location strong { color: var(--ink); font-size: 14px; font-weight: 600; }
     .cart-summary > .btn { width: 100%; margin-top: 10px; }
     .qty { display: flex; align-items: center; gap: 8px; }
     .qty button { width: 34px; height: 34px; border: 1px solid var(--line); border-radius: 50%; background: var(--soft); cursor: pointer; }

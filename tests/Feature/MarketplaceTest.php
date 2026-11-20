@@ -1219,6 +1219,8 @@ class MarketplaceTest extends TestCase
             ->assertSee('Subtotal produk')
             ->assertSee('Total pembayaran')
             ->assertSee('Pengambilan di acara')
+            ->assertSee('Komplek Sekolah Alam Indonesia, Mampang, Pancoran Mas, Depok City, West Java 16433')
+            ->assertDontSee('Tanpa biaya pengiriman. Setiap grup kelas diserahkan secara terpisah.')
             ->assertSee('Lanjut ke Checkout');
         $this->actingAs($buyer)->get(route('checkout.show', ['mode' => 'cart']))
             ->assertOk()

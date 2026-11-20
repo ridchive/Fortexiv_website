@@ -80,16 +80,16 @@
         <div class="kv cart-total"><span>Total pembayaran</span><strong>{{ \App\Support\Money::format($cartTotal) }}</strong></div>
         <div class="cart-pickup">
           <h3>Pengambilan di acara</h3>
-          <p>Tanpa biaya pengiriman. Setiap grup kelas diserahkan secara terpisah.</p>
-          @if($window['eventAt'])
-            <p><strong>Jadwal:</strong> {{ $window['eventAt']->translatedFormat('d/m/Y H:i') }}</p>
-          @endif
-          @if($window['location'])
-            <p><strong>Lokasi:</strong> {{ $window['location'] }}</p>
-          @endif
-          @if($window['pickupInstructions'])
-            <p>{{ $window['pickupInstructions'] }}</p>
-          @endif
+          <div class="cart-pickup-location">
+            <svg viewBox="0 0 24 24" aria-hidden="true">
+              <path d="M20 10c0 5-8 12-8 12S4 15 4 10a8 8 0 1 1 16 0Z" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
+              <circle cx="12" cy="10" r="2.5" fill="none" stroke="currentColor" stroke-width="1.8"/>
+            </svg>
+            <div>
+              <span>Lokasi</span>
+              <strong>Komplek Sekolah Alam Indonesia, Mampang, Pancoran Mas, Depok City, West Java 16433</strong>
+            </div>
+          </div>
         </div>
         @if($checkoutAvailable)
           <a class="btn" href="{{ route('checkout.show', ['mode' => 'cart']) }}">Lanjut ke Checkout</a>
