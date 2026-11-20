@@ -847,6 +847,15 @@ class MarketplaceTest extends TestCase
             ->assertSee('Diserahkan')
             ->assertSee('Menunggu pemenuhan')
             ->assertSee('Buka Tiket & Tampilkan QR', false);
+        $this->actingAs($buyer)->get(route('tickets.show', $order))
+            ->assertOk()
+            ->assertSee($firstPickupCode)
+            ->assertSee($secondPickupCode)
+            ->assertSee('Sebagian diserahkan')
+            ->assertSee('Menunggu pengambilan')
+            ->assertSee('data-qr-download disabled', false)
+            ->assertSee('data-token-download="'.$firstPickupCode.'"', false)
+            ->assertSee('data-token-download="'.$secondPickupCode.'"', false);
 
         $this->actingAs($firstSeller->user)->post(route('seller.pickup'), ['pickup_code' => $firstPickupCode])
             ->assertSessionHasErrors('pickup_code');
