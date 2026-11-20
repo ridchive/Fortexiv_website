@@ -67,6 +67,9 @@
         </div>
       </div>
       <p class="muted small">Foto referensi sementara dipilih dari tema proyek. Upload sampul sendiri untuk menggantinya.</p>
+      <div class="image-crop-actions">
+        <button class="btn sec sm" type="button" data-open-square-crop hidden>Atur posisi foto</button>
+      </div>
       <input class="input" id="image" name="image" type="file" accept=".jpg,.jpeg,.png,.webp" data-project-image-input>
       @if($project->image)
         <label class="chk" style="margin:0;"><input type="checkbox" name="remove_image" value="1"><span>Hapus gambar sampul saat ini</span></label>
@@ -287,40 +290,6 @@
       });
     }
 
-    const imageInput = document.querySelector('[data-project-image-input]');
-    const imagePreview = document.querySelector('[data-project-image-preview]');
-    const generatedPreview = document.querySelector('[data-project-generated-preview]');
-
-    if (!imageInput || !imagePreview || !generatedPreview) {
-      return;
-    }
-
-    const savedImageUrl = imagePreview.getAttribute('src');
-    let activePreviewUrl;
-
-    imageInput.addEventListener('change', () => {
-      if (activePreviewUrl) {
-        URL.revokeObjectURL(activePreviewUrl);
-        activePreviewUrl = undefined;
-      }
-
-      const selectedFile = imageInput.files?.[0];
-      if (selectedFile?.type.startsWith('image/')) {
-        activePreviewUrl = URL.createObjectURL(selectedFile);
-        imagePreview.src = activePreviewUrl;
-        imagePreview.alt = 'Pratinjau sampul proyek';
-        imagePreview.hidden = false;
-        generatedPreview.hidden = true;
-
-        return;
-      }
-
-      imagePreview.hidden = !savedImageUrl;
-      generatedPreview.hidden = Boolean(savedImageUrl);
-      if (savedImageUrl) {
-        imagePreview.src = savedImageUrl;
-      }
-    });
   })();
 </script>
 @endpush

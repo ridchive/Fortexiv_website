@@ -24,6 +24,9 @@
         </div>
       </div>
       <p class="muted small">Ilustrasi sementara digunakan jika belum ada foto. Pilih foto produk untuk melihat pratinjau.</p>
+      <div class="image-crop-actions">
+        <button class="btn sec sm" type="button" data-open-square-crop hidden>Atur posisi foto</button>
+      </div>
       <label for="image">{{ $product->image ? 'Ganti gambar produk' : 'Upload gambar produk' }} (JPG, PNG, atau WebP, maks. 5 MB)</label>
       <input class="input" id="image" name="image" type="file" accept=".jpg,.jpeg,.png,.webp" data-product-image-input>
     </div>
@@ -31,44 +34,3 @@
   </form>
 </section>
 @endsection
-
-@push('scripts')
-<script>
-  (() => {
-    const imageInput = document.querySelector('[data-product-image-input]');
-    const imagePreview = document.querySelector('[data-product-image-preview]');
-    const generatedPreview = document.querySelector('[data-product-generated-preview]');
-
-    if (!imageInput || !imagePreview || !generatedPreview) {
-      return;
-    }
-
-    const savedImageUrl = imagePreview.getAttribute('src');
-    let activePreviewUrl;
-
-    imageInput.addEventListener('change', () => {
-      if (activePreviewUrl) {
-        URL.revokeObjectURL(activePreviewUrl);
-        activePreviewUrl = undefined;
-      }
-
-      const selectedFile = imageInput.files?.[0];
-      if (selectedFile?.type.startsWith('image/')) {
-        activePreviewUrl = URL.createObjectURL(selectedFile);
-        imagePreview.src = activePreviewUrl;
-        imagePreview.alt = 'Pratinjau gambar produk';
-        imagePreview.hidden = false;
-        generatedPreview.hidden = true;
-
-        return;
-      }
-
-      imagePreview.hidden = !savedImageUrl;
-      generatedPreview.hidden = Boolean(savedImageUrl);
-      if (savedImageUrl) {
-        imagePreview.src = savedImageUrl;
-      }
-    });
-  })();
-</script>
-@endpush
