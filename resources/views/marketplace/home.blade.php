@@ -82,29 +82,6 @@
 </section>
 
 <section class="sec-b">
-  <div class="wrap split">
-    <div>
-      <h2>Kelas yang berpartisipasi</h2>
-      <div class="subs">
-        @forelse($projects as $project)
-          <div>
-            <h3>{{ $project->class_name }}</h3>
-            <p>{{ $project->title }}. {{ $project->published_products_count }} produk dalam katalog.</p>
-          </div>
-        @empty
-          <p class="muted">Informasi kelas akan ditampilkan setelah proyek diterbitkan.</p>
-        @endforelse
-      </div>
-      <div class="btns">
-        <a class="btn" href="{{ route('projects.index') }}">Baca proyek</a>
-        <a class="btn sec" href="{{ route('catalog.index') }}">Buka katalog</a>
-      </div>
-    </div>
-    <div class="big">@include('marketplace.partials.garden-scene', ['class' => ''])</div>
-  </div>
-</section>
-
-<section class="sec-b">
   <div class="wrap">
     <div class="sec-h"><h2>Cara pre-order dan pengambilan</h2></div>
     <ol class="steps">
