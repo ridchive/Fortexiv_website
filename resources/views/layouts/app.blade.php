@@ -376,8 +376,8 @@
     .site-header { background: var(--bg); color: var(--ink); }
     .hd { display: grid; grid-template-columns: auto minmax(180px, 1fr) auto; gap: 20px; align-items: center; padding-block: 18px; }
     .brand { display: inline-flex; align-items: center; gap: 8px; color: var(--ink); font: 800 22px/1 var(--fd); text-decoration: none; }
-    .brand-logo-frame { position: relative; display: block; width: 100px; height: 47px; flex: 0 0 100px; overflow: hidden; }
-    .brand-logo-image { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: contain; object-position: center; max-width: none; mix-blend-mode: multiply; }
+    .brand-logo-frame { display: block; width: 112px; aspect-ratio: 16 / 9; flex: 0 0 112px; overflow: visible; }
+    .brand-logo-image { display: block; width: 100%; height: 100%; object-fit: contain; object-position: center; max-width: none; mix-blend-mode: multiply; }
     :root[data-theme="dark"] .brand-logo-image { filter: invert(1); mix-blend-mode: screen; }
     .hsearch { display: flex; align-items: center; width: min(100%, 560px); justify-self: center; padding: 0 6px 0 16px; border: 2px solid var(--ink); border-radius: 999px; background: var(--surface); }
     .hsearch input { flex: 1; min-width: 0; padding: 9px 0; border: 0; outline: 0; background: transparent; color: var(--ink); }
