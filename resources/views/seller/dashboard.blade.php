@@ -54,7 +54,8 @@
   </div>
 @endif
 
-<div class="panel" style="margin-bottom: 24px; display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; gap: 16px;">
+<div class="dashboard-actions-grid">
+<div class="panel" style="display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; gap: 16px;">
   <div>
     <div class="eyebrow">STATUS JENDELA PRE-ORDER (PO)</div>
     <div style="display: flex; align-items: center; gap: 10px; margin-top: 4px;">
@@ -78,7 +79,7 @@
   </div>
 </div>
 
-<div class="panel" style="margin-bottom: 24px; display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; gap: 16px;">
+<div class="panel" style="display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; gap: 16px;">
   <div>
     <div class="eyebrow">KATALOG & KARYA SISWA</div>
     <div style="font-weight: 700; font-size: 1.15rem; margin-top: 4px;">Kelola Produk & Karya Kelas</div>
@@ -91,7 +92,7 @@
   </div>
 </div>
 
-<div class="panel" style="margin-bottom: 24px; display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; gap: 16px;">
+<div class="panel" style="display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; gap: 16px;">
   <div>
     <div class="eyebrow">OPERASIONAL SERAH TERIMA (HARI H)</div>
     <div style="font-weight: 700; font-size: 1.15rem; margin-top: 4px;">Scan QR & Penyerahan Pesanan Pembeli</div>
@@ -101,6 +102,7 @@
     <a class="btn sec" href="{{ route('seller.orders') }}">Pesanan & Pembeli</a>
     <a class="btn lime" href="{{ route('seller.pickup.scan') }}">📷 Buka Scanner QR ➔</a>
   </div>
+</div>
 </div>
 
 <div class="stats">

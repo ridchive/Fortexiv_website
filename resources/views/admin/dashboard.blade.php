@@ -59,7 +59,8 @@
       ];
   @endphp
 
-  <div class="panel" style="margin-bottom: 24px; display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; gap: 16px;">
+  <div class="dashboard-actions-grid">
+  <div class="panel" style="display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; gap: 16px;">
     <div>
       <div class="eyebrow">STATUS JENDELA PRE-ORDER (PO)</div>
       <div style="display: flex; align-items: center; gap: 10px; margin-top: 4px;">
@@ -81,7 +82,7 @@
     </div>
   </div>
 
-  <div class="panel" style="margin-bottom: 24px; display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; gap: 16px;">
+  <div class="panel" style="display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; gap: 16px;">
     <div>
       <div class="eyebrow">STRUKTUR TINGKAT & AKUN KELAS</div>
       <div style="font-weight: 700; font-size: 1.15rem; margin-top: 4px;">Kelola Level Kelas & Akun Seller</div>
@@ -92,7 +93,7 @@
     </div>
   </div>
 
-  <div class="panel" style="margin-bottom: 24px; display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; gap: 16px;">
+  <div class="panel" style="display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; gap: 16px;">
     <div>
       <div class="eyebrow">KONTEN EDITORIAL PROYEK KELAS</div>
       <div style="font-weight: 700; font-size: 1.15rem; margin-top: 4px;">Kelola Cerita & Artikel Proyek Siswa</div>
@@ -104,7 +105,7 @@
     </div>
   </div>
 
-  <div class="panel" style="margin-bottom: 24px; display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; gap: 16px;">
+  <div class="panel" style="display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; gap: 16px;">
     <div>
       <div class="eyebrow">GREEN ECOSYSTEM IMPACT TRACKER (GEIT)</div>
       <div style="font-weight: 700; font-size: 1.15rem; margin-top: 4px;">Artikel Dampak Lingkungan & Banner Hero Beranda</div>
@@ -113,6 +114,7 @@
     <div style="display: flex; gap: 10px; flex-wrap: wrap;">
       <a class="btn" href="{{ route('impact.index') }}">Buka Halaman & Editor GEIT ↗</a>
     </div>
+  </div>
   </div>
 
   <div class="stats">
