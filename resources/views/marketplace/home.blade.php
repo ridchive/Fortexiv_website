@@ -12,11 +12,6 @@
       'closed' => 'PO ditutup',
       default => 'Jadwal PO belum tersedia',
   };
-  $quotes = [
-      ['“Kami hitung ulang kebutuhan daun pisang supaya tidak ada yang terbuang.”', 'Tim XI Agribisnis 1'],
-      ['“Dua belas botol kaca pertama berasal dari kantin sekolah kami sendiri.”', 'Tim XI Tata Boga 2'],
-      ['“Setiap buku catatan sedikit berbeda, dan itu justru yang kami suka.”', 'Tim X Desain Grafis'],
-  ];
 @endphp
 
 @php
@@ -92,20 +87,6 @@
       <li><h3>Terima QR per kelas</h3><p>Tiap kelas yang kamu pesan punya QR pengambilan sendiri.</p></li>
       <li><h3>Ambil di acara</h3><p>@if($window['eventAt']){{ $window['eventAt']->format('d/m/Y') }}@endif{{ $window['location'] ? ', '.Str::before($window['location'], ',') : '' }}. Tanpa ekspedisi.</p></li>
     </ol>
-  </div>
-</section>
-
-<section class="sec-b">
-  <div class="wrap">
-    <div class="sec-h"><h2>Catatan dari tim kelas</h2></div>
-    <div class="grid3">
-      @foreach($quotes as [$quote, $team])
-        <figure class="qcard">
-          <q>{{ $quote }}</q>
-          <figcaption><b>{{ $team }}</b><div class="muted small">Catatan lapangan (contoh)</div></figcaption>
-        </figure>
-      @endforeach
-    </div>
   </div>
 </section>
 
