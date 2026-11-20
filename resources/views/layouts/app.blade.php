@@ -173,6 +173,16 @@
     .cart-image { width: 82px; height: 74px; overflow: hidden; border-radius: 6px; background: var(--soft); }
     .cart-image > img, .cart-image .product-visual { display: block; width: 100%; height: 100%; }
     .cart-image [hidden] { display: none !important; }
+    .cart-layout { display: grid; grid-template-columns: minmax(0, 2fr) minmax(300px, .95fr); align-items: start; gap: 24px; margin-top: 20px; }
+    .cart-products { display: grid; min-width: 0; gap: 16px; }
+    .cart-products > .panel, .cart-summary { margin: 0; }
+    .cart-summary { position: sticky; top: 24px; }
+    .cart-summary > h2 { margin-bottom: 14px; font-size: clamp(1.4rem, 2.5vw, 1.75rem); }
+    .cart-summary .cart-total { border-bottom: 0; font-size: 1.05rem; }
+    .cart-pickup { margin: 18px 0; padding: 14px; border: 1px solid var(--line); border-radius: var(--radius); background: var(--soft); }
+    .cart-pickup h3 { font-size: 1.05rem; }
+    .cart-pickup p:last-child { margin-bottom: 0; }
+    .cart-summary > .btn { width: 100%; margin-top: 10px; }
     .qty { display: flex; align-items: center; gap: 8px; }
     .qty button { width: 34px; height: 34px; border: 1px solid var(--line); border-radius: 50%; background: var(--soft); cursor: pointer; }
     .qty input { width: 72px; }
@@ -303,6 +313,9 @@
       .ft .cols { grid-template-columns: 1.6fr repeat(3, minmax(0, 1fr)); }
       .hero { min-height: 430px; }
     }
+    @media (max-width: 900px) {
+      .cart-layout { grid-template-columns: minmax(0, 1.7fr) minmax(260px, 1fr); gap: 18px; }
+    }
     @media (max-width: 700px) {
       .nav-inner { padding: 13px 16px; }
       .app { width: min(100% - 28px, 1200px); padding-top: 20px; }
@@ -317,6 +330,8 @@
       .section-head { align-items: flex-start; flex-direction: column; }
       .filters, .searchbar { grid-template-columns: 1fr; }
       .steps { grid-template-columns: repeat(2, 1fr); }
+      .cart-layout { grid-template-columns: 1fr; gap: 4px; }
+      .cart-summary { position: static; }
       .cart-i { grid-template-columns: 64px minmax(0, 1fr); }
       .cart-i img { width: 64px; height: 64px; }
       .cart-actions { grid-column: 1 / -1; justify-content: space-between; }
