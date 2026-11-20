@@ -215,32 +215,6 @@
 
           <!-- Right Column: Emission Baseline & Product Emission Factors -->
           <div class="editor-col-side">
-            <div class="side-card">
-              <h3 class="side-card-title">Parameter Emisi per Produk</h3>
-              <p class="side-card-desc">Tentukan nilai kgCO₂e yang dikurangi saat tiap produk dibeli:</p>
-
-              <div class="product-factors-list">
-                @foreach($products as $prod)
-                  <div class="product-factor-row">
-                    <div class="product-factor-info">
-                      <span class="product-factor-name">{{ $prod->name }}</span>
-                      <span class="product-factor-class">{{ $prod->seller->project->class_name ?? ($prod->project->class_name ?? 'Kelas') }}</span>
-                    </div>
-                    <div class="product-factor-input-wrap">
-                      <input type="number" step="0.05" min="0" max="999" name="products[{{ $prod->id }}][co2_reduction]" value="{{ old('products.' . $prod->id . '.co2_reduction', $prod->co2_reduction ?? 0.50) }}" class="in in-sm in-number">
-                      <span class="unit-tag">kg</span>
-                    </div>
-                  </div>
-                @endforeach
-              </div>
-            </div>
-
-            <div class="side-card">
-              <label for="baseline-input" class="side-card-title" style="display: block; margin-bottom: 4px;">Baseline Emisi Awal (kgCO₂e)</label>
-              <input type="number" step="0.1" min="0" name="impact_baseline_co2" id="baseline-input" value="{{ old('impact_baseline_co2', $eventSettings->impact_baseline_co2 ?? 20.00) }}" class="in in-number" required>
-              <span class="hint-small" style="display: block; margin-top: 4px;">Reduksi dasar dari kebun organik dan inisiatif awal sekolah.</span>
-            </div>
-
             <button type="submit" class="btn dk btn-full" style="padding: 12px 18px; font-weight: 700;">
               💾 Simpan & Terapkan ke Artikel & Hero
             </button>
@@ -267,12 +241,18 @@
       <!-- Live Accumulation Highlight Badge -->
       <div class="impact-metric-banner">
         <div class="metric-text-group">
-          <span class="metric-eyebrow">Akumulasi Berhasil Mengurangi</span>
+          <span class="metric-eyebrow">Total Emisi Dihindari</span>
           <div class="metric-number-wrap">
             <span class="metric-big-num">{{ $co2Reduced }}</span>
-            <span class="metric-unit-text">kgCO₂e</span>
+            @if($co2Reduced !== 'Belum tersedia')
+              <span class="metric-unit-text">kg CO2e</span>
+            @endif
           </div>
-          <span class="metric-footnote">Otomatis bertambah setiap pesanan karya ramah lingkungan dibayar / diambil.</span>
+          <span class="metric-footnote">CEA item-level dari pembayaran terverifikasi: (EF baseline − EF produk) × kuantitas.</span>
+          <div class="stats" style="margin-top: 12px;">
+            <div class="stat"><strong>{{ number_format($carbonSummary['total_additional_emissions'], 6, ',', '.') }} kg CO2e</strong><span>Emisi tambahan</span></div>
+            <div class="stat"><strong>{{ number_format($carbonSummary['net_avoided_emissions'], 6, ',', '.') }} kg CO2e</strong><span>Net emisi dihindari</span></div>
+          </div>
         </div>
         <div class="metric-cta-group">
           <a href="{{ route('catalog.index') }}" class="btn dk sm">Pesan Karya Kelas &rarr;</a>
@@ -302,8 +282,8 @@
 
       <!-- Product Contribution Table -->
       <div class="product-contribution-section">
-        <h2 class="contribution-title">Kontribusi Reduksi Emisi per Produk</h2>
-        <p class="contribution-desc">Tabel rincian emisi karbon yang dihindari dari setiap produk karya siswa yang dipesan melalui FORTEXIV:</p>
+        <h2 class="contribution-title">Carbon Emission Avoided per Produk</h2>
+        <p class="contribution-desc">CEA dihitung dari snapshot faktor saat checkout untuk item dengan pembayaran terverifikasi. Nilai negatif menunjukkan emisi tambahan. Sumber dan batas fungsional ditetapkan admin; hasil bukan pengukuran emisi aktual.</p>
 
         <div class="table-responsive">
           <table class="table-impact">
@@ -311,36 +291,48 @@
               <tr>
                 <th>Karya / Produk</th>
                 <th>Kelas</th>
-                <th>Reduksi / Item</th>
-                <th>Terjual</th>
-                <th>Total Terhindar</th>
+                <th>Unit terverifikasi</th>
+                <th>Dihindari</th>
+                <th>Tambahan</th>
+                <th>Net</th>
               </tr>
             </thead>
             <tbody>
               @foreach($products as $prod)
                 @php
-                  $sold = (int) ($prod->sold_units ?? 0);
-                  $factor = (float) ($prod->co2_reduction ?? 0.50);
-                  $subtotal = $sold * $factor;
+                  $sold = (int) ($prod->eligible_sold_units ?? 0);
+                  $impact = $prod->eligible_carbon_contribution;
                 @endphp
                 <tr>
                   <td><strong>{{ $prod->name }}</strong></td>
                   <td>{{ $prod->seller->project->class_name ?? ($prod->project->class_name ?? '-') }}</td>
-                  <td class="factor-cell">+{{ number_format($factor, 2, ',', '.') }} kg</td>
                   <td>{{ $sold }} unit</td>
-                  <td class="subtotal-cell">{{ number_format($subtotal, 1, ',', '.') }} kgCO₂e</td>
+                  <td class="subtotal-cell">
+                    @if($impact === null)
+                      Belum ada transaksi eligible
+                    @else
+                      {{ number_format($impact->total_avoided_emissions, 6, ',', '.') }} kg CO2e
+                    @endif
+                  </td>
+                  <td>{{ $impact === null ? '—' : number_format($impact->total_additional_emissions, 6, ',', '.') . ' kg CO2e' }}</td>
+                  <td>{{ $impact === null ? '—' : number_format($impact->net_avoided_emissions, 6, ',', '.') . ' kg CO2e' }}</td>
+                </tr>
+              @endforeach
+              @foreach($unlinkedCarbonProducts as $unlinkedProduct)
+                <tr>
+                  <td><strong>{{ $unlinkedProduct->product_name }} <span class="muted">(produk tidak lagi terdaftar)</span></strong></td>
+                  <td>{{ $unlinkedProduct->class_name }}</td>
+                  <td>{{ $unlinkedProduct->eligible_sold_units }} unit</td>
+                  <td class="subtotal-cell">{{ number_format($unlinkedProduct->total_avoided_emissions, 6, ',', '.') }} kg CO2e</td>
+                  <td>{{ number_format($unlinkedProduct->total_additional_emissions, 6, ',', '.') }} kg CO2e</td>
+                  <td>{{ number_format($unlinkedProduct->net_avoided_emissions, 6, ',', '.') }} kg CO2e</td>
                 </tr>
               @endforeach
             </tbody>
             <tfoot>
-              <tr>
-                <th colspan="4" style="text-align: right;">Baseline Awal Kebun Sekolah:</th>
-                <th class="subtotal-cell">{{ number_format($co2Base, 1, ',', '.') }} kgCO₂e</th>
-              </tr>
-              <tr class="total-row">
-                <th colspan="4" style="text-align: right;">Total Akumulasi Emisi Berhasil Dikurangi:</th>
-                <th class="total-cell">{{ $co2Reduced }} kgCO₂e</th>
-              </tr>
+              <tr class="total-row"><th colspan="4" style="text-align: right;">Total emisi dihindari:</th><th colspan="2" class="total-cell">{{ $co2Reduced }} @if($co2Reduced !== 'Belum tersedia') kg CO2e @endif</th></tr>
+              <tr class="total-row"><th colspan="4" style="text-align: right;">Total emisi tambahan:</th><th colspan="2" class="total-cell">{{ number_format($carbonSummary['total_additional_emissions'], 6, ',', '.') }} kg CO2e</th></tr>
+              <tr class="total-row"><th colspan="4" style="text-align: right;">Net emisi dihindari:</th><th colspan="2" class="total-cell">{{ number_format($carbonSummary['net_avoided_emissions'], 6, ',', '.') }} kg CO2e</th></tr>
             </tfoot>
           </table>
         </div>

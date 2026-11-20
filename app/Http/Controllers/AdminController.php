@@ -10,6 +10,7 @@ use App\Models\Product;
 use App\Models\Project;
 use App\Models\Seller;
 use App\Models\User;
+use App\Services\CarbonImpactService;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -21,11 +22,14 @@ class AdminController extends Controller
 {
     public function dashboard(): View
     {
+        $carbonSummary = app(CarbonImpactService::class)->adminDashboardSummary();
+
         return view('admin.dashboard', [
             'ordersCount' => Order::count(),
             'pendingPayments' => Payment::where('gateway', Payment::GATEWAY_MANUAL)->where('status', 'pending')->count(),
             'buyersCount' => User::where('role', 'buyer')->count(),
             'productsSold' => OrderItem::whereHas('order', fn ($query) => $query->whereIn('status', ['paid', 'partially_picked_up', 'picked_up']))->sum('quantity'),
+            'carbonSummary' => $carbonSummary,
             'payments' => Payment::with('order.buyer')
                 ->where('gateway', Payment::GATEWAY_MANUAL)
                 ->where('status', 'pending')
@@ -39,7 +43,7 @@ class AdminController extends Controller
 
     public function payments(): View
     {
-        $payments = Payment::with('order.buyer')->latest()->paginate(20);
+        $payments = Payment::with(['order.buyer', 'order.items.fulfillment'])->latest()->paginate(20);
 
         return view('admin.payments', compact('payments'));
     }
@@ -52,9 +56,9 @@ class AdminController extends Controller
         return Storage::disk('local')->download($payment->proof_image);
     }
 
-    public function verify(Payment $payment): RedirectResponse
+    public function verify(Payment $payment, CarbonImpactService $carbonImpact): RedirectResponse
     {
-        DB::transaction(function () use ($payment) {
+        DB::transaction(function () use ($payment, $carbonImpact) {
             $lockedPayment = Payment::whereKey($payment->id)->lockForUpdate()->firstOrFail();
             $order = Order::whereKey($lockedPayment->order_id)->lockForUpdate()->firstOrFail();
             abort_unless($lockedPayment->status === 'pending' && $order->status === 'waiting_verification', 422, 'Pembayaran ini sudah diproses.');
@@ -69,6 +73,7 @@ class AdminController extends Controller
                 'ticket_code' => 'FXT-'.Str::upper(Str::random(12)),
                 'issued_at' => now(),
             ]);
+            $carbonImpact->recordEligiblePurchase($order);
         });
 
         return back()->with('status', 'Pembayaran diverifikasi dan ticket pickup diterbitkan.');
@@ -97,6 +102,38 @@ class AdminController extends Controller
         });
 
         return back()->with('status', 'Pembayaran ditolak dan stok dikembalikan.');
+    }
+
+    public function adjustCarbonImpact(
+        Request $request,
+        OrderItem $orderItem,
+        CarbonImpactService $carbonImpact,
+    ): RedirectResponse {
+        $data = $request->validate([
+            'corrected_contribution' => ['nullable', 'numeric', 'between:-999999999999.999999,999999999999.999999'],
+            'reason' => ['required', 'string', 'min:3', 'max:2000'],
+        ]);
+
+        $orderItem->loadMissing(['order.payment']);
+        abort_unless(
+            $orderItem->order->payment?->status === 'verified',
+            422,
+            'Kontribusi hanya dapat dikoreksi untuk pesanan dengan pembayaran terverifikasi.',
+        );
+        abort_unless(
+            $orderItem->carbon_eligible_at !== null && $orderItem->carbon_contribution !== null,
+            422,
+            'Item belum memiliki perhitungan emisi dihindari yang lengkap.',
+        );
+
+        $carbonImpact->adjustOrderItem(
+            $orderItem,
+            isset($data['corrected_contribution']) ? (float) $data['corrected_contribution'] : null,
+            $data['reason'],
+            $request->user(),
+        );
+
+        return back()->with('status', 'Kontribusi jejak karbon item diperbarui dan koreksi dicatat.');
     }
 
     public function users(Request $request): View

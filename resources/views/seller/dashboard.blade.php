@@ -110,6 +110,40 @@
   <div class="stat"><strong>{{ $pendingCount }}</strong><span>Produk menunggu review admin</span></div>
 </div>
 
+<section class="panel" style="margin-top: 24px;">
+  <div class="section-head" style="margin-bottom: 16px;">
+    <div>
+      <div class="eyebrow">CARBON EMISSION AVOIDED KELAS</div>
+      <h2>Dampak terverifikasi produk kelas</h2>
+    </div>
+  </div>
+  <div class="stats" style="margin-bottom: 16px;">
+    <div class="stat"><strong>{{ number_format($carbonSummary['total_avoided_emissions'], 6, ',', '.') }} kg CO2e</strong><span>Emisi dihindari</span></div>
+    <div class="stat"><strong>{{ number_format($carbonSummary['total_additional_emissions'], 6, ',', '.') }} kg CO2e</strong><span>Emisi tambahan</span></div>
+    <div class="stat"><strong>{{ number_format($carbonSummary['net_avoided_emissions'], 6, ',', '.') }} kg CO2e</strong><span>Net emisi dihindari</span></div>
+    <div class="stat"><strong>{{ $carbonSummary['eligible_item_count'] }}</strong><span>Item pesanan eligible</span></div>
+  </div>
+  <div class="table-wrap">
+    <table>
+      <thead><tr><th>Produk</th><th>Unit terverifikasi</th><th>Dihindari</th><th>Tambahan</th><th>Net</th></tr></thead>
+      <tbody>
+        @forelse($carbonSummary['product_breakdown'] as $row)
+          <tr>
+            <td>{{ $row->product_name }}</td>
+            <td>{{ $row->eligible_sold_units }}</td>
+            <td>{{ number_format($row->total_avoided_emissions, 6, ',', '.') }}</td>
+            <td>{{ number_format($row->total_additional_emissions, 6, ',', '.') }}</td>
+            <td>{{ number_format($row->net_avoided_emissions, 6, ',', '.') }} kg CO2e</td>
+          </tr>
+        @empty
+          <tr><td colspan="5" class="muted">Belum ada transaksi dengan perhitungan emisi dihindari terverifikasi.</td></tr>
+        @endforelse
+      </tbody>
+    </table>
+  </div>
+  <p class="muted" style="margin-top: 10px;">Faktor dan sumber dikelola admin. Hasil historis memakai snapshot saat checkout dan tercatat setelah pembayaran diverifikasi.</p>
+</section>
+
 <h2 style="margin-top: 32px; margin-bottom: 14px;">Pesanan terbaru untuk kelas ini</h2>
 <div class="table-wrap">
   <table>

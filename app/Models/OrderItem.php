@@ -10,6 +10,18 @@ class OrderItem extends Model
 {
     protected $guarded = [];
 
+    protected function casts(): array
+    {
+        return [
+            'carbon_footprint_value_at_purchase' => 'decimal:6',
+            'carbon_baseline_emission_factor_at_purchase' => 'decimal:6',
+            'carbon_contribution' => 'decimal:6',
+            'carbon_legacy_product_footprint_total' => 'decimal:6',
+            'carbon_quantity_at_purchase' => 'integer',
+            'carbon_eligible_at' => 'datetime',
+        ];
+    }
+
     public function order(): BelongsTo
     {
         return $this->belongsTo(Order::class);
@@ -33,5 +45,10 @@ class OrderItem extends Model
     public function units(): HasMany
     {
         return $this->hasMany(OrderItemUnit::class)->orderBy('id');
+    }
+
+    public function carbonImpactAdjustments(): HasMany
+    {
+        return $this->hasMany(CarbonImpactAdjustment::class);
     }
 }

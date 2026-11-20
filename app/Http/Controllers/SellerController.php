@@ -8,6 +8,7 @@ use App\Actions\PreviewOrderQr;
 use App\Models\Category;
 use App\Models\OrderItem;
 use App\Models\Product;
+use App\Services\CarbonImpactService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -18,7 +19,7 @@ use Illuminate\View\View;
 
 class SellerController extends Controller
 {
-    public function dashboard(Request $request): View
+    public function dashboard(Request $request, CarbonImpactService $carbonImpact): View
     {
         $seller = $request->user()->seller;
         $items = OrderItem::where('seller_id', $seller->id)->with('order.buyer')->latest()->limit(8)->get();
@@ -28,6 +29,7 @@ class SellerController extends Controller
             'productsCount' => $seller->products()->count(),
             'ordersCount' => OrderItem::where('seller_id', $seller->id)->distinct('order_id')->count('order_id'),
             'pendingCount' => $seller->products()->where('review_status', 'pending_review')->count(),
+            'carbonSummary' => $carbonImpact->sellerDashboardSummary($seller),
             'items' => $items,
         ]);
     }

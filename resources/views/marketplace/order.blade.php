@@ -49,7 +49,20 @@
           @php($itemStatus = $deliveredCount === $item->quantity ? 'Delivered' : ($deliveredCount > 0 ? 'Partially Delivered' : 'Menunggu pengambilan'))
           <div class="kv">
             <span>{{ $item->product_name }} × {{ $item->quantity }}</span>
-            <strong>{{ \App\Support\Money::format($item->subtotal) }} · {{ $itemStatus }}</strong>
+            <strong>
+              {{ \App\Support\Money::format($item->subtotal) }} · {{ $itemStatus }}
+              @if($item->carbon_contribution !== null)
+                · CEA {{ number_format((float) $item->carbon_contribution, 6, ',', '.') }} kg CO2e
+              @elseif($order->payment?->status !== 'verified')
+                · Kontribusi menunggu verifikasi pembayaran
+              @elseif(!in_array($order->status, ['paid', 'partially_picked_up', 'picked_up'], true))
+                · Pesanan tidak eligible
+              @elseif($item->carbon_baseline_emission_factor_at_purchase === null || $item->carbon_footprint_value_at_purchase === null)
+                · Faktor emisi belum lengkap
+              @else
+                · Kontribusi belum tercatat
+              @endif
+            </strong>
           </div>
         @endforeach
         @if($fulfillment->handed_over_at)

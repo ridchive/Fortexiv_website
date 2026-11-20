@@ -5,7 +5,7 @@
 @section('content')
 @php
   $stats = $impactStats ?? [];
-  $co2Reduced = $stats['co2_reduced'] ?? '24,5';
+  $co2Reduced = $stats['co2_reduced'] ?? '0,00';
   $poLabel = match ($window['status']) {
       'open' => 'PO aktif',
       'upcoming' => 'PO belum dibuka',
@@ -42,12 +42,14 @@
 
       <div class="hero-impact-card" role="region" aria-label="Impact Tracker Green Ecosystem: Klik untuk melihat artikel lengkap">
         <div class="impact-header-row">
-          <span class="impact-label">Berhasil mengurangi</span>
+          <span class="impact-label">Emisi dihindari terverifikasi</span>
           <span class="impact-link-hint">Buka artikel &rarr;</span>
         </div>
         <div class="impact-value">
           <span class="impact-number">{{ $co2Reduced }}</span>
-          <span class="impact-unit">kgCO₂e</span>
+          @if($co2Reduced !== 'Belum tersedia')
+            <span class="impact-unit">kg CO2e</span>
+          @endif
         </div>
       </div>
     </div>

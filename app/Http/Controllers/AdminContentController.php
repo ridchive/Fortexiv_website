@@ -6,6 +6,7 @@ use App\Models\EventSetting;
 use App\Models\Product;
 use App\Models\Project;
 use App\Models\Seller;
+use App\Services\CarbonImpactService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -156,6 +157,11 @@ class AdminContentController extends Controller
             'decision' => ['required', 'in:approved,revision_requested,rejected'],
             'review_notes' => ['nullable', 'string', 'max:2000'],
             'story' => ['nullable', 'string', 'max:10000'],
+            'carbon_baseline_emission_factor' => ['nullable', 'numeric', 'min:0', 'max:999999999999.999999', 'required_with:carbon_footprint_value'],
+            'carbon_footprint_value' => ['nullable', 'numeric', 'min:0', 'max:999999999999.999999', 'required_with:carbon_baseline_emission_factor'],
+            'carbon_baseline_source' => ['nullable', 'string', 'max:2000', 'required_with:carbon_baseline_emission_factor'],
+            'carbon_product_source' => ['nullable', 'string', 'max:2000', 'required_with:carbon_footprint_value'],
+            'carbon_functional_unit' => ['nullable', 'string', 'max:120', 'required_with:carbon_baseline_emission_factor,carbon_footprint_value'],
         ]);
 
         if (in_array($data['decision'], ['revision_requested', 'rejected'], true) && blank($data['review_notes'] ?? null)) {
@@ -170,6 +176,14 @@ class AdminContentController extends Controller
 
         $product->update([
             'story' => $data['story'] ?? $product->story,
+            'carbon_footprint_value' => $data['carbon_footprint_value'] ?? null,
+            'carbon_baseline_emission_factor' => $data['carbon_baseline_emission_factor'] ?? null,
+            'carbon_footprint_unit' => filled($data['carbon_footprint_value'] ?? null)
+                ? CarbonImpactService::UNIT
+                : null,
+            'carbon_baseline_source' => $data['carbon_baseline_source'] ?? null,
+            'carbon_product_source' => $data['carbon_product_source'] ?? null,
+            'carbon_functional_unit' => $data['carbon_functional_unit'] ?? null,
             'review_status' => $data['decision'],
             'review_notes' => $data['review_notes'] ?? null,
             'reviewed_by' => $request->user()->id,
@@ -195,11 +209,8 @@ class AdminContentController extends Controller
             'impact_title' => ['required', 'string', 'max:255'],
             'impact_intro' => ['required', 'string', 'max:2000'],
             'impact_body' => ['nullable', 'string', 'max:50000'],
-            'impact_baseline_co2' => ['required', 'numeric', 'min:0', 'max:99999'],
             'impact_image' => ['nullable', 'image', 'mimes:jpg,jpeg,png,webp', 'max:5120'],
             'md_file' => ['nullable', 'file', 'mimes:txt,md,markdown', 'max:2048'],
-            'products' => ['nullable', 'array'],
-            'products.*.co2_reduction' => ['nullable', 'numeric', 'min:0', 'max:999'],
         ]);
 
         $eventSetting = EventSetting::latest('id')->first();
@@ -218,7 +229,6 @@ class AdminContentController extends Controller
             'impact_title' => $request->input('impact_title'),
             'impact_intro' => $request->input('impact_intro'),
             'impact_body' => $impactBody,
-            'impact_baseline_co2' => $request->input('impact_baseline_co2'),
             'updated_by' => $request->user()->id,
         ];
 
@@ -252,17 +262,6 @@ class AdminContentController extends Controller
             $eventSetting->update($data);
         } else {
             $eventSetting->fill($data)->save();
-        }
-
-        // Update product emission factors
-        if ($request->has('products') && is_array($request->input('products'))) {
-            foreach ($request->input('products') as $productId => $prodData) {
-                if (isset($prodData['co2_reduction'])) {
-                    Product::where('id', $productId)->update([
-                        'co2_reduction' => (float) $prodData['co2_reduction'],
-                    ]);
-                }
-            }
         }
 
         return back()->with('status', 'Pengaturan Hero Beranda dan Artikel GEIT berhasil diperbarui!');

@@ -10,6 +10,14 @@ class Product extends Model
 {
     protected $guarded = [];
 
+    protected function casts(): array
+    {
+        return [
+            'carbon_footprint_value' => 'decimal:6',
+            'carbon_baseline_emission_factor' => 'decimal:6',
+        ];
+    }
+
     public function seller(): BelongsTo
     {
         return $this->belongsTo(Seller::class);

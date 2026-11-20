@@ -213,7 +213,10 @@ class MidtransService
                 || ($transactionStatus === 'capture' && ($transaction['fraud_status'] ?? null) === 'accept');
 
             if ($isPaid) {
-                if ($order->status !== 'pending_payment' && $order->status !== 'cancelled') {
+                if (! in_array($order->status, ['pending_payment', 'waiting_verification'], true)) {
+                    return;
+                }
+                if ($payment->status === 'verified') {
                     return;
                 }
 
@@ -226,12 +229,35 @@ class MidtransService
                     'ticket_code' => 'FXT-'.Str::upper(Str::random(12)),
                     'issued_at' => now(),
                 ]);
+                app(CarbonImpactService::class)->recordEligiblePurchase($order);
 
                 return;
             }
 
             if (in_array($transactionStatus, ['cancel', 'deny', 'expire', 'failure', 'refund', 'chargeback'], true)) {
-                if (in_array($order->status, ['paid', 'picked_up'], true)) {
+                if (in_array($order->status, ['cancelled', 'failed', 'refunded', 'rejected'], true)) {
+                    return;
+                }
+
+                if (in_array($order->status, ['paid', 'partially_picked_up', 'picked_up'], true)) {
+                    $hasPartialRefundDetails = isset($transaction['refund_amount'])
+                        || isset($notification['refund_amount'])
+                        || isset($transaction['refunds'])
+                        || isset($notification['refunds']);
+
+                    if ($hasPartialRefundDetails) {
+                        $payment->update($paymentDetails + [
+                            'notes' => 'Midtrans melaporkan refund parsial. Admin perlu mengoreksi dampak item terkait.',
+                        ]);
+
+                        return;
+                    }
+
+                    app(CarbonImpactService::class)->revokeOrder(
+                        $order,
+                        'Pembayaran dibatalkan atau direfund melalui konfirmasi Midtrans.',
+                        null,
+                    );
                     $ticket = Ticket::query()->where('order_id', $order->id)->lockForUpdate()->first();
 
                     if ($ticket?->picked_up_at) {

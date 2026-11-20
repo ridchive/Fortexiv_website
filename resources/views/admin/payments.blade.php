@@ -22,6 +22,17 @@
         @else
           {{ $payment->notes ?? '—' }}
         @endif
+        @if($payment->status === 'verified')
+          @foreach($payment->order->items as $item)
+            <form method="post" action="{{ route('admin.carbon-impact.adjust', $item) }}" style="margin-top:8px;">
+              @csrf
+              <div class="muted">{{ $item->product_name }} · {{ $item->quantity }} unit · hasil CEA {{ $item->carbon_contribution === null ? 'belum lengkap' : number_format((float) $item->carbon_contribution, 6, ',', '.').' kg CO2e' }}</div>
+              <input class="input" name="corrected_contribution" type="number" step="0.000001" placeholder="CEA terkoreksi (boleh negatif, kg CO2e)">
+              <input class="input" name="reason" maxlength="2000" placeholder="Alasan koreksi" required>
+              <button class="btn btn-small" type="submit">Koreksi jejak karbon</button>
+            </form>
+          @endforeach
+        @endif
       </td>
     </tr>
   @empty

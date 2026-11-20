@@ -10,6 +10,7 @@ use App\Models\OrderFulfillment;
 use App\Models\Payment;
 use App\Models\Product;
 use App\Models\Project;
+use App\Services\CarbonImpactService;
 use App\Services\MidtransService;
 use App\Support\PurchaseWindow;
 use Illuminate\Database\Eloquent\Builder;
@@ -43,16 +44,12 @@ class MarketplaceController extends Controller
             ->count();
 
         $eventSettings = EventSetting::current();
-        $co2Base = (float) ($eventSettings?->impact_baseline_co2 ?? 20.0);
-
-        $fromOrders = DB::table('order_items')
-            ->join('orders', 'order_items.order_id', '=', 'orders.id')
-            ->join('products', 'order_items.product_id', '=', 'products.id')
-            ->whereIn('orders.status', ['paid', 'partially_picked_up', 'picked_up'])
-            ->sum(DB::raw('order_items.quantity * COALESCE(products.co2_reduction, 0.5)'));
-
-        $totalCo2 = $co2Base + (float) $fromOrders;
-        $co2Reduced = number_format($totalCo2, 1, ',', '.');
+        $carbonImpact = app(CarbonImpactService::class);
+        $carbonSummary = $carbonImpact->marketplaceMetrics();
+        $impactSummary = $carbonImpact->impactSummary();
+        $co2Reduced = $impactSummary['has_verified_data']
+            ? number_format($carbonSummary['total_avoided_emissions'], 2, ',', '.')
+            : 'Belum tersedia';
 
         $impactStats = [
             'co2_reduced' => $co2Reduced,
@@ -80,32 +77,32 @@ class MarketplaceController extends Controller
             ]);
         }
 
-        $co2Base = (float) ($eventSettings->impact_baseline_co2 ?? 20.0);
-
         $products = Product::query()
             ->with(['seller', 'project'])
-            ->withSum(['orderItems as sold_units' => function ($query) {
-                $query->whereHas('order', fn ($q) => $q->whereIn('status', ['paid', 'partially_picked_up', 'picked_up']));
-            }], 'quantity')
             ->orderBy('id')
             ->get();
 
-        $fromProducts = $products->sum(function ($p) {
-            $sold = (int) ($p->sold_units ?? 0);
-            $factor = (float) ($p->co2_reduction ?? 0.5);
+        $carbonSummary = app(CarbonImpactService::class)->publicImpactSummary();
+        foreach ($products as $product) {
+            $productContribution = $carbonSummary['products']->get($product->id);
+            $product->eligible_sold_units = $productContribution?->eligible_sold_units ?? 0;
+            $product->eligible_carbon_contribution = $productContribution;
+        }
 
-            return $sold * $factor;
-        });
-
-        $totalCo2 = $co2Base + $fromProducts;
-        $co2Reduced = number_format($totalCo2, 1, ',', '.');
+        $impactSummary = app(CarbonImpactService::class)->impactSummary();
+        $co2Reduced = $impactSummary['has_verified_data']
+            ? number_format($carbonSummary['total_avoided_emissions'], 2, ',', '.')
+            : 'Belum tersedia';
 
         return view('marketplace.impact', [
             'eventSettings' => $eventSettings,
             'products' => $products,
-            'totalCo2' => $totalCo2,
+            'carbonSummary' => $carbonSummary,
+            'totalCo2' => $carbonSummary['net_avoided_emissions'],
             'co2Reduced' => $co2Reduced,
-            'co2Base' => $co2Base,
+            'impactSummary' => $impactSummary,
+            'co2Base' => 0.0,
+            'unlinkedCarbonProducts' => $carbonSummary['unlinked_products'],
         ]);
     }
 
@@ -371,6 +368,15 @@ class MarketplaceController extends Controller
                     'quantity' => $item['quantity'],
                     'price_at_order' => $product->price,
                     'subtotal' => $subtotal,
+                    'carbon_footprint_value_at_purchase' => $product->carbon_footprint_value,
+                    'carbon_footprint_unit_at_purchase' => CarbonImpactService::UNIT,
+                    'carbon_baseline_emission_factor_at_purchase' => $product->carbon_baseline_emission_factor,
+                    'carbon_baseline_source_at_purchase' => $product->carbon_baseline_source,
+                    'carbon_product_source_at_purchase' => $product->carbon_product_source,
+                    'carbon_functional_unit_at_purchase' => $product->carbon_functional_unit,
+                    'carbon_quantity_at_purchase' => $item['quantity'],
+                    'carbon_calculation_version_at_purchase' => CarbonImpactService::CALCULATION_VERSION,
+                    'carbon_snapshot_source' => 'checkout',
                     'project_id' => $projectId,
                     'class_key' => $projectId ? 'project-'.$projectId : 'seller-'.$product->seller_id,
                     'class_name' => $product->project?->class_name ?? $product->seller->project?->class_name ?? $product->seller->store_name,
@@ -425,6 +431,15 @@ class MarketplaceController extends Controller
                     'quantity' => $item['quantity'],
                     'price_at_order' => $item['price_at_order'],
                     'subtotal' => $item['subtotal'],
+                    'carbon_footprint_value_at_purchase' => $item['carbon_footprint_value_at_purchase'],
+                    'carbon_footprint_unit_at_purchase' => CarbonImpactService::UNIT,
+                    'carbon_baseline_emission_factor_at_purchase' => $item['carbon_baseline_emission_factor_at_purchase'],
+                    'carbon_baseline_source_at_purchase' => $item['carbon_baseline_source_at_purchase'],
+                    'carbon_product_source_at_purchase' => $item['carbon_product_source_at_purchase'],
+                    'carbon_functional_unit_at_purchase' => $item['carbon_functional_unit_at_purchase'],
+                    'carbon_quantity_at_purchase' => $item['carbon_quantity_at_purchase'],
+                    'carbon_calculation_version_at_purchase' => $item['carbon_calculation_version_at_purchase'],
+                    'carbon_snapshot_source' => 'checkout',
                 ]);
 
                 for ($unit = 0; $unit < $item['quantity']; $unit++) {
@@ -478,15 +493,18 @@ class MarketplaceController extends Controller
         return redirect()->route('orders.show', $order)->with('status', $status);
     }
 
-    public function orders(Request $request): View
+    public function orders(Request $request, CarbonImpactService $carbonImpact): View
     {
         $orders = $request->user()->orders()
             ->withCount('fulfillments')
-            ->with(['fulfillments.seller'])
+            ->with(['fulfillments.seller', 'payment'])
             ->latest()
             ->paginate(10);
 
-        return view('marketplace.orders', compact('orders'));
+        return view('marketplace.orders', [
+            'orders' => $orders,
+            'carbonSummary' => $carbonImpact->buyerDashboardSummary($request->user()),
+        ]);
     }
 
     public function order(Request $request, Order $order): View
