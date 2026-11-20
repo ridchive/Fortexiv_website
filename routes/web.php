@@ -97,6 +97,7 @@ Route::prefix('admin')->name('admin.')->middleware(['auth', 'verified', 'role:ad
     Route::get('/payments/{payment}/proof', [AdminController::class, 'paymentProof'])->name('payments.proof');
     Route::post('/payments/{payment}/verify', [AdminController::class, 'verify'])->name('payments.verify');
     Route::post('/payments/{payment}/reject', [AdminController::class, 'reject'])->name('payments.reject');
+    Route::post('/order-items/{orderItem}/carbon-impact/adjust', [AdminController::class, 'adjustCarbonImpact'])->name('carbon-impact.adjust');
     Route::get('/users', [AdminController::class, 'users'])->name('users');
     Route::patch('/users/{user}/toggle-active', [AdminController::class, 'toggleUser'])->name('users.toggle');
     Route::get('/pickup', [AdminController::class, 'pickupForm'])->name('pickup');
