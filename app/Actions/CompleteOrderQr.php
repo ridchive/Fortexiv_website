@@ -16,8 +16,12 @@ class CompleteOrderQr
 {
     public function completeClass(string $token, Seller $seller, User $actor): OrderFulfillment
     {
+        $token = trim($token);
         $orderId = OrderFulfillment::query()
-            ->where('pickup_code', $token)
+            ->where(function ($q) use ($token) {
+                $q->where('pickup_code', $token)
+                    ->orWhereHas('order', fn ($oq) => $oq->where('order_code', $token));
+            })
             ->whereBelongsTo($seller)
             ->value('order_id');
 
@@ -28,7 +32,10 @@ class CompleteOrderQr
         return DB::transaction(function () use ($token, $seller, $actor, $orderId): OrderFulfillment {
             $order = Order::query()->whereKey($orderId)->lockForUpdate()->firstOrFail();
             $fulfillment = OrderFulfillment::query()
-                ->where('pickup_code', $token)
+                ->where(function ($q) use ($token) {
+                    $q->where('pickup_code', $token)
+                        ->orWhereHas('order', fn ($oq) => $oq->where('order_code', $token));
+                })
                 ->whereBelongsTo($seller)
                 ->lockForUpdate()
                 ->first();

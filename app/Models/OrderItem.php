@@ -20,6 +20,11 @@ class OrderItem extends Model
         return $this->belongsTo(Seller::class);
     }
 
+    public function product(): BelongsTo
+    {
+        return $this->belongsTo(Product::class);
+    }
+
     public function fulfillment(): BelongsTo
     {
         return $this->belongsTo(OrderFulfillment::class, 'order_fulfillment_id');

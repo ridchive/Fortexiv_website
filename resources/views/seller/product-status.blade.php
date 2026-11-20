@@ -74,7 +74,7 @@
             <td>
               <div style="display: flex; align-items: center; gap: 12px;">
                 @if($p->image)
-                  <img src="{{ $p->imageUrl() ?? Storage::disk('public')->url($p->image) }}" alt="{{ $p->name }}" style="width: 44px; height: 44px; border-radius: 6px; object-fit: cover;">
+                  <img src="{{ Storage::disk('public')->url($p->image) }}" alt="{{ $p->name }}" style="width: 44px; height: 44px; border-radius: 6px; object-fit: cover;">
                 @else
                   <div style="width: 44px; height: 44px; border-radius: 6px; background: var(--soft); display: flex; align-items: center; justify-content: center; font-size: 18px;">📦</div>
                 @endif

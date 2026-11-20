@@ -156,11 +156,11 @@
     .detail-image { display: grid; min-height: 320px; place-items: center; padding: 20px; border-radius: 8px; background: linear-gradient(135deg, #DDE9C9, #F1DCC0); color: #395633; font: 800 22px var(--fd); text-align: center; }
     .detail-image img { width: 100%; height: 100%; max-height: 500px; object-fit: cover; }
     .product-detail-card, .project-detail-card { align-items: start; }
-    .product-detail-card .detail-image, .project-detail-card .detail-image { aspect-ratio: 1; min-height: 0; }
-    .product-detail-card .detail-image img { object-fit: cover; }
+    .product-detail-card .detail-image, .project-detail-card .detail-image { aspect-ratio: 1 / 1; width: 100%; max-height: 520px; min-height: 0; overflow: hidden; position: relative; display: flex; align-items: center; justify-content: center; }
+    .product-detail-card .detail-image img { width: auto; height: auto; max-width: 100%; max-height: 100%; object-fit: contain; }
     .project-detail-card .detail-image { padding: 0; overflow: hidden; }
     .project-detail-card .detail-image img { width: 100%; height: 100%; object-fit: cover; }
-    .product-detail-card .detail-image > svg, .project-detail-card .detail-image > svg { min-height: 0; width: 100%; height: 100%; }
+    .product-detail-card .detail-image > svg, .project-detail-card .detail-image > svg { min-height: 0; max-width: 100%; max-height: 100%; width: 100%; height: 100%; }
     .detail-copy { align-self: center; }
     .detail-copy h1 { margin: 8px 0 14px; }
     .detail-copy p { color: var(--muted); }
@@ -319,7 +319,7 @@
     @media (max-width: 900px) {
       .cart-layout { grid-template-columns: minmax(0, 1.7fr) minmax(260px, 1fr); gap: 18px; }
     }
-    @media (max-width: 700px) {
+    @media (max-width: 860px) {
       .nav-inner { padding: 13px 16px; }
       .app { width: min(100% - 28px, 1200px); padding-top: 20px; }
       .hero { grid-template-columns: 1fr; min-height: 0; padding: 24px; }
@@ -330,6 +330,7 @@
       .nav-account { justify-content: center; }
       .detail-card, .two { grid-template-columns: 1fr; }
       .detail-image { min-height: 230px; }
+      .product-detail-card .detail-image { min-height: 0; max-height: 380px; width: 100%; aspect-ratio: 1 / 1; }
       .section-head { align-items: flex-start; flex-direction: column; }
       .filters, .searchbar { grid-template-columns: 1fr; }
       .steps { grid-template-columns: repeat(2, 1fr); }
@@ -1065,11 +1066,21 @@
         padding: 6px 8px;
         line-height: 1;
       }
-      .admin-topbar-link .desktop-only {
-        display: none;
-      }
       .admin-topbar-link {
-        padding: 6px 8px;
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        padding: 5px 10px;
+        font-size: 0.8rem;
+        font-weight: 700;
+        color: var(--good);
+        background: var(--good-bg);
+        border: 1px solid var(--line);
+        border-radius: 6px;
+      }
+      .admin-topbar-link:hover {
+        background: var(--soft);
+        color: var(--ink);
       }
       .admin-backdrop.open {
         display: block;
@@ -1166,6 +1177,18 @@
             </li>
           </ul>
         </div>
+
+        <div>
+          <div class="admin-nav-group-title">Website Toko</div>
+          <ul class="admin-nav-list">
+            <li>
+              <a href="{{ route('home') }}" class="admin-nav-item" target="_blank">
+                <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"></path><polyline points="9 22 9 12 15 12 15 22"></polyline></svg>
+                <span>Lihat Website (Beranda) ↗</span>
+              </a>
+            </li>
+          </ul>
+        </div>
       </nav>
 
       <div class="admin-sidebar-footer">
@@ -1213,9 +1236,9 @@
           </div>
         </div>
         <div class="admin-topbar-right">
-          <a class="admin-topbar-link" href="{{ route('home') }}" target="_blank" title="Katalog" aria-label="Katalog">
-            <span class="desktop-only">Katalog</span>
-            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 11.5 12 4l9 7.5"></path><path d="M5.5 10.5V20h13v-9.5"></path><path d="M9.5 20v-6h5v6"></path></svg>
+          <a class="admin-topbar-link" href="{{ route('home') }}" target="_blank" title="Lihat Website" aria-label="Lihat Website">
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"></path><polyline points="9 22 9 12 15 12 15 22"></polyline></svg>
+            <span>Beranda ↗</span>
           </a>
         </div>
       </header>
@@ -1298,6 +1321,18 @@
             </li>
           </ul>
         </div>
+
+        <div>
+          <div class="admin-nav-group-title">Website Toko</div>
+          <ul class="admin-nav-list">
+            <li>
+              <a href="{{ route('home') }}" class="admin-nav-item" target="_blank">
+                <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"></path><polyline points="9 22 9 12 15 12 15 22"></polyline></svg>
+                <span>Lihat Website (Beranda) ↗</span>
+              </a>
+            </li>
+          </ul>
+        </div>
       </nav>
 
       <div class="admin-sidebar-footer">
@@ -1341,9 +1376,9 @@
           </div>
         </div>
         <div class="admin-topbar-right">
-          <a class="admin-topbar-link" href="{{ route('home') }}" target="_blank" title="Katalog" aria-label="Katalog">
-            <span class="desktop-only">Katalog</span>
-            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 11.5 12 4l9 7.5"></path><path d="M5.5 10.5V20h13v-9.5"></path><path d="M9.5 20v-6h5v6"></path></svg>
+          <a class="admin-topbar-link" href="{{ route('home') }}" target="_blank" title="Lihat Website" aria-label="Lihat Website">
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"></path><polyline points="9 22 9 12 15 12 15 22"></polyline></svg>
+            <span>Beranda ↗</span>
           </a>
         </div>
       </header>

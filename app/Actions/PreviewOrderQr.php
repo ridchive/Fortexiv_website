@@ -2,10 +2,13 @@
 
 namespace App\Actions;
 
+use App\Models\Order;
 use App\Models\OrderFulfillment;
 use App\Models\OrderItem;
 use App\Models\OrderItemUnit;
 use App\Models\Seller;
+use App\Models\Ticket;
+use Illuminate\Support\Str;
 use Illuminate\Validation\ValidationException;
 
 class PreviewOrderQr
@@ -13,6 +16,7 @@ class PreviewOrderQr
     /**
      * @return array{
      *     type: string,
+     *     token: string,
      *     order_code: string,
      *     class_name: string,
      *     status: string,
@@ -22,14 +26,39 @@ class PreviewOrderQr
      */
     public function handle(string $token, string $type, Seller $seller): array
     {
+        $token = Str::upper(trim($token));
+
+        // Auto-detect or normalize token type
+        if (Str::startsWith($token, 'FTXP-')) {
+            $type = 'product';
+        } elseif (Str::startsWith($token, 'FTXC-') || Str::startsWith($token, 'FTXG-') || Str::startsWith($token, 'FX-') || Str::startsWith($token, 'FXT-')) {
+            $type = 'class';
+        }
+
         if ($type === 'class') {
             $fulfillment = OrderFulfillment::query()
-                ->where('pickup_code', $token)
+                ->where(function ($q) use ($token) {
+                    $q->where('pickup_code', $token)
+                        ->orWhereHas('order', function ($oq) use ($token) {
+                            $oq->where('order_code', $token)
+                                ->orWhereHas('ticket', fn ($tq) => $tq->where('ticket_code', $token));
+                        });
+                })
                 ->whereBelongsTo($seller)
-                ->with(['order', 'project', 'seller', 'items.units'])
+                ->with(['order.ticket', 'order.buyer', 'project', 'seller', 'items.units'])
                 ->first();
 
+            // Fallback: If not found as class, check if it's a product unit token
             if (! $fulfillment) {
+                $unit = OrderItemUnit::query()
+                    ->where('qr_token', $token)
+                    ->with(['orderItem.fulfillment.project', 'orderItem.fulfillment.seller', 'orderItem.order.buyer'])
+                    ->first();
+
+                if ($unit && $unit->orderItem->seller_id === $seller->id) {
+                    return $this->previewUnit($unit);
+                }
+
                 $this->invalidQr();
             }
 
@@ -54,13 +83,14 @@ class PreviewOrderQr
             $pendingCount = array_sum(array_column($products, 'pending_count'));
 
             if ($pendingCount === 0) {
-                throw ValidationException::withMessages(['token' => 'QR kelas ini sudah pernah digunakan.']);
+                throw ValidationException::withMessages(['token' => 'Seluruh produk untuk kelas ini pada pesanan tersebut sudah pernah diserahkan (Delivered).']);
             }
 
-            $this->ensureReady($fulfillment->order->status, $fulfillment->order->ticket()->exists());
+            $this->ensureReady($fulfillment->order->status, $fulfillment->order->ticket !== null);
 
             return [
                 'type' => 'class',
+                'token' => $fulfillment->pickup_code,
                 'order_code' => $fulfillment->order->order_code,
                 'buyer_name' => $fulfillment->order->pickup_contact_name ?? $fulfillment->order->buyer?->name ?? 'Pembeli',
                 'buyer_phone' => $fulfillment->order->pickup_contact_phone ?? $fulfillment->order->buyer?->phone ?? '—',
@@ -77,24 +107,53 @@ class PreviewOrderQr
             ->with(['orderItem.fulfillment.project', 'orderItem.fulfillment.seller', 'orderItem.order.buyer'])
             ->first();
 
-        if (! $unit || $unit->orderItem->seller_id !== $seller->id) {
+        // Fallback: If not found as unit, check if it's a class token
+        if (! $unit) {
+            $fulfillment = OrderFulfillment::query()
+                ->where(function ($q) use ($token) {
+                    $q->where('pickup_code', $token)
+                        ->orWhereHas('order', function ($oq) use ($token) {
+                            $oq->where('order_code', $token)
+                                ->orWhereHas('ticket', fn ($tq) => $tq->where('ticket_code', $token));
+                        });
+                })
+                ->whereBelongsTo($seller)
+                ->with(['order.ticket', 'order.buyer', 'project', 'seller', 'items.units'])
+                ->first();
+
+            if ($fulfillment) {
+                return $this->handle($token, 'class', $seller);
+            }
+
             $this->invalidQr();
         }
 
+        if ($unit->orderItem->seller_id !== $seller->id) {
+            $this->invalidQr();
+        }
+
+        return $this->previewUnit($unit);
+    }
+
+    private function previewUnit(OrderItemUnit $unit): array
+    {
         if ($unit->status === 'delivered') {
             throw ValidationException::withMessages(['token' => 'QR produk ini sudah pernah digunakan.']);
         }
 
-        $this->ensureReady($unit->orderItem->order->status, $unit->orderItem->order->ticket()->exists());
+        $order = $unit->orderItem->order;
+        $this->ensureReady($order->status, $order->ticket()->exists());
 
         $fulfillment = $unit->orderItem->fulfillment;
 
         return [
             'type' => 'product',
-            'order_code' => $unit->orderItem->order->order_code,
-            'buyer_name' => $unit->orderItem->order->pickup_contact_name ?? $unit->orderItem->order->buyer?->name ?? 'Pembeli',
-            'buyer_phone' => $unit->orderItem->order->pickup_contact_phone ?? $unit->orderItem->order->buyer?->phone ?? '—',
-            'pickup_contact_name' => $unit->orderItem->order->pickup_contact_name ?? $unit->orderItem->order->buyer?->name ?? '—',
+            'token' => $unit->qr_token,
+            'order_code' => $order->order_code,
+            'product_name' => $unit->orderItem->product_name,
+            'buyer_name' => $order->pickup_contact_name ?? $order->buyer?->name ?? 'Pembeli',
+            'buyer_phone' => $order->pickup_contact_phone ?? $order->buyer?->phone ?? '—',
+            'pickup_contact_name' => $order->pickup_contact_name ?? $order->buyer?->name ?? '—',
             'class_name' => $fulfillment?->class_name ?? $fulfillment?->project?->class_name ?? $fulfillment?->seller?->store_name ?? 'Kelas',
             'status' => $unit->status,
             'pending_count' => 1,
