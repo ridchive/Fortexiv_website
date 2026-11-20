@@ -234,6 +234,12 @@
     .project-image-preview > img, .project-image-preview > div { width: 100%; height: 100%; }
     .project-image-preview img, .project-image-preview .project-art { display: block; width: 100%; height: 100%; object-fit: cover; }
     .project-image-preview [hidden] { display: none !important; }
+    .image-preview-crop-row { display: flex; align-items: flex-start; gap: 10px; }
+    .image-preview-crop-row .seller-image-preview, .image-preview-crop-row .project-image-preview { flex: 0 1 360px; }
+    .image-crop-icon { display: grid; width: 42px; height: 42px; flex: 0 0 42px; place-items: center; margin-top: 8px; border: 1px solid var(--line); border-radius: 50%; background: var(--surface); color: var(--ink); cursor: pointer; box-shadow: 0 3px 12px rgba(27, 59, 43, .10); }
+    .image-crop-icon:hover { border-color: #91AD72; background: var(--soft); }
+    .image-crop-icon:focus-visible { outline: 2px solid #A9CB5B; outline-offset: 2px; }
+    .image-crop-icon[hidden] { display: none; }
     .image-crop-actions { display: flex; align-items: center; gap: 8px; margin: 8px 0; }
     .image-cropper-backdrop { position: fixed; inset: 0; z-index: 300; display: grid; place-items: center; padding: 20px; background: rgba(15, 20, 15, .72); }
     .image-cropper-backdrop[hidden] { display: none; }

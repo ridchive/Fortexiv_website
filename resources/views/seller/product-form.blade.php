@@ -17,16 +17,21 @@
     <div class="field"><span class="eyebrow">Proyek kelas</span><p>{{ auth()->user()->seller->project?->class_name ?? auth()->user()->seller->store_name }}@if(auth()->user()->seller->project) · {{ auth()->user()->seller->project->title }}@endif</p></div>
     <div class="field">
       <span class="eyebrow">Pratinjau gambar</span>
-      <div class="seller-image-preview">
-        <img data-product-image-preview @if($product->image) src="{{ Storage::disk('public')->url($product->image) }}" alt="Foto {{ $product->name }}" @else alt="" hidden @endif>
-        <div data-product-generated-preview @if($product->image) hidden @endif>
-          @include('marketplace.partials.product-photo', ['category' => $product->category?->name, 'alt' => 'Foto referensi '.($product->name ?: 'produk baru')])
+      <div class="image-preview-crop-row">
+        <div class="seller-image-preview">
+          <img data-product-image-preview @if($product->image) src="{{ Storage::disk('public')->url($product->image) }}" alt="Foto {{ $product->name }}" @else alt="" hidden @endif>
+          <div data-product-generated-preview @if($product->image) hidden @endif>
+            @include('marketplace.partials.product-photo', ['category' => $product->category?->name, 'alt' => 'Foto referensi '.($product->name ?: 'produk baru')])
+          </div>
         </div>
+        <button class="image-crop-icon" type="button" data-open-square-crop aria-label="Atur posisi foto" title="Atur posisi foto" hidden>
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <path d="M6 2v14a2 2 0 0 0 2 2h14"></path>
+            <path d="M2 6h14a2 2 0 0 1 2 2v14"></path>
+          </svg>
+        </button>
       </div>
       <p class="muted small">Ilustrasi sementara digunakan jika belum ada foto. Pilih foto produk untuk melihat pratinjau.</p>
-      <div class="image-crop-actions">
-        <button class="btn sec sm" type="button" data-open-square-crop hidden>Atur posisi foto</button>
-      </div>
       <label for="image">{{ $product->image ? 'Ganti gambar produk' : 'Upload gambar produk' }} (JPG, PNG, atau WebP, maks. 5 MB)</label>
       <input class="input" id="image" name="image" type="file" accept=".jpg,.jpeg,.png,.webp" data-product-image-input>
     </div>

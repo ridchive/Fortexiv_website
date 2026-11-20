@@ -60,16 +60,21 @@
     </div>
     <div class="field">
       <label for="image">Gambar sampul (JPG, PNG, WebP maks. 5 MB)</label>
-      <div class="project-image-preview">
-        <img data-project-image-preview @if($project->image) src="{{ Storage::disk('public')->url($project->image) }}" alt="Sampul {{ $project->title }}" @else alt="" hidden @endif>
-        <div data-project-generated-preview @if($project->image) hidden @endif>
-          @include('marketplace.partials.project-photo', ['project' => $project, 'alt' => 'Foto referensi proyek'])
+      <div class="image-preview-crop-row">
+        <div class="project-image-preview">
+          <img data-project-image-preview @if($project->image) src="{{ Storage::disk('public')->url($project->image) }}" alt="Sampul {{ $project->title }}" @else alt="" hidden @endif>
+          <div data-project-generated-preview @if($project->image) hidden @endif>
+            @include('marketplace.partials.project-photo', ['project' => $project, 'alt' => 'Foto referensi proyek'])
+          </div>
         </div>
+        <button class="image-crop-icon" type="button" data-open-square-crop aria-label="Atur posisi foto" title="Atur posisi foto" hidden>
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <path d="M6 2v14a2 2 0 0 0 2 2h14"></path>
+            <path d="M2 6h14a2 2 0 0 1 2 2v14"></path>
+          </svg>
+        </button>
       </div>
       <p class="muted small">Foto referensi sementara dipilih dari tema proyek. Upload sampul sendiri untuk menggantinya.</p>
-      <div class="image-crop-actions">
-        <button class="btn sec sm" type="button" data-open-square-crop hidden>Atur posisi foto</button>
-      </div>
       <input class="input" id="image" name="image" type="file" accept=".jpg,.jpeg,.png,.webp" data-project-image-input>
       @if($project->image)
         <label class="chk" style="margin:0;"><input type="checkbox" name="remove_image" value="1"><span>Hapus gambar sampul saat ini</span></label>
