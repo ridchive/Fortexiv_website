@@ -716,6 +716,8 @@ class MarketplaceTest extends TestCase
         $this->actingAs($buyer)->get(route('checkout.show', ['mode' => 'cart']))
             ->assertOk()
             ->assertSee('Kontak pengambil')
+            ->assertSee('<input type="hidden" name="payment_method" value="manual">', false)
+            ->assertDontSee('QRIS (Midtrans)')
             ->assertSee('Terms of Service');
         $this->actingAs($buyer)->post(route('checkout'), [
             'mode' => 'cart',
@@ -740,16 +742,62 @@ class MarketplaceTest extends TestCase
             'proof' => UploadedFile::fake()->createWithContent('receipt.pdf', "%PDF-1.4\ntransfer receipt\n%%EOF"),
         ])->assertRedirect();
         $this->assertSame('waiting_verification', $order->fresh()->status);
+        $this->assertDatabaseCount('tickets', 0);
         $this->actingAs($buyer)->get(route('orders.show', $order))
             ->assertOk()
             ->assertSee('Menunggu konfirmasi')
+            ->assertSee('Pembayaran sedang diperiksa oleh admin')
+            ->assertSee('QR pickup akan aktif setelah pembayaran diverifikasi')
             ->assertDontSee('Pembayaran berhasil')
             ->assertDontSee('Buka Tiket & Tampilkan QR');
 
         $admin = User::factory()->create(['role' => 'admin']);
         $payment = $order->fresh()->payment;
-        $this->actingAs($admin)->post(route('admin.payments.verify', $payment))->assertRedirect();
+        $this->actingAs($admin)->get(route('admin.payments'))
+            ->assertOk()
+            ->assertSee('Nominal Masuk Sesuai Mutasi')
+            ->assertSee('Catatan Admin')
+            ->assertSee('Alasan Penolakan');
+        $this->actingAs($admin)->post(route('admin.payments.reject', $payment), [
+            'notes' => 'Bukti transfer tidak terbaca',
+        ])->assertRedirect();
+        $this->assertSame('pending_payment', $order->fresh()->status);
+        $this->assertSame(1, $product->fresh()->stock);
+        $this->assertDatabaseHas('payments', [
+            'id' => $payment->id,
+            'status' => 'rejected',
+            'notes' => 'Bukti transfer tidak terbaca',
+        ]);
+        $this->actingAs($buyer)->get(route('orders.show', $order))
+            ->assertOk()
+            ->assertSee('Pembayaran ditolak')
+            ->assertSee('Bukti transfer tidak terbaca')
+            ->assertSee('Unggah Ulang Bukti Pembayaran');
+
+        $this->actingAs($buyer)->post(route('payments.store', $order), [
+            'method' => 'Transfer BCA',
+            'proof' => UploadedFile::fake()->createWithContent('receipt-new.pdf', "%PDF-1.4\nnew transfer receipt\n%%EOF"),
+        ])->assertRedirect();
+        $this->assertSame('waiting_verification', $order->fresh()->status);
+        $this->assertDatabaseHas('payments', [
+            'id' => $payment->id,
+            'status' => 'pending',
+            'notes' => null,
+        ]);
+        $this->assertDatabaseCount('payments', 1);
+        $this->assertDatabaseCount('tickets', 0);
+
+        $this->actingAs($admin)->post(route('admin.payments.verify', $payment), [
+            'received_amount' => '28000',
+            'notes' => 'Mutasi sesuai',
+        ])->assertRedirect();
         $this->assertSame('paid', $order->fresh()->status);
+        $this->assertDatabaseHas('payments', [
+            'id' => $payment->id,
+            'status' => 'verified',
+            'received_amount' => 28000,
+            'notes' => 'Mutasi sesuai',
+        ]);
         $this->assertNotNull($order->fresh()->ticket);
         $this->actingAs($buyer)->get(route('orders.show', $order))
             ->assertOk()
@@ -789,6 +837,37 @@ class MarketplaceTest extends TestCase
             'pickup_code' => $pickupCode,
             'seller_id' => $seller->id,
         ])->assertSessionHasErrors('pickup_code');
+    }
+
+    public function test_pending_manual_order_displays_the_configured_qris_and_copyable_amount(): void
+    {
+        $buyer = User::factory()->create();
+        $order = Order::create([
+            'order_code' => 'FX-QRIS-TEST',
+            'buyer_id' => $buyer->id,
+            'status' => 'pending_payment',
+            'total_price' => 14000,
+            'pickup_date' => now()->addDay(),
+        ]);
+        $qrisImage = 'images/qris-test-'.bin2hex(random_bytes(8)).'.png';
+        $qrisImagePath = public_path($qrisImage);
+        if (! is_dir(dirname($qrisImagePath))) {
+            mkdir(dirname($qrisImagePath), 0755, true);
+        }
+        file_put_contents($qrisImagePath, 'test image');
+        config(['marketplace.qris_image' => $qrisImage]);
+
+        try {
+            $this->actingAs($buyer)->get(route('orders.show', $order))
+                ->assertOk()
+                ->assertSee('src="'.asset($qrisImage).'"', false)
+                ->assertSee('alt="QRIS statis resmi FORTEXIV"', false)
+                ->assertSee('data-copy-payment-amount="14000"', false)
+                ->assertSee('Salin Nominal')
+                ->assertSee('Scan QRIS di atas, masukkan nominal yang sesuai, lalu unggah screenshot bukti pembayaran di bawah ini.');
+        } finally {
+            unlink($qrisImagePath);
+        }
     }
 
     public function test_each_class_group_can_be_handed_over_independently_until_the_order_is_complete(): void
@@ -1142,7 +1221,7 @@ class MarketplaceTest extends TestCase
             ->assertSee(Storage::disk('public')->url('products/tas-daur-ulang.jpg'));
     }
 
-    public function test_rejecting_a_manual_payment_returns_reserved_stock_once(): void
+    public function test_rejecting_a_manual_payment_allows_resubmission_without_releasing_reserved_stock(): void
     {
         $seller = $this->seller();
         $product = Product::create(['seller_id' => $seller->id, 'name' => 'Seed kit', 'slug' => 'seed-kit', 'description' => 'Seeds', 'price' => 7000, 'stock' => 0, 'review_status' => 'approved', 'status' => 'published']);
@@ -1152,11 +1231,16 @@ class MarketplaceTest extends TestCase
         $payment = $order->payment()->create(['proof_image' => 'payment-proofs/receipt.pdf', 'method' => 'Transfer', 'status' => 'pending']);
         $admin = User::factory()->create(['role' => 'admin']);
 
-        $this->actingAs($admin)->post(route('admin.payments.reject', $payment), ['notes' => 'Amount does not match'])->assertRedirect();
-        $this->assertSame('cancelled', $order->fresh()->status);
-        $this->assertSame(1, $product->fresh()->stock);
+        $this->actingAs($admin)->post(route('admin.payments.reject', $payment))
+            ->assertSessionHasErrors('notes');
+        $this->assertSame('waiting_verification', $order->fresh()->status);
+        $this->assertSame(0, $product->fresh()->stock);
+
+        $this->post(route('admin.payments.reject', $payment), ['notes' => 'Amount does not match'])->assertRedirect();
+        $this->assertSame('pending_payment', $order->fresh()->status);
+        $this->assertSame(0, $product->fresh()->stock);
         $this->actingAs($admin)->post(route('admin.payments.reject', $payment), ['notes' => 'Duplicate'])->assertUnprocessable();
-        $this->assertSame(1, $product->fresh()->stock);
+        $this->assertSame(0, $product->fresh()->stock);
     }
 
     public function test_buyers_cannot_access_another_buyers_order_or_admin_routes(): void
@@ -1296,7 +1380,7 @@ class MarketplaceTest extends TestCase
             ->assertOk()
             ->assertSee('Komplek Sekolah Alam Indonesia, Mampang, Pancoran Mas, Depok City, West Java 16433')
             ->assertSee('Menunggu pembayaran')
-            ->assertSee('Pesanan menunggu informasi pembayaran.')
+            ->assertSee('Poster QRIS statis FORTEXIV atau informasi transfer belum dikonfigurasi.')
             ->assertDontSee('Pembayaran berhasil')
             ->assertDontSee('Buka Tiket & Tampilkan QR');
     }
@@ -1328,7 +1412,7 @@ class MarketplaceTest extends TestCase
         ]);
     }
 
-    public function test_buyer_can_create_a_midtrans_snap_checkout(): void
+    public function test_buyer_cannot_create_a_new_midtrans_checkout(): void
     {
         config([
             'services.midtrans.server_key' => 'sandbox-server-key',
@@ -1351,36 +1435,24 @@ class MarketplaceTest extends TestCase
         $this->actingAs($buyer)
             ->get(route('checkout.show', ['mode' => 'cart']))
             ->assertOk()
-            ->assertSee('value="midtrans"', false);
+            ->assertSee('<input type="hidden" name="payment_method" value="manual">', false)
+            ->assertDontSee('QRIS (Midtrans)');
 
-        $response = $this->actingAs($buyer)->post(route('checkout'), [
+        $this->actingAs($buyer)->post(route('checkout'), [
             '_token' => csrf_token(),
             'mode' => 'cart',
             'payment_method' => 'midtrans',
             'pickup_contact_name' => $buyer->name,
             'pickup_contact_phone' => '081234567890',
             'accepted_terms' => '1',
-        ]);
+        ])->assertSessionHasErrors('payment_method');
 
-        $response->assertRedirect('https://app.sandbox.midtrans.com/snap/v4/redirection/snap-token');
-        $order = Order::with('payment')->firstOrFail();
-        $this->assertSame('pending_payment', $order->status);
-        $this->assertSame(1, $product->fresh()->stock);
-        $this->assertSame(Payment::GATEWAY_MIDTRANS, $order->payment->gateway);
-        $this->assertSame('snap-token', $order->payment->snap_token);
-        $this->assertDatabaseHas('payments', [
-            'order_id' => $order->id,
-            'gateway' => Payment::GATEWAY_MIDTRANS,
-            'snap_redirect_url' => 'https://app.sandbox.midtrans.com/snap/v4/redirection/snap-token',
-        ]);
-        $this->assertMatchesRegularExpression('/^'.preg_quote($order->order_code, '/').'-[A-Z0-9]{6}$/', $order->payment->midtrans_order_id);
-        Http::assertSent(fn (ClientRequest $request): bool => $request->url() === 'https://app.sandbox.midtrans.com/snap/v1/transactions'
-            && $request['transaction_details']['order_id'] === $order->payment->midtrans_order_id
-            && $request['transaction_details']['gross_amount'] === 14000
-            && $request['enabled_payments'] === ['other_qris']);
+        $this->assertDatabaseCount('orders', 0);
+        $this->assertSame(2, $product->fresh()->stock);
+        Http::assertNothingSent();
     }
 
-    public function test_midtrans_checkout_in_production_sends_the_plain_order_code(): void
+    public function test_midtrans_checkout_remains_disabled_in_production(): void
     {
         $this->app->detectEnvironment(fn (): string => 'production');
         // CSRF verification is only skipped automatically while the environment is "testing".
@@ -1409,11 +1481,11 @@ class MarketplaceTest extends TestCase
             'pickup_contact_name' => $buyer->name,
             'pickup_contact_phone' => '081234567890',
             'accepted_terms' => '1',
-        ])->assertRedirect('https://app.sandbox.midtrans.com/snap/v4/redirection/snap-token');
+        ])->assertSessionHasErrors('payment_method');
 
-        $order = Order::with('payment')->firstOrFail();
-        $this->assertSame($order->order_code, $order->payment->midtrans_order_id);
-        Http::assertSent(fn (ClientRequest $request): bool => $request['transaction_details']['order_id'] === $order->order_code);
+        $this->assertDatabaseCount('orders', 0);
+        $this->assertSame(2, $product->fresh()->stock);
+        Http::assertNothingSent();
     }
 
     public function test_midtrans_notification_finds_the_order_by_its_suffixed_midtrans_order_id(): void
@@ -1439,7 +1511,7 @@ class MarketplaceTest extends TestCase
         $this->assertDatabaseCount('tickets', 1);
     }
 
-    public function test_checkout_hides_the_payment_method_choice_when_only_midtrans_is_configured(): void
+    public function test_checkout_defaults_to_manual_payment_when_midtrans_is_the_only_configured_gateway(): void
     {
         config([
             'services.midtrans.server_key' => 'sandbox-server-key',
@@ -1456,12 +1528,13 @@ class MarketplaceTest extends TestCase
         $this->actingAs($buyer)
             ->get(route('checkout.show', ['mode' => 'cart']))
             ->assertOk()
-            ->assertSee('<input type="hidden" name="payment_method" value="midtrans">', false)
-            ->assertDontSee('Metode pembayaran')
+            ->assertSee('<input type="hidden" name="payment_method" value="manual">', false)
+            ->assertSee('Manual (QRIS / Transfer Bank)')
+            ->assertDontSee('QRIS (Midtrans)')
             ->assertDontSee('type="radio" name="payment_method"', false);
     }
 
-    public function test_checkout_lets_the_buyer_choose_when_bank_transfer_and_midtrans_are_configured(): void
+    public function test_checkout_keeps_manual_payment_as_default_when_midtrans_is_configured(): void
     {
         config([
             'services.midtrans.server_key' => 'sandbox-server-key',
@@ -1478,10 +1551,10 @@ class MarketplaceTest extends TestCase
         $this->actingAs($buyer)
             ->get(route('checkout.show', ['mode' => 'cart']))
             ->assertOk()
-            ->assertSee('Metode pembayaran')
-            ->assertSee('type="radio" name="payment_method" value="manual"', false)
-            ->assertSee('type="radio" name="payment_method" value="midtrans"', false)
-            ->assertDontSee('<input type="hidden" name="payment_method"', false);
+            ->assertSee('<input type="hidden" name="payment_method" value="manual">', false)
+            ->assertSee('Manual (QRIS / Transfer Bank)')
+            ->assertDontSee('value="midtrans"', false)
+            ->assertDontSee('type="radio" name="payment_method"', false);
     }
 
     public function test_midtrans_checkout_is_unavailable_without_a_server_key(): void
@@ -1508,14 +1581,14 @@ class MarketplaceTest extends TestCase
             'pickup_contact_name' => $buyer->name,
             'pickup_contact_phone' => '081234567890',
             'accepted_terms' => '1',
-        ])->assertStatus(503);
+        ])->assertSessionHasErrors('payment_method');
 
         $this->assertDatabaseCount('orders', 0);
         $this->assertSame(2, $product->fresh()->stock);
         $this->assertDatabaseHas('cart_items', ['user_id' => $buyer->id, 'product_id' => $product->id, 'quantity' => 1]);
     }
 
-    public function test_midtrans_api_failure_keeps_the_order_pending_and_shows_a_warning(): void
+    public function test_midtrans_api_failure_cannot_create_a_new_checkout(): void
     {
         config([
             'services.midtrans.server_key' => 'sandbox-server-key',
@@ -1534,21 +1607,18 @@ class MarketplaceTest extends TestCase
 
         $this->actingAs($buyer)->get(route('checkout.show', ['mode' => 'cart']))->assertOk();
 
-        $response = $this->actingAs($buyer)->post(route('checkout'), [
+        $this->actingAs($buyer)->post(route('checkout'), [
             '_token' => csrf_token(),
             'mode' => 'cart',
             'payment_method' => 'midtrans',
             'pickup_contact_name' => $buyer->name,
             'pickup_contact_phone' => '081234567890',
             'accepted_terms' => '1',
-        ]);
+        ])->assertSessionHasErrors('payment_method');
 
-        $order = Order::with('payment')->firstOrFail();
-        $response->assertRedirect(route('orders.show', $order))->assertSessionHas('error');
-        $this->assertSame('pending_payment', $order->status);
-        $this->assertSame('pending', $order->payment->status);
-        $this->assertNull($order->payment->snap_redirect_url);
-        $this->assertSame(1, $product->fresh()->stock);
+        $this->assertDatabaseCount('orders', 0);
+        $this->assertSame(2, $product->fresh()->stock);
+        Http::assertNothingSent();
     }
 
     public function test_buyer_can_retry_midtrans_for_an_order_without_a_payment_url(): void
@@ -1624,7 +1694,7 @@ class MarketplaceTest extends TestCase
         $this->assertDatabaseCount('orders', 1);
     }
 
-    public function test_midtrans_checkout_does_not_redirect_to_an_untrusted_payment_url(): void
+    public function test_midtrans_checkout_cannot_redirect_to_an_untrusted_payment_url(): void
     {
         config([
             'services.midtrans.server_key' => 'sandbox-server-key',
@@ -1646,19 +1716,18 @@ class MarketplaceTest extends TestCase
 
         $this->actingAs($buyer)->get(route('checkout.show', ['mode' => 'cart']))->assertOk();
 
-        $response = $this->actingAs($buyer)->post(route('checkout'), [
+        $this->actingAs($buyer)->post(route('checkout'), [
             '_token' => csrf_token(),
             'mode' => 'cart',
             'payment_method' => 'midtrans',
             'pickup_contact_name' => $buyer->name,
             'pickup_contact_phone' => '081234567890',
             'accepted_terms' => '1',
-        ]);
+        ])->assertSessionHasErrors('payment_method');
 
-        $order = Order::with('payment')->firstOrFail();
-        $response->assertRedirect(route('orders.show', $order))->assertSessionHas('error');
-        $this->assertSame('pending_payment', $order->status);
-        $this->assertNull($order->payment->snap_redirect_url);
+        $this->assertDatabaseCount('orders', 0);
+        $this->assertSame(2, $product->fresh()->stock);
+        Http::assertNothingSent();
     }
 
     public function test_midtrans_settlement_marks_the_order_paid_and_issues_only_one_ticket(): void

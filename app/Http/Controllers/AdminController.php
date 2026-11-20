@@ -6,7 +6,6 @@ use App\Actions\CompleteOrderFulfillment;
 use App\Models\Order;
 use App\Models\OrderItem;
 use App\Models\Payment;
-use App\Models\Product;
 use App\Models\Project;
 use App\Models\Seller;
 use App\Models\User;
@@ -56,17 +55,29 @@ class AdminController extends Controller
         return Storage::disk('local')->download($payment->proof_image);
     }
 
-    public function verify(Payment $payment, CarbonImpactService $carbonImpact): RedirectResponse
+    public function verify(Request $request, Payment $payment, CarbonImpactService $carbonImpact): RedirectResponse
     {
-        DB::transaction(function () use ($payment, $carbonImpact) {
+        $data = $request->validate([
+            'received_amount' => ['nullable', 'integer', 'min:0', 'max:4294967295'],
+            'notes' => ['nullable', 'string', 'max:255'],
+        ]);
+        DB::transaction(function () use ($payment, $carbonImpact, $data) {
             $lockedPayment = Payment::whereKey($payment->id)->lockForUpdate()->firstOrFail();
             $order = Order::whereKey($lockedPayment->order_id)->lockForUpdate()->firstOrFail();
-            abort_unless($lockedPayment->status === 'pending' && $order->status === 'waiting_verification', 422, 'Pembayaran ini sudah diproses.');
+            abort_unless(
+                $lockedPayment->gateway === Payment::GATEWAY_MANUAL
+                    && $lockedPayment->status === 'pending'
+                    && $order->status === 'waiting_verification',
+                422,
+                'Pembayaran ini sudah diproses atau bukan pembayaran manual.',
+            );
 
             $lockedPayment->update([
                 'status' => 'verified',
                 'verified_by' => auth()->id(),
                 'verified_at' => now(),
+                'received_amount' => $data['received_amount'] ?? null,
+                'notes' => $data['notes'] ?? null,
             ]);
             $order->update(['status' => 'paid']);
             $order->ticket()->create([
@@ -84,8 +95,14 @@ class AdminController extends Controller
         $data = $request->validate(['notes' => ['required', 'string', 'max:255']]);
         DB::transaction(function () use ($payment, $data) {
             $lockedPayment = Payment::whereKey($payment->id)->lockForUpdate()->firstOrFail();
-            $order = Order::whereKey($lockedPayment->order_id)->with('items')->lockForUpdate()->firstOrFail();
-            abort_unless($lockedPayment->status === 'pending' && $order->status === 'waiting_verification', 422, 'Pembayaran ini sudah diproses.');
+            $order = Order::whereKey($lockedPayment->order_id)->lockForUpdate()->firstOrFail();
+            abort_unless(
+                $lockedPayment->gateway === Payment::GATEWAY_MANUAL
+                    && $lockedPayment->status === 'pending'
+                    && $order->status === 'waiting_verification',
+                422,
+                'Pembayaran ini sudah diproses atau bukan pembayaran manual.',
+            );
 
             $lockedPayment->update([
                 'status' => 'rejected',
@@ -93,15 +110,10 @@ class AdminController extends Controller
                 'verified_at' => now(),
                 'notes' => $data['notes'],
             ]);
-            foreach ($order->items as $item) {
-                if ($item->product_id) {
-                    Product::whereKey($item->product_id)->increment('stock', $item->quantity);
-                }
-            }
-            $order->update(['status' => 'cancelled']);
+            $order->update(['status' => 'pending_payment']);
         });
 
-        return back()->with('status', 'Pembayaran ditolak dan stok dikembalikan.');
+        return back()->with('status', 'Pembayaran ditolak. Pembeli dapat mengunggah bukti pembayaran baru.');
     }
 
     public function adjustCarbonImpact(

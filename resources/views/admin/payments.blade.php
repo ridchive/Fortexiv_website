@@ -5,7 +5,7 @@
 @section('content')
 @php($paymentStatusLabels = ['pending' => 'Menunggu verifikasi', 'verified' => 'Terverifikasi', 'rejected' => 'Ditolak'])
 <h1>Verifikasi pembayaran</h1>
-<p class="muted">Tinjau bukti transfer manual. Status pembayaran Midtrans diperbarui otomatis melalui notifikasi pembayaran.</p>
+<p class="muted">Tinjau bukti pembayaran manual. Pembayaran Midtrans lama tetap diperbarui otomatis melalui notifikasi.</p>
 <div class="table-wrap"><table><thead><tr><th>Pesanan</th><th>Pembeli</th><th>Metode transfer</th><th>Total</th><th>Status</th><th>Bukti pembayaran</th><th>Tindakan</th></tr></thead><tbody>
   @forelse($payments as $payment)
     <tr>
@@ -16,11 +16,26 @@
           Diperbarui otomatis
         @elseif($payment->status === 'pending')
           <div class="stack">
-            <form method="post" action="{{ route('admin.payments.verify', $payment) }}">@csrf<button class="btn btn-small">Verifikasi</button></form>
-            <form method="post" action="{{ route('admin.payments.reject', $payment) }}" onsubmit="return confirm('Tolak pembayaran ini dan kembalikan stok yang telah dipesan?')">@csrf<input class="input" name="notes" placeholder="Alasan" maxlength="255" required><button class="btn btn-danger btn-small">Tolak</button></form>
+            <form method="post" action="{{ route('admin.payments.verify', $payment) }}">
+              @csrf
+              <label for="received_amount_{{ $payment->id }}">Nominal Masuk Sesuai Mutasi (opsional)</label>
+              <input class="input" id="received_amount_{{ $payment->id }}" name="received_amount" type="number" min="0" max="4294967295" step="1" placeholder="Nominal rupiah">
+              <label for="verify_notes_{{ $payment->id }}">Catatan Admin (opsional)</label>
+              <input class="input" id="verify_notes_{{ $payment->id }}" name="notes" maxlength="255" placeholder="Catatan">
+              <button class="btn btn-small" type="submit">Verifikasi</button>
+            </form>
+            <form method="post" action="{{ route('admin.payments.reject', $payment) }}" onsubmit="return confirm('Tolak pembayaran ini? Pembeli dapat mengunggah bukti baru.')">
+              @csrf
+              <label for="reject_notes_{{ $payment->id }}">Alasan Penolakan</label>
+              <input class="input" id="reject_notes_{{ $payment->id }}" name="notes" placeholder="Alasan" maxlength="255" required>
+              <button class="btn btn-danger btn-small" type="submit">Tolak</button>
+            </form>
           </div>
         @else
-          {{ $payment->notes ?? '—' }}
+          @if($payment->received_amount !== null)
+            <div>Nominal masuk: {{ \App\Support\Money::format($payment->received_amount) }}</div>
+          @endif
+          <div>{{ $payment->notes ?? '—' }}</div>
         @endif
         @if($payment->status === 'verified')
           @foreach($payment->order->items as $item)

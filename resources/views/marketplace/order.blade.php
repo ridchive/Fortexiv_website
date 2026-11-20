@@ -55,6 +55,9 @@
   .order-payment-feedback--refund { background: var(--info-bg); color: var(--info); }
   .order-payment-actions .field { margin-top: 12px; }
   .order-transfer-details { padding: 12px; border-radius: 8px; background: var(--soft); line-height: 1.7; }
+  .order-qris-image { display: block; width: min(100%, 360px); margin: 12px auto; border: 1px solid var(--line); border-radius: 8px; background: #fff; }
+  .order-payment-amount { display: flex; flex-wrap: wrap; align-items: center; gap: 10px; margin: 12px 0; }
+  .order-copy-feedback { min-height: 20px; color: var(--muted); font-size: 12px; }
   .order-pickup-details { display: grid; gap: 14px; }
   .order-pickup-detail { display: grid; grid-template-columns: 22px minmax(0, 1fr); align-items: start; gap: 10px; }
   .order-pickup-detail svg { margin-top: 2px; color: var(--good); }
@@ -148,6 +151,7 @@
       'refunded', 'partially_refunded' => 'order-state--resolution',
       default => '',
   };
+  $qrisImageAvailable = filled($qrisImage) && is_file(public_path($qrisImage));
   $ticketAvailable = in_array($order->payment?->status, ['verified', 'partially_refunded'], true)
       && $order->ticket !== null
       && in_array($order->status, ['paid', 'partially_picked_up', 'picked_up'], true);
@@ -332,8 +336,8 @@
           <span>WhatsApp pengambil</span>
           <strong dir="ltr">{{ $order->pickup_contact_phone ?: 'Belum tersedia' }}</strong>
         </div>
-        @if($order->payment?->notes)
-          <p class="order-summary-note">Catatan pembayaran: {{ $order->payment->notes }}</p>
+        @if($order->payment?->notes && $order->payment?->status !== 'rejected')
+          <p class="order-summary-note">Catatan admin: {{ $order->payment->notes }}</p>
         @endif
         @if($order->terms_accepted_at)
           <p class="order-summary-note">Ketentuan pesanan disetujui {{ $order->terms_accepted_at->format('d/m/Y H:i') }}.</p>
@@ -356,31 +360,58 @@
               @else
                 <p class="muted">Pembayaran belum dapat dilanjutkan. Hubungi admin untuk memeriksa transaksi.</p>
               @endif
-            @elseif(config('marketplace.bank_name') && config('marketplace.account_name') && config('marketplace.account_number'))
-              <p>Transfer sesuai total pesanan, lalu unggah bukti transfer JPG, PNG, atau PDF (maksimum 5 MB).</p>
-              <p class="order-transfer-details">
-                <strong>{{ config('marketplace.bank_name') }}</strong><br>
-                Nama rekening: {{ config('marketplace.account_name') }}<br>
-                Nomor rekening: {{ config('marketplace.account_number') }}
-              </p>
-              <form method="post" action="{{ route('payments.store', $order) }}" enctype="multipart/form-data">
-                @csrf
-                <div class="field">
-                  <label for="method">Metode / bank transfer</label>
-                  <input class="input" id="method" name="method" value="{{ old('method') }}" placeholder="Contoh: Transfer BCA" maxlength="50" required>
-                </div>
-                <div class="field">
-                  <label for="proof">Bukti transfer</label>
-                  <input class="input" id="proof" name="proof" type="file" accept=".jpg,.jpeg,.png,.pdf" required>
-                </div>
-                <button class="btn" type="submit">Kirim bukti transfer</button>
-              </form>
             @else
-              <p class="note warn">Pesanan menunggu informasi pembayaran. Jangan melakukan transfer sampai instruksi pembayaran resmi tersedia.</p>
+              @if($order->payment?->status === 'rejected')
+                <p class="order-payment-feedback order-payment-feedback--problem" role="alert">
+                  Pembayaran ditolak. Alasan: {{ $order->payment->notes ?: 'Admin belum memberikan alasan.' }}
+                </p>
+              @endif
+              @if($qrisImageAvailable)
+                <img class="order-qris-image" src="{{ asset($qrisImage) }}" alt="QRIS statis resmi FORTEXIV">
+              @endif
+              <div class="order-payment-amount">
+                <strong>{{ \App\Support\Money::format($order->total_price) }}</strong>
+                <button class="btn sec" type="button" data-copy-payment-amount="{{ $order->total_price }}">Salin Nominal</button>
+              </div>
+              <p class="order-copy-feedback" data-copy-payment-feedback aria-live="polite"></p>
+              @if($qrisImageAvailable)
+                <p>Scan QRIS di atas, masukkan nominal yang sesuai, lalu unggah screenshot bukti pembayaran di bawah ini.</p>
+              @elseif(config('marketplace.bank_name') && config('marketplace.account_name') && config('marketplace.account_number'))
+                <p>Transfer sesuai total pesanan, lalu unggah bukti transfer JPG, PNG, atau PDF (maksimum 5 MB).</p>
+              @else
+                <p class="note warn">Poster QRIS statis FORTEXIV atau informasi transfer belum dikonfigurasi. Jangan lakukan pembayaran sampai instruksi resmi tersedia.</p>
+              @endif
+              @if(config('marketplace.bank_name') && config('marketplace.account_name') && config('marketplace.account_number'))
+                <p class="order-transfer-details">
+                  <strong>{{ config('marketplace.bank_name') }}</strong><br>
+                  Nama rekening: {{ config('marketplace.account_name') }}<br>
+                  Nomor rekening: {{ config('marketplace.account_number') }}
+                </p>
+              @endif
+              @if($manualPaymentConfigured)
+                <form method="post" action="{{ route('payments.store', $order) }}" enctype="multipart/form-data">
+                  @csrf
+                  <div class="field">
+                    <label for="method">Metode pembayaran</label>
+                    <input class="input" id="method" name="method" value="{{ old('method', $qrisImageAvailable ? 'QRIS' : 'Transfer Bank') }}" maxlength="50" required>
+                    @error('method')
+                      <p class="checkout-error">{{ $message }}</p>
+                    @enderror
+                  </div>
+                  <div class="field">
+                    <label for="proof">Bukti pembayaran (JPG, PNG, atau PDF; maksimum 5 MB)</label>
+                    <input class="input" id="proof" name="proof" type="file" accept=".jpg,.jpeg,.png,.pdf" required>
+                    @error('proof')
+                      <p class="checkout-error">{{ $message }}</p>
+                    @enderror
+                  </div>
+                  <button class="btn" type="submit">{{ $order->payment?->status === 'rejected' ? 'Unggah Ulang Bukti Pembayaran' : 'Kirim Bukti Pembayaran' }}</button>
+                </form>
+              @endif
             @endif
           </div>
         @elseif($order->status === 'waiting_verification' && $order->payment?->status === 'pending')
-          <p class="order-summary-note">Pembayaran sedang diperiksa. Tiket pickup tersedia setelah pembayaran dikonfirmasi.</p>
+          <p class="order-summary-note">Pembayaran sedang diperiksa oleh admin. QR pickup akan aktif setelah pembayaran diverifikasi.</p>
         @endif
       </section>
 
@@ -407,3 +438,33 @@
   </div>
 </div>
 @endsection
+
+@if($order->status === 'pending_payment' && $order->payment?->gateway !== \App\Models\Payment::GATEWAY_MIDTRANS)
+  @push('scripts')
+    <script>
+      (() => {
+        const copyButton = document.querySelector('[data-copy-payment-amount]');
+        const feedback = document.querySelector('[data-copy-payment-feedback]');
+
+        if (!copyButton || !feedback) {
+          return;
+        }
+
+        copyButton.addEventListener('click', () => {
+          if (!navigator.clipboard?.writeText) {
+            feedback.textContent = 'Browser tidak mendukung salin otomatis. Silakan salin nominal secara manual.';
+            return;
+          }
+
+          navigator.clipboard.writeText(copyButton.dataset.copyPaymentAmount)
+            .then(() => {
+              feedback.textContent = 'Nominal berhasil disalin.';
+            })
+            .catch(() => {
+              feedback.textContent = 'Nominal gagal disalin. Silakan salin secara manual.';
+            });
+        });
+      })();
+    </script>
+  @endpush
+@endif

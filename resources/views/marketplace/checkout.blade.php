@@ -15,10 +15,7 @@
     @include('marketplace.partials.po-notice', ['window' => $window])
   </div>
 
-  @php($paymentMethods = array_filter([
-    'manual' => config('marketplace.bank_name') && config('marketplace.account_name') && config('marketplace.account_number') ? 'Transfer bank manual' : null,
-    'midtrans' => config('services.midtrans.server_key') ? 'QRIS (Midtrans)' : null,
-  ]))
+  @php($paymentMethods = ['manual' => 'Manual (QRIS / Transfer Bank)'])
   @php($productCount = $items->sum(fn ($item) => $item['quantity']))
 
   <form method="post" action="{{ route('checkout') }}" class="checkout-layout" id="checkout-form">
@@ -144,6 +141,7 @@
       <div class="checkout-summary-counts">
         <div><span>Grup kelas</span><strong>{{ $groups->count() }}</strong></div>
         <div><span>Jumlah produk</span><strong>{{ $productCount }}</strong></div>
+        <div><span>Metode pembayaran</span><strong>Manual (QRIS / Transfer Bank)</strong></div>
       </div>
 
       <div class="checkout-totals">
@@ -158,31 +156,14 @@
       </div>
       <p class="checkout-summary-note">Total mencakup subtotal seluruh produk dalam satu pesanan buyer.</p>
 
-      @if(config('marketplace.bank_name') && config('marketplace.account_name') && config('marketplace.account_number'))
-        <p class="muted checkout-payment-note">Setelah pesanan dibuat, unggah bukti transfer. Pesanan siap diambil setelah pembayaran diverifikasi.</p>
-      @elseif(config('services.midtrans.server_key'))
-        <p class="muted checkout-payment-note">Pembayaran dapat diselesaikan melalui halaman aman Midtrans.</p>
+      @if($manualPaymentConfigured)
+        <p class="muted checkout-payment-note">Setelah pesanan dibuat, bayar dengan QRIS statis atau transfer bank, lalu unggah bukti pembayaran untuk diverifikasi admin.</p>
       @else
-        <p class="note warn checkout-payment-note">Pesanan tetap akan disimpan dengan status menunggu pembayaran. Metode pembayaran belum dikonfigurasi; jangan lakukan pembayaran sampai instruksi resmi tersedia.</p>
+        <p class="note warn checkout-payment-note">Pesanan tetap akan disimpan dengan status menunggu pembayaran. Instruksi QRIS atau transfer belum dikonfigurasi; jangan lakukan pembayaran sampai instruksi resmi tersedia.</p>
       @endif
 
       @if($window['paymentDeadline'])
         <p class="checkout-deadline"><strong>Tenggat pembayaran:</strong> {{ $window['paymentDeadline']->translatedFormat('d/m/Y H:i') }}</p>
-      @endif
-
-      @if(count($paymentMethods) > 1)
-        <fieldset class="field checkout-payment-methods" @error('payment_method') aria-describedby="payment_method_error" @enderror>
-          <legend>Metode pembayaran</legend>
-          @foreach($paymentMethods as $paymentMethod => $paymentMethodLabel)
-            <label class="checkout-payment-option">
-              <input type="radio" name="payment_method" value="{{ $paymentMethod }}" @checked(old('payment_method', array_key_first($paymentMethods)) === $paymentMethod)>
-              <span>{{ $paymentMethodLabel }}</span>
-            </label>
-          @endforeach
-          @error('payment_method')
-            <p class="checkout-error" id="payment_method_error">{{ $message }}</p>
-          @enderror
-        </fieldset>
       @endif
 
       <label class="chk checkout-terms" for="accepted_terms">
