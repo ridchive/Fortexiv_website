@@ -1715,50 +1715,25 @@ class MarketplaceTest extends TestCase
         $this->assertDatabaseCount('tickets', 1);
     }
 
-    public function test_midtrans_notification_with_an_invalid_signature_is_settled_from_the_status_api(): void
+    public function test_midtrans_notification_with_an_invalid_signature_returns_401_without_checking_the_status_api(): void
     {
         config([
             'app.env' => 'local',
             'services.midtrans.server_key' => 'sandbox-server-key',
         ]);
-        Log::spy();
         $order = $this->midtransOrder(User::factory()->create());
         $this->fakeMidtransStatus($order);
         $notification = $this->midtransNotification($order);
         $notification['signature_key'] = str_repeat('0', 128);
-        $expectedSignature = hash(
-            'sha512',
-            $order->order_code.'20014000.00sandbox-server-key',
-        );
 
-        $this->postJson(route('midtrans.notifications'), $notification)->assertOk();
+        $this->postJson(route('midtrans.notifications'), $notification)
+            ->assertUnauthorized()
+            ->assertJson(['message' => 'Invalid Midtrans notification signature.']);
 
-        Log::shouldHaveReceived('debug')
-            ->with('Midtrans notification signature validation completed.', [
-                'order_id' => $order->order_code,
-                'status_code' => '200',
-                'gross_amount' => '14000.00',
-                'server_key_configured' => true,
-                'received_signature_length' => 128,
-                'received_signature_is_sha512_hex' => true,
-                'received_signature' => str_repeat('0', 128),
-                'expected_signature' => $expectedSignature,
-                'algorithm' => 'SHA-512(order_id + status_code + gross_amount + server_key)',
-                'result' => 'mismatch',
-            ]);
-        Log::shouldHaveReceived('info')
-            ->with('Midtrans webhook HTTP request received.', [
-                'method' => 'POST',
-                'content_type' => 'application/json',
-            ]);
-        Log::shouldHaveReceived('warning')
-            ->with('Midtrans notification signature mismatch; verifying through the status API.', [
-                'order_id' => $order->order_code,
-            ]);
-        Http::assertSent(fn (ClientRequest $request): bool => $request->url() === 'https://api.sandbox.midtrans.com/v2/'.$order->order_code.'/status');
-        $this->assertSame('paid', $order->fresh()->status);
-        $this->assertDatabaseHas('payments', ['order_id' => $order->id, 'status' => 'verified']);
-        $this->assertDatabaseCount('tickets', 1);
+        Http::assertNothingSent();
+        $this->assertSame('pending_payment', $order->fresh()->status);
+        $this->assertDatabaseHas('payments', ['order_id' => $order->id, 'status' => 'pending']);
+        $this->assertDatabaseCount('tickets', 0);
     }
 
     public function test_midtrans_notification_with_an_invalid_signature_does_not_settle_a_pending_transaction(): void
@@ -1768,11 +1743,69 @@ class MarketplaceTest extends TestCase
         $notification = $this->midtransNotification($order);
         $notification['signature_key'] = str_repeat('0', 128);
 
-        $this->postJson(route('midtrans.notifications'), $notification)->assertOk();
+        $this->postJson(route('midtrans.notifications'), $notification)->assertUnauthorized();
 
+        Http::assertNothingSent();
         $this->assertSame('pending_payment', $order->fresh()->status);
         $this->assertDatabaseHas('payments', ['order_id' => $order->id, 'status' => 'pending']);
         $this->assertDatabaseCount('tickets', 0);
+    }
+
+    public function test_buyer_payment_status_endpoint_reports_current_payment_and_ticket_eligibility(): void
+    {
+        $buyer = User::factory()->create();
+        $order = $this->midtransOrder($buyer);
+
+        $this->actingAs($buyer)
+            ->getJson(route('payments.midtrans.status', $order))
+            ->assertOk()
+            ->assertJson([
+                'payment_status' => 'pending',
+                'order_status' => 'pending_payment',
+                'ticket_available' => false,
+                'ticket_url' => null,
+                'is_pending' => true,
+            ]);
+
+        $order->update(['status' => 'paid']);
+        $order->payment()->update(['status' => 'verified']);
+        $order->ticket()->create([
+            'ticket_code' => 'FXT-MIDTRANS01',
+            'issued_at' => now(),
+        ]);
+
+        $this->actingAs($buyer)
+            ->getJson(route('payments.midtrans.status', $order))
+            ->assertOk()
+            ->assertJson([
+                'payment_status' => 'verified',
+                'order_status' => 'paid',
+                'ticket_available' => true,
+                'ticket_url' => route('tickets.show', $order),
+                'is_pending' => false,
+            ]);
+    }
+
+    public function test_buyer_cannot_read_midtrans_status_for_another_buyers_order(): void
+    {
+        $order = $this->midtransOrder(User::factory()->create());
+
+        $this->actingAs(User::factory()->create())
+            ->getJson(route('payments.midtrans.status', $order))
+            ->assertNotFound();
+
+        $this->assertSame('pending_payment', $order->fresh()->status);
+        $this->assertDatabaseCount('tickets', 0);
+    }
+
+    public function test_unauthenticated_buyer_cannot_read_midtrans_status(): void
+    {
+        $order = $this->midtransOrder(User::factory()->create());
+
+        $this->getJson(route('payments.midtrans.status', $order))
+            ->assertUnauthorized();
+
+        $this->assertSame('pending_payment', $order->fresh()->status);
     }
 
     public function test_buyer_can_refresh_midtrans_status_from_the_authenticated_status_api(): void
@@ -1857,8 +1890,28 @@ class MarketplaceTest extends TestCase
 
         $this->assertSame('cancelled', $order->fresh()->status);
         $this->assertSame(1, $product->fresh()->stock);
-        $this->assertDatabaseHas('payments', ['order_id' => $order->id, 'status' => 'failed']);
+        $this->assertDatabaseHas('payments', ['order_id' => $order->id, 'status' => 'expired']);
         $this->assertDatabaseCount('tickets', 0);
+    }
+
+    public function test_midtrans_capture_with_an_accepted_fraud_status_marks_the_order_paid(): void
+    {
+        config(['services.midtrans.server_key' => 'sandbox-server-key']);
+        $order = $this->midtransOrder(User::factory()->create());
+        $notification = $this->midtransNotification($order, [
+            'transaction_status' => 'capture',
+            'fraud_status' => 'accept',
+        ]);
+        $this->fakeMidtransStatus($order, [
+            'transaction_status' => 'capture',
+            'fraud_status' => 'accept',
+        ]);
+
+        $this->postJson(route('midtrans.notifications'), $notification)->assertOk();
+
+        $this->assertSame('paid', $order->fresh()->status);
+        $this->assertDatabaseHas('payments', ['order_id' => $order->id, 'status' => 'verified']);
+        $this->assertDatabaseCount('tickets', 1);
     }
 
     public function test_midtrans_capture_with_a_challenge_fraud_status_does_not_mark_the_order_paid(): void
@@ -1906,7 +1959,11 @@ class MarketplaceTest extends TestCase
         $buyer = User::factory()->create();
         $order = $this->midtransOrder($buyer);
 
-        $this->actingAs($buyer)->get(route('orders.show', $order))->assertOk();
+        $this->actingAs($buyer)->get(route('orders.show', $order))
+            ->assertOk()
+            ->assertSee('Memverifikasi pembayaran dengan Midtrans.')
+            ->assertSee('data-midtrans-payment-monitor', false)
+            ->assertDontSee('Periksa status pembayaran');
 
         $this->actingAs($buyer)->post(route('payments.store', $order), [
             '_token' => csrf_token(),

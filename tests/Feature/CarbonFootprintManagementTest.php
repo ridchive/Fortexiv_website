@@ -644,6 +644,7 @@ class CarbonFootprintManagementTest extends TestCase
             'Midtrans melaporkan refund parsial. Admin perlu mengoreksi dampak item terkait.',
             $payment->fresh()->notes,
         );
+        $this->assertSame('partially_refunded', $payment->fresh()->status);
     }
 
     public function test_repeated_midtrans_payment_callback_creates_one_contribution(): void

@@ -48,6 +48,11 @@
   .order-payment-actions h3 { margin-bottom: 8px; font-size: 1rem; }
   .order-payment-actions p { font-size: 13px; }
   .order-payment-actions .btn { margin: 4px 0; }
+  .order-payment-feedback { margin: 12px 0 0; padding: 11px 13px; border-radius: 8px; font-size: 13px; line-height: 1.5; }
+  .order-payment-feedback--pending { background: var(--info-bg); color: var(--info); }
+  .order-payment-feedback--success { background: var(--good-bg); color: var(--good); }
+  .order-payment-feedback--problem { background: var(--bad-bg); color: var(--bad); }
+  .order-payment-feedback--refund { background: var(--info-bg); color: var(--info); }
   .order-payment-actions .field { margin-top: 12px; }
   .order-transfer-details { padding: 12px; border-radius: 8px; background: var(--soft); line-height: 1.7; }
   .order-pickup-details { display: grid; gap: 14px; }
@@ -122,8 +127,8 @@
       'final_via_resolution' => 'order-state--final',
   ];
   $paymentStatusLabel = match ($order->payment?->status) {
-      'verified' => 'Pembayaran berhasil',
-      'pending' => $order->status === 'waiting_verification' ? 'Menunggu konfirmasi' : 'Menunggu pembayaran',
+      'verified' => 'Dibayar',
+      'pending' => $order->status === 'waiting_verification' ? 'Menunggu konfirmasi' : 'Menunggu Pembayaran',
       'rejected' => 'Pembayaran ditolak',
       'failed' => 'Pembayaran gagal',
       'expired' => 'Pembayaran kedaluwarsa',
@@ -143,9 +148,29 @@
       'refunded', 'partially_refunded' => 'order-state--resolution',
       default => '',
   };
-  $ticketAvailable = $order->payment?->status === 'verified'
+  $ticketAvailable = in_array($order->payment?->status, ['verified', 'partially_refunded'], true)
       && $order->ticket !== null
       && in_array($order->status, ['paid', 'partially_picked_up', 'picked_up'], true);
+  $midtransPending = $order->payment?->gateway === \App\Models\Payment::GATEWAY_MIDTRANS
+      && $order->payment?->status === 'pending'
+      && $order->status === 'pending_payment';
+  $paymentFeedback = match ($order->payment?->status) {
+      'pending' => 'Memverifikasi pembayaran dengan Midtrans. Status akan diperbarui otomatis.',
+      'verified' => 'Pembayaran berhasil. Pesanan siap diproses untuk pickup.',
+      'failed', 'rejected' => 'Pembayaran gagal. Pesanan belum dapat diproses untuk pickup.',
+      'expired' => 'Pembayaran kedaluwarsa. Pesanan belum dibayar.',
+      'cancelled' => 'Pembayaran dibatalkan.',
+      'refunded' => 'Dana pembayaran telah dikembalikan. QR pickup tidak tersedia.',
+      'partially_refunded' => 'Dana dikembalikan sebagian. Hubungi tim FORTEXIV untuk memastikan item pickup yang terdampak.',
+      default => null,
+  };
+  $paymentFeedbackClass = match ($order->payment?->status) {
+      'pending' => 'pending',
+      'verified' => 'success',
+      'failed', 'rejected', 'expired', 'cancelled' => 'problem',
+      'refunded', 'partially_refunded' => 'refund',
+      default => 'pending',
+  };
 @endphp
 
 <div class="wrap order-detail">
@@ -161,7 +186,7 @@
       <h1>{{ $order->order_code }}</h1>
       <p class="order-created">Dibuat {{ $order->created_at->format('d/m/Y · H:i') }}</p>
     </div>
-    <span class="badge {{ $orderStatusClasses[$order->status] ?? '' }}">
+    <span class="badge {{ $orderStatusClasses[$order->status] ?? '' }}" data-order-status-badge>
       {{ $orderStatusLabels[$order->status] ?? $order->status }}
     </span>
   </header>
@@ -291,8 +316,14 @@
         </div>
         <div class="order-summary-row">
           <span>Status pembayaran</span>
-          <span class="badge {{ $paymentStatusClass }}">{{ $paymentStatusLabel }}</span>
+          <span class="badge {{ $paymentStatusClass }}" data-payment-status-badge>{{ $paymentStatusLabel }}</span>
         </div>
+        @if(($order->payment?->gateway === \App\Models\Payment::GATEWAY_MIDTRANS || $order->payment?->status === 'verified') && $paymentFeedback)
+          <p class="order-payment-feedback order-payment-feedback--{{ $paymentFeedbackClass }}" data-payment-feedback role="status" aria-live="polite">{{ $paymentFeedback }}</p>
+        @endif
+        @if($midtransPending)
+          <div data-midtrans-payment-monitor data-status-url="{{ route('payments.midtrans.status', $order) }}" hidden></div>
+        @endif
         <div class="order-summary-row">
           <span>Nama pengambil</span>
           <strong>{{ $order->pickup_contact_name ?? $order->buyer->name }}</strong>
@@ -309,14 +340,10 @@
         @endif
 
         @if($order->status === 'pending_payment')
-          <div class="order-payment-actions">
+          <div class="order-payment-actions" data-payment-actions>
             <h3>Selesaikan pembayaran</h3>
             @if($order->payment?->gateway === \App\Models\Payment::GATEWAY_MIDTRANS)
-              <p class="muted">Lanjutkan pembayaran atau periksa status jika Anda sudah menyelesaikannya.</p>
-              <form method="post" action="{{ route('payments.midtrans.refresh', $order) }}">
-                @csrf
-                <button class="btn sec" type="submit">Periksa status pembayaran</button>
-              </form>
+              <p class="muted">Selesaikan pembayaran di halaman Midtrans. Setelah kembali, status akan diperbarui otomatis.</p>
               @if($order->payment->snap_redirect_url)
                 <a class="btn" href="{{ $order->payment->snap_redirect_url }}">Lanjutkan pembayaran</a>
               @elseif($order->payment->status === 'pending')
@@ -358,20 +385,23 @@
       </section>
 
       <section class="order-ticket" aria-labelledby="ticket-heading">
-        <span class="badge {{ $ticketAvailable ? 'good' : 'pending' }}">
+        <span class="badge {{ $ticketAvailable ? 'good' : 'pending' }}" data-ticket-availability-badge>
           {{ $ticketAvailable ? 'Tiket tersedia' : 'Tiket belum tersedia' }}
         </span>
         <h2 id="ticket-heading">Tiket & QR pickup</h2>
-        @if($ticketAvailable)
+        <div data-ticket-pending @if($ticketAvailable) hidden @endif>
+          <p data-ticket-pending-message>
+            @if(in_array($order->payment?->status, ['pending', null], true))
+              QR pickup akan tersedia setelah pembayaran terverifikasi.
+            @else
+              QR pickup belum tersedia karena status pembayaran atau pesanan saat ini.
+            @endif
+          </p>
+        </div>
+        <div data-ticket-ready @unless($ticketAvailable) hidden @endunless>
           <p>Tampilkan QR kepada petugas kelas saat mengambil produk. Penyerahan tetap dikonfirmasi untuk setiap grup kelas.</p>
-          <a class="btn lime" href="{{ route('tickets.show', $order) }}">Buka Tiket & Tampilkan QR</a>
-        @else
-          @if(in_array($order->payment?->status, ['pending', null], true))
-            <p>QR pickup akan tersedia setelah pembayaran terverifikasi.</p>
-          @else
-            <p>QR pickup belum tersedia karena status pembayaran atau pesanan saat ini.</p>
-          @endif
-        @endif
+          <a class="btn lime" href="{{ route('tickets.show', $order) }}" data-ticket-link>Buka Tiket & Tampilkan QR</a>
+        </div>
       </section>
     </aside>
   </div>

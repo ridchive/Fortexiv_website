@@ -48,6 +48,178 @@ document.querySelectorAll('[data-token-download]').forEach((button) => {
     });
 });
 
+const paymentMonitor = document.querySelector('[data-midtrans-payment-monitor]');
+
+if (paymentMonitor) {
+    const paymentBadge = document.querySelector('[data-payment-status-badge]');
+    const paymentRow = paymentBadge?.closest('.order-summary-row');
+    const orderBadge = document.querySelector('[data-order-status-badge]');
+    const paymentActions = document.querySelector('[data-payment-actions]');
+    const ticketBadge = document.querySelector('[data-ticket-availability-badge]');
+    const ticketPending = document.querySelector('[data-ticket-pending]');
+    const ticketPendingMessage = document.querySelector('[data-ticket-pending-message]');
+    const ticketReady = document.querySelector('[data-ticket-ready]');
+    const ticketLink = document.querySelector('[data-ticket-link]');
+    const paymentStatusLabels = {
+        pending: 'Menunggu Pembayaran',
+        verified: 'Dibayar',
+        failed: 'Pembayaran gagal',
+        expired: 'Pembayaran kedaluwarsa',
+        cancelled: 'Pembayaran dibatalkan',
+        refunded: 'Dana dikembalikan',
+        partially_refunded: 'Dana dikembalikan sebagian',
+    };
+    const orderStatusLabels = {
+        pending_payment: 'Perlu pembayaran',
+        waiting_verification: 'Menunggu konfirmasi',
+        paid: 'Aktif untuk pickup',
+        partially_picked_up: 'Sebagian selesai',
+        picked_up: 'Selesai',
+        in_resolution: 'Dalam resolusi',
+        cancelled: 'Dibatalkan',
+    };
+    const orderStatusClasses = {
+        pending_payment: 'pending_payment',
+        waiting_verification: 'waiting_verification',
+        paid: 'paid',
+        partially_picked_up: 'partially_delivered',
+        picked_up: 'picked_up',
+        in_resolution: 'order-state--resolution',
+        cancelled: 'cancelled',
+    };
+    let stopped = false;
+
+    const showPaymentFeedback = (message, type) => {
+        let feedback = document.querySelector('[data-payment-feedback]');
+
+        if (!feedback && paymentRow) {
+            feedback = document.createElement('p');
+            feedback.dataset.paymentFeedback = '';
+            feedback.setAttribute('role', 'status');
+            feedback.setAttribute('aria-live', 'polite');
+            paymentRow.after(feedback);
+        }
+
+        if (feedback) {
+            feedback.className = `order-payment-feedback order-payment-feedback--${type}`;
+            feedback.textContent = message;
+        }
+    };
+
+    const updatePaymentPage = (data) => {
+        const paymentStatus = data.payment_status;
+        const orderStatus = data.order_status;
+        const feedbacks = {
+            verified: ['Pembayaran berhasil. Pesanan siap diproses untuk pickup.', 'success'],
+            failed: ['Pembayaran gagal. Pesanan belum dapat diproses untuk pickup.', 'problem'],
+            expired: ['Pembayaran kedaluwarsa. Pesanan belum dibayar.', 'problem'],
+            cancelled: ['Pembayaran dibatalkan.', 'problem'],
+            refunded: ['Dana pembayaran telah dikembalikan. QR pickup tidak tersedia.', 'refund'],
+            partially_refunded: ['Dana dikembalikan sebagian. Hubungi tim FORTEXIV untuk memastikan item pickup yang terdampak.', 'refund'],
+        };
+
+        if (paymentBadge) {
+            paymentBadge.textContent = paymentStatusLabels[paymentStatus] ?? 'Status pembayaran diperbarui';
+            paymentBadge.className = `badge ${{
+                failed: 'order-payment--problem',
+                expired: 'order-payment--problem',
+                cancelled: 'order-payment--problem',
+                refunded: 'order-state--resolution',
+                partially_refunded: 'order-state--resolution',
+            }[paymentStatus] ?? (paymentStatus === 'verified' ? 'verified' : 'pending')}`;
+        }
+
+        if (orderBadge) {
+            orderBadge.textContent = orderStatusLabels[orderStatus] ?? orderStatus;
+            orderBadge.className = `badge ${orderStatusClasses[orderStatus] ?? ''}`;
+        }
+
+        if (paymentStatus === 'pending') {
+            showPaymentFeedback('Memverifikasi pembayaran dengan Midtrans. Status akan diperbarui otomatis.', 'pending');
+        } else if (feedbacks[paymentStatus]) {
+            showPaymentFeedback(...feedbacks[paymentStatus]);
+        }
+
+        if (paymentActions && !data.is_pending) {
+            paymentActions.hidden = true;
+        }
+
+        if (ticketBadge) {
+            ticketBadge.textContent = data.ticket_available ? 'Tiket tersedia' : 'Tiket belum tersedia';
+            ticketBadge.className = `badge ${data.ticket_available ? 'good' : 'pending'}`;
+        }
+
+        if (data.ticket_available && data.ticket_url) {
+            if (ticketLink) {
+                ticketLink.href = data.ticket_url;
+            }
+            if (ticketPending) {
+                ticketPending.hidden = true;
+            }
+            if (ticketReady) {
+                ticketReady.hidden = false;
+            }
+        } else {
+            if (ticketPendingMessage && paymentStatus !== 'pending') {
+                ticketPendingMessage.textContent = 'QR pickup belum tersedia karena status pembayaran atau pesanan saat ini.';
+            }
+            if (ticketPending) {
+                ticketPending.hidden = false;
+            }
+            if (ticketReady) {
+                ticketReady.hidden = true;
+            }
+        }
+
+        if (!data.is_pending) {
+            stopped = true;
+        }
+    };
+
+    const checkPaymentStatus = async () => {
+        if (stopped) {
+            return;
+        }
+
+        try {
+            const response = await fetch(paymentMonitor.dataset.statusUrl, {
+                headers: { Accept: 'application/json' },
+                cache: 'no-store',
+            });
+
+            if (response.redirected || !response.headers.get('content-type')?.includes('application/json')) {
+                stopped = true;
+                showPaymentFeedback('Sesi berakhir atau status pembayaran tidak dapat diakses. Masuk kembali untuk memeriksanya.', 'problem');
+                return;
+            }
+
+            if (!response.ok && response.status !== 429 && response.status < 500) {
+                stopped = true;
+                showPaymentFeedback('Status pembayaran tidak dapat diakses. Muat ulang halaman atau hubungi admin.', 'problem');
+                return;
+            }
+
+            if (!response.ok) {
+                throw new Error('Status pembayaran belum dapat diperbarui. Akan dicoba kembali otomatis.');
+            }
+
+            const data = await response.json();
+            updatePaymentPage(data);
+        } catch (error) {
+            showPaymentFeedback(
+                error.message || 'Status pembayaran belum dapat diperbarui. Akan dicoba kembali otomatis.',
+                'pending',
+            );
+        }
+
+        if (!stopped) {
+            window.setTimeout(checkPaymentStatus, 5000);
+        }
+    };
+
+    window.setTimeout(checkPaymentStatus, 1500);
+}
+
 const scannerPage = document.querySelector('[data-qr-scanner]');
 
 if (scannerPage) {

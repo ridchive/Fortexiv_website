@@ -17,6 +17,7 @@ use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Http\Client\ConnectionException;
 use Illuminate\Http\Client\RequestException;
+use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Collection;
@@ -510,7 +511,10 @@ class MarketplaceController extends Controller
     public function order(Request $request, Order $order, PurchaseWindow $purchaseWindow): View
     {
         abort_unless($order->buyer_id === $request->user()->id, 404);
-        if (in_array($order->status, ['paid', 'partially_picked_up', 'picked_up'], true) && ! $order->ticket()->exists()) {
+        $order->loadMissing('payment');
+        if (in_array($order->status, ['paid', 'partially_picked_up', 'picked_up'], true)
+            && in_array($order->payment?->status, ['verified', 'partially_refunded'], true)
+            && ! $order->ticket()->exists()) {
             $order->ticket()->create([
                 'ticket_code' => 'FXT-'.Str::upper(Str::random(12)),
                 'issued_at' => now(),
@@ -598,6 +602,27 @@ class MarketplaceController extends Controller
             ->with('status', 'Status Midtrans berhasil diperiksa: '.$transactionStatus.'.');
     }
 
+    public function midtransPaymentStatus(Request $request, Order $order): JsonResponse
+    {
+        abort_unless($order->buyer_id === $request->user()->id, 404);
+
+        $order->loadMissing(['payment', 'ticket']);
+        $payment = $order->payment;
+        abort_unless($payment?->gateway === Payment::GATEWAY_MIDTRANS, 404);
+
+        $ticketAvailable = in_array($payment->status, ['verified', 'partially_refunded'], true)
+            && $order->ticket !== null
+            && in_array($order->status, ['paid', 'partially_picked_up', 'picked_up'], true);
+
+        return response()->json([
+            'payment_status' => $payment->status,
+            'order_status' => $order->status,
+            'ticket_available' => $ticketAvailable,
+            'ticket_url' => $ticketAvailable ? route('tickets.show', $order) : null,
+            'is_pending' => $payment->status === 'pending',
+        ])->header('Cache-Control', 'no-store');
+    }
+
     public function uploadPayment(Request $request, Order $order): RedirectResponse
     {
         abort_unless($this->transferConfigured(), 503, 'Informasi transfer bank belum dikonfigurasi.');
@@ -630,7 +655,13 @@ class MarketplaceController extends Controller
     public function ticket(Request $request, Order $order): View
     {
         abort_unless($order->buyer_id === $request->user()->id, 404);
-        if (in_array($order->status, ['paid', 'partially_picked_up', 'picked_up'], true) && ! $order->ticket()->exists()) {
+        $order->loadMissing('payment');
+        abort_unless(
+            in_array($order->payment?->status, ['verified', 'partially_refunded'], true)
+                && in_array($order->status, ['paid', 'partially_picked_up', 'picked_up'], true),
+            404,
+        );
+        if (! $order->ticket()->exists()) {
             $order->ticket()->create([
                 'ticket_code' => 'FXT-'.Str::upper(Str::random(12)),
                 'issued_at' => now(),

@@ -123,16 +123,8 @@ class MidtransService
             $orderId.$statusCode.$grossAmount.$serverKey,
         );
         $signatureMatches = hash_equals($expectedSignature, $signature);
-        $signatureDiagnostics = [];
 
-        if (config('app.env') === 'local') {
-            $signatureDiagnostics = [
-                'received_signature' => $signature,
-                'expected_signature' => $expectedSignature,
-            ];
-        }
-
-        Log::debug('Midtrans notification signature validation completed.', $diagnostics + $signatureDiagnostics + [
+        Log::debug('Midtrans notification signature validation completed.', $diagnostics + [
             'algorithm' => 'SHA-512(order_id + status_code + gross_amount + server_key)',
             'result' => $signatureMatches ? 'valid' : 'mismatch',
         ]);
@@ -234,7 +226,73 @@ class MidtransService
                 return;
             }
 
-            if (in_array($transactionStatus, ['cancel', 'deny', 'expire', 'failure', 'refund', 'chargeback'], true)) {
+            if (in_array($transactionStatus, ['refund', 'partial_refund'], true)) {
+                $refundAmount = $transaction['refund_amount'] ?? null;
+                $refundAmountInCents = is_string($refundAmount)
+                    ? $this->amountInCents($refundAmount)
+                    : null;
+                $orderAmountInCents = $order->total_price * 100;
+
+                if ($refundAmount !== null
+                    && ($refundAmountInCents === null
+                        || $refundAmountInCents < 1
+                        || $refundAmountInCents > $orderAmountInCents)) {
+                    throw new UnexpectedValueException('Midtrans returned an invalid refund amount.');
+                }
+
+                $isPartialRefund = $transactionStatus === 'partial_refund'
+                    || ($refundAmountInCents !== null && $refundAmountInCents < $orderAmountInCents);
+
+                if ($isPartialRefund) {
+                    $payment->update($paymentDetails + [
+                        'status' => 'partially_refunded',
+                        'notes' => 'Midtrans melaporkan refund parsial. Admin perlu mengoreksi dampak item terkait.',
+                    ]);
+
+                    return;
+                }
+
+                if ($payment->status === 'refunded') {
+                    return;
+                }
+
+                if (in_array($order->status, ['paid', 'partially_picked_up', 'picked_up', 'in_resolution'], true)) {
+                    app(CarbonImpactService::class)->revokeOrder(
+                        $order,
+                        'Pembayaran direfund melalui konfirmasi Midtrans.',
+                        null,
+                    );
+                    $ticket = Ticket::query()->where('order_id', $order->id)->lockForUpdate()->first();
+
+                    if ($ticket?->picked_up_at) {
+                        $payment->update($paymentDetails + [
+                            'status' => 'refunded',
+                            'notes' => 'Midtrans melaporkan refund setelah pickup; admin perlu menindaklanjuti.',
+                        ]);
+
+                        return;
+                    }
+
+                    $ticket?->delete();
+                } elseif (in_array($order->status, ['pending_payment', 'waiting_verification'], true)) {
+                    $this->returnReservedStock($order);
+                } elseif (! in_array($order->status, ['cancelled', 'failed', 'refunded', 'rejected'], true)) {
+                    return;
+                }
+
+                $payment->update($paymentDetails + [
+                    'status' => 'refunded',
+                    'notes' => 'Midtrans mengonfirmasi pengembalian dana penuh.',
+                ]);
+
+                if (! in_array($order->status, ['cancelled', 'failed', 'refunded', 'rejected'], true)) {
+                    $order->update(['status' => 'cancelled']);
+                }
+
+                return;
+            }
+
+            if (in_array($transactionStatus, ['cancel', 'deny', 'expire', 'failure', 'chargeback'], true)) {
                 if (in_array($order->status, ['cancelled', 'failed', 'refunded', 'rejected'], true)) {
                     return;
                 }
@@ -262,7 +320,7 @@ class MidtransService
 
                     if ($ticket?->picked_up_at) {
                         $payment->update($paymentDetails + [
-                            'status' => 'failed',
+                            'status' => $transactionStatus === 'expire' ? 'expired' : 'failed',
                             'notes' => 'Midtrans reported a payment reversal after pickup; administrator follow-up is required.',
                         ]);
 
@@ -274,7 +332,12 @@ class MidtransService
                     return;
                 }
 
-                $payment->update($paymentDetails + ['status' => 'failed']);
+                $paymentStatus = match ($transactionStatus) {
+                    'expire' => 'expired',
+                    'cancel' => 'cancelled',
+                    default => 'failed',
+                };
+                $payment->update($paymentDetails + ['status' => $paymentStatus]);
                 $order->update(['status' => 'cancelled']);
                 $this->returnReservedStock($order);
 
@@ -307,19 +370,22 @@ class MidtransService
 
     private function amountMatchesOrder(string $grossAmount, Order $order): bool
     {
-        if (preg_match('/^\d+(?:\.\d{1,2})?$/D', $grossAmount) !== 1) {
-            return false;
+        return $this->amountInCents($grossAmount) === $order->total_price * 100;
+    }
+
+    private function amountInCents(string $amount): ?int
+    {
+        if (preg_match('/^\d+(?:\.\d{1,2})?$/D', $amount) !== 1) {
+            return null;
         }
 
-        [$whole, $fraction] = array_pad(explode('.', $grossAmount, 2), 2, '');
+        [$whole, $fraction] = array_pad(explode('.', $amount, 2), 2, '');
 
         if (strlen($whole) > 10) {
-            return false;
+            return null;
         }
 
-        $amountInCents = ((int) $whole * 100) + (int) str_pad($fraction, 2, '0');
-
-        return $amountInCents === $order->total_price * 100;
+        return ((int) $whole * 100) + (int) str_pad($fraction, 2, '0');
     }
 
     private function returnReservedStock(Order $order): void
