@@ -2,7 +2,7 @@
 
 @section('title', 'Scan QR Pesanan — Panel Penjual FORTEXIV')
 
-@push('styles')
+@section('content')
 <style>
   .qr-scanner-grid {
     display: grid;
@@ -10,49 +10,157 @@
     gap: 24px;
     align-items: start;
   }
-  .qr-scanner-btns {
+  
+  /* Scanner Card & Viewport */
+  .scanner-viewport-wrap {
+    position: relative;
+    width: 100%;
+    max-width: 320px;
+    height: 320px;
+    margin: 16px auto;
+    border-radius: 16px;
+    overflow: hidden;
+    background: #060a07;
+    border: 2px solid rgba(169, 203, 91, 0.35);
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.45);
     display: flex;
-    gap: 10px;
-    flex-wrap: wrap;
-    margin-bottom: 14px;
+    align-items: center;
+    justify-content: center;
   }
+
+  #seller-qr-reader {
+    width: 100% !important;
+    height: 100% !important;
+    position: absolute !important;
+    inset: 0 !important;
+    border: none !important;
+    padding: 0 !important;
+  }
+  #seller-qr-reader > div {
+    width: 100% !important;
+    height: 100% !important;
+    position: absolute !important;
+    inset: 0 !important;
+    border: none !important;
+  }
+  #seller-qr-reader video {
+    width: 100% !important;
+    height: 100% !important;
+    object-fit: cover !important;
+    display: block !important;
+  }
+  #seller-qr-reader canvas {
+    display: none !important;
+  }
+  /* Hide html5-qrcode's default rigid pixel borders */
+  #qr-shaded-region {
+    display: none !important;
+  }
+
+  /* Scanner Standby Placeholder */
+  .scanner-standby {
+    position: absolute;
+    inset: 0;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 24px 16px;
+    text-align: center;
+    background: radial-gradient(circle at center, rgba(30, 48, 34, 0.9) 0%, rgba(6, 10, 7, 0.98) 100%);
+    color: var(--muted);
+    z-index: 5;
+    transition: opacity 0.2s ease;
+  }
+  .scanner-standby.hidden {
+    display: none !important;
+  }
+
+  /* Custom Native-like Responsive Viewfinder Overlay */
+  .scanner-overlay {
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+    display: none;
+    align-items: center;
+    justify-content: center;
+    z-index: 10;
+  }
+  .scanner-overlay.active {
+    display: flex !important;
+  }
+  .scanner-frame {
+    position: relative;
+    width: 210px;
+    height: 210px;
+    box-shadow: 0 0 0 9999px rgba(0, 0, 0, 0.45);
+    border-radius: 16px;
+  }
+  /* 4 Corner Markers */
+  .scanner-corner {
+    position: absolute;
+    width: 28px;
+    height: 28px;
+    border: 3.5px solid var(--lime);
+  }
+  .scanner-corner.tl { top: 0; left: 0; border-right: none; border-bottom: none; border-top-left-radius: 14px; }
+  .scanner-corner.tr { top: 0; right: 0; border-left: none; border-bottom: none; border-top-right-radius: 14px; }
+  .scanner-corner.bl { bottom: 0; left: 0; border-right: none; border-top: none; border-bottom-left-radius: 14px; }
+  .scanner-corner.br { bottom: 0; right: 0; border-left: none; border-top: none; border-bottom-right-radius: 14px; }
+
+  /* Animated Laser Scan Beam */
+  .scanner-laser {
+    position: absolute;
+    left: 8px;
+    right: 8px;
+    height: 2.5px;
+    background: linear-gradient(90deg, transparent, var(--lime), transparent);
+    box-shadow: 0 0 10px var(--lime);
+    border-radius: 2px;
+    animation: scannerScan 2.2s ease-in-out infinite alternate;
+  }
+  @keyframes scannerScan {
+    0% { top: 10px; opacity: 0.3; }
+    50% { opacity: 1; }
+    100% { top: calc(100% - 12px); opacity: 0.3; }
+  }
+
+  /* Action Controls */
+  .scanner-controls {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 8px;
+    margin-top: 12px;
+  }
+  .scanner-toggle-btn {
+    width: 100%;
+    max-width: 320px;
+    justify-content: center;
+    padding: 11px 18px;
+    font-weight: 700;
+    font-size: 14px;
+    border-radius: 8px;
+  }
+
   .qr-manual-form {
     display: flex;
     gap: 10px;
     align-items: flex-end;
   }
-  #seller-qr-reader {
-    width: 100% !important;
-    max-width: 440px;
-    margin: 16px auto;
-    border-radius: 12px;
-    overflow: hidden;
-    position: relative;
-    background: #000;
-  }
-  #seller-qr-reader video {
-    width: 100% !important;
-    height: auto !important;
-    border-radius: 12px;
-    display: block;
-    margin: 0 auto;
-  }
-  #seller-qr-reader canvas {
-    max-width: 100% !important;
-    height: auto !important;
-  }
+
   @media (max-width: 860px) {
     .qr-scanner-grid {
       grid-template-columns: 1fr;
-      gap: 20px;
+      gap: 16px;
     }
-    .qr-scanner-btns {
-      flex-direction: column;
+    .scanner-viewport-wrap {
+      max-width: 280px;
+      height: 280px;
     }
-    .qr-scanner-btns .btn {
-      width: 100%;
-      justify-content: center;
-      text-align: center;
+    .scanner-frame {
+      width: 180px;
+      height: 180px;
     }
     .qr-manual-form {
       flex-direction: column;
@@ -62,14 +170,8 @@
       width: 100%;
       justify-content: center;
     }
-    #seller-qr-reader {
-      max-width: 100% !important;
-    }
   }
 </style>
-@endpush
-
-@section('content')
 <div data-qr-scanner data-preview-url="{{ route('seller.pickup.qr.preview') }}" data-confirm-url="{{ route('seller.pickup.qr.confirm') }}">
   <div class="section-head" style="margin-bottom: 20px;">
     <div>
@@ -85,18 +187,46 @@
   <div class="qr-scanner-grid">
     <div>
       <section class="panel" style="margin: 0 0 20px;">
-        <div class="eyebrow" style="margin-bottom: 8px;">OPSI 1: PEMINDAI KAMERA (SCAN QR)</div>
-        <p class="muted" style="font-size: 13px; margin-bottom: 14px;">Klik tombol di bawah untuk menyalakan kamera. Format QR (Class QR / Product QR) akan terdeteksi otomatis.</p>
-        
-        <div class="qr-scanner-btns">
-          <button class="btn" type="button" data-qr-mode="class">📷 Buka Kamera (Auto-Detect / Class QR)</button>
-          <button class="btn sec" type="button" data-qr-mode="product">Scan Product QR Khusus</button>
+        <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 8px; margin-bottom: 6px;">
+          <div class="eyebrow" style="margin: 0;">OPSI 1: PEMINDAI KAMERA (SCAN QR)</div>
+          <span class="badge open" style="font-size: 11px; font-weight: 700; padding: 3px 8px;">✨ Auto-Detect Semua Format QR</span>
+        </div>
+        <p class="muted" style="font-size: 13px; margin-bottom: 12px;">Pindai QR pembeli secara langsung menggunakan kamera. Class QR maupun Product QR akan otomatis terverifikasi.</p>
+
+        <!-- Viewport Container with Native-like Responsive Overlay -->
+        <div class="scanner-viewport-wrap">
+          <div id="seller-qr-reader"></div>
+
+          <!-- Standby Placeholder -->
+          <div class="scanner-standby" data-scanner-standby>
+            <div style="width: 52px; height: 52px; border-radius: 50%; background: rgba(140, 208, 143, 0.12); border: 1px solid var(--lime); display: flex; align-items: center; justify-content: center; margin-bottom: 10px; color: var(--lime);">
+              <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"></path><circle cx="12" cy="13" r="4"></circle></svg>
+            </div>
+            <strong style="color: var(--ink); font-size: 14px;">Kamera Siap Digunakan</strong>
+            <span style="font-size: 12px; margin-top: 4px; line-height: 1.4;">Tekan tombol di bawah untuk menyalakan kamera & memindai QR.</span>
+          </div>
+
+          <!-- Active Target Viewfinder Overlay -->
+          <div class="scanner-overlay" data-scanner-overlay>
+            <div class="scanner-frame">
+              <span class="scanner-corner tl"></span>
+              <span class="scanner-corner tr"></span>
+              <span class="scanner-corner bl"></span>
+              <span class="scanner-corner br"></span>
+              <span class="scanner-laser"></span>
+            </div>
+          </div>
         </div>
 
-        <div id="seller-qr-reader"></div>
+        <!-- Controls & Toggle -->
+        <div class="scanner-controls">
+          <button class="btn lime scanner-toggle-btn" type="button" data-scanner-toggle>
+            📷 Buka Kamera Pemindai
+          </button>
+        </div>
 
-        <p class="note info" role="status" aria-live="polite" data-qr-message style="margin-top: 10px;">
-          Siap digunakan. Tekan tombol kamera di atas atau masukkan kode manual di bawah.
+        <p class="note info" role="status" aria-live="polite" data-qr-message style="margin-top: 12px; font-size: 13px; text-align: center;">
+          Siap digunakan. Tekan tombol kamera di atas atau gunakan input kode manual di bawah.
         </p>
       </section>
 
@@ -170,6 +300,9 @@
 
   const reader = document.getElementById('seller-qr-reader');
   const message = scannerPage.querySelector('[data-qr-message]');
+  const standbyEl = scannerPage.querySelector('[data-scanner-standby]');
+  const overlayEl = scannerPage.querySelector('[data-scanner-overlay]');
+  const toggleBtn = scannerPage.querySelector('[data-scanner-toggle]');
   const manualForm = scannerPage.querySelector('[data-qr-manual-form]');
   const tokenInput = manualForm.querySelector('[name="token"]');
   const preview = scannerPage.querySelector('[data-qr-preview]');
@@ -186,6 +319,15 @@
   const setMessage = (text, type = 'info') => {
     message.className = `note ${type}`;
     message.textContent = text;
+  };
+
+  const resetScannerUI = () => {
+    standbyEl?.classList.remove('hidden');
+    overlayEl?.classList.remove('active');
+    if (toggleBtn) {
+      toggleBtn.innerHTML = '📷 Buka Kamera Pemindai';
+      toggleBtn.className = 'btn lime scanner-toggle-btn';
+    }
   };
 
   const responseError = (payload) => {
@@ -214,7 +356,10 @@
   };
 
   const stopScanner = async () => {
-    if (!scannerRunning || !scanner) return;
+    if (!scannerRunning || !scanner) {
+      resetScannerUI();
+      return;
+    }
     try {
       await scanner.stop();
       scanner.clear();
@@ -223,6 +368,7 @@
     }
     scanner = null;
     scannerRunning = false;
+    resetScannerUI();
   };
 
   const detectQrType = (token) => {
@@ -288,10 +434,9 @@
     }
   };
 
-  const startScanner = async (type) => {
+  const startScanner = async () => {
     try {
       await stopScanner();
-      activeType = type;
       preview.hidden = true;
 
       if (typeof Html5Qrcode === 'undefined') {
@@ -303,17 +448,12 @@
         }
       }
 
-      setMessage(type === 'class' ? 'Arahkan kamera ke QR kelas pembeli.' : 'Arahkan kamera ke QR produk pembeli.', 'info');
+      setMessage('Membuka kamera...', 'info');
       scanner = new Html5Qrcode('seller-qr-reader');
       await scanner.start(
         { facingMode: 'environment' },
         {
           fps: 10,
-          qrbox: (w, h) => {
-            const minEdge = Math.min(w, h);
-            const size = Math.floor(minEdge * 0.7);
-            return { width: size, height: size };
-          },
         },
         async (decodedText) => {
           if (processing) return;
@@ -330,18 +470,33 @@
         () => {}
       );
       scannerRunning = true;
+      standbyEl?.classList.add('hidden');
+      overlayEl?.classList.add('active');
+      if (toggleBtn) {
+        toggleBtn.innerHTML = '⏹ Matikan Kamera';
+        toggleBtn.className = 'btn sec scanner-toggle-btn';
+      }
+      setMessage('Kamera aktif. Posisikan QR di dalam kotak pemindai.', 'info');
     } catch (err) {
       if (scanner && !scannerRunning) {
         try { scanner.clear(); } catch (_) {}
         scanner = null;
       }
+      resetScannerUI();
       setMessage(`Kamera tidak dapat dibuka: ${err.message || 'Izin kamera ditolak atau tidak tersedia'}. Gunakan input manual di bawah.`, 'warn');
     }
   };
 
-  scannerPage.querySelectorAll('[data-qr-mode]').forEach((btn) => {
-    btn.addEventListener('click', () => startScanner(btn.dataset.qrMode));
-  });
+  if (toggleBtn) {
+    toggleBtn.addEventListener('click', async () => {
+      if (scannerRunning) {
+        await stopScanner();
+        setMessage('Kamera dinonaktifkan. Anda dapat menyalakannya kembali kapan saja.', 'info');
+      } else {
+        await startScanner();
+      }
+    });
+  }
 
   manualForm.addEventListener('submit', async (e) => {
     e.preventDefault();

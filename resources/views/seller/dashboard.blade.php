@@ -54,8 +54,7 @@
   </div>
 @endif
 
-<div class="dashboard-actions-grid">
-<div class="panel" style="display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; gap: 16px;">
+<div class="panel" style="margin-bottom: 24px; display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; gap: 16px;">
   <div>
     <div class="eyebrow">STATUS JENDELA PRE-ORDER (PO)</div>
     <div style="display: flex; align-items: center; gap: 10px; margin-top: 4px;">
@@ -77,32 +76,6 @@
       <a class="btn sec" href="{{ route('projects.show', $seller->project) }}" target="_blank" rel="noopener">Lihat Halaman Publik Kelas ↗</a>
     @endif
   </div>
-</div>
-
-<div class="panel" style="display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; gap: 16px;">
-  <div>
-    <div class="eyebrow">KATALOG & KARYA SISWA</div>
-    <div style="font-weight: 700; font-size: 1.15rem; margin-top: 4px;">Kelola Produk & Karya Kelas</div>
-    <div class="muted" style="font-size: 13px; margin-top: 4px;">Atur nama produk, foto, harga, stok, dan ajukan draf ke admin untuk ditinjau sebelum terbit di katalog.</div>
-  </div>
-  <div style="display: flex; gap: 10px; flex-wrap: wrap;">
-    <a class="btn sec" href="{{ route('seller.products.status') }}">📊 Status & Rekap Produk</a>
-    <a class="btn sec" href="{{ route('seller.products.index') }}">Daftar Produk ({{ $productsCount }})</a>
-    <a class="btn" href="{{ route('seller.products.create') }}">+ Tambah Produk</a>
-  </div>
-</div>
-
-<div class="panel" style="display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; gap: 16px;">
-  <div>
-    <div class="eyebrow">OPERASIONAL SERAH TERIMA (HARI H)</div>
-    <div style="font-weight: 700; font-size: 1.15rem; margin-top: 4px;">Scan QR & Penyerahan Pesanan Pembeli</div>
-    <div class="muted" style="font-size: 13px; margin-top: 4px;">Pindai QR pembeli (Class QR per kelompok pesanan kelas atau Product QR per unit) saat serah terima di stan kelas.</div>
-  </div>
-  <div style="display: flex; gap: 10px; flex-wrap: wrap;">
-    <a class="btn sec" href="{{ route('seller.orders') }}">Pesanan & Pembeli</a>
-    <a class="btn lime" href="{{ route('seller.pickup.scan') }}">📷 Buka Scanner QR ➔</a>
-  </div>
-</div>
 </div>
 
 <div class="stats">
