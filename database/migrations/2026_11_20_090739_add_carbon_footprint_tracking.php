@@ -9,23 +9,29 @@ return new class extends Migration
 {
     public function up(): void
     {
-        Schema::table('products', function (Blueprint $table): void {
-            $table->decimal('carbon_footprint_value', 12, 4)->nullable()->after('stock');
-            $table->string('carbon_footprint_unit', 30)->nullable()->after('carbon_footprint_value');
-        });
+        if (! Schema::hasColumn('products', 'carbon_footprint_value')) {
+            Schema::table('products', function (Blueprint $table): void {
+                $table->decimal('carbon_footprint_value', 12, 4)->nullable()->after('stock');
+                $table->string('carbon_footprint_unit', 30)->nullable()->after('carbon_footprint_value');
+            });
+        }
 
-        Schema::table('order_items', function (Blueprint $table): void {
-            $table->decimal('carbon_footprint_value_at_purchase', 12, 4)->nullable()->after('subtotal');
-            $table->string('carbon_footprint_unit_at_purchase', 30)->nullable()->after('carbon_footprint_value_at_purchase');
-            $table->decimal('carbon_contribution', 12, 4)->nullable()->after('carbon_footprint_unit_at_purchase');
-            $table->timestamp('carbon_eligible_at')->nullable()->after('carbon_contribution');
-            $table->index(['carbon_eligible_at', 'carbon_contribution']);
-        });
+        if (! Schema::hasColumn('order_items', 'carbon_footprint_value_at_purchase')) {
+            Schema::table('order_items', function (Blueprint $table): void {
+                $table->decimal('carbon_footprint_value_at_purchase', 12, 4)->nullable()->after('subtotal');
+                $table->string('carbon_footprint_unit_at_purchase', 30)->nullable()->after('carbon_footprint_value_at_purchase');
+                $table->decimal('carbon_contribution', 12, 4)->nullable()->after('carbon_footprint_unit_at_purchase');
+                $table->timestamp('carbon_eligible_at')->nullable()->after('carbon_contribution');
+                $table->index(['carbon_eligible_at', 'carbon_contribution']);
+            });
+        }
+
+        Schema::dropIfExists('carbon_impact_adjustments');
 
         Schema::create('carbon_impact_adjustments', function (Blueprint $table): void {
             $table->id();
-            $table->foreignId('order_item_id')->constrained()->cascadeOnDelete();
-            $table->foreignId('performed_by')->nullable()->constrained('users')->nullOnDelete();
+            $table->integer('order_item_id')->index();
+            $table->integer('performed_by')->nullable()->index();
             $table->decimal('previous_contribution', 12, 4)->nullable();
             $table->decimal('corrected_contribution', 12, 4)->nullable();
             $table->decimal('adjustment', 12, 4)->nullable();
