@@ -1622,7 +1622,7 @@
         <p class="muted" style="max-width:36ch;margin-top:10px">Dokumentasi proyek kelas Green Ecosystem dan katalog pre-order dari kelas yang berpartisipasi.</p>
       </div>
       <div><h4>Jelajahi</h4><ul><li><a href="{{ route('projects.index') }}">Proyek kelas</a></li><li><a href="{{ route('catalog.index') }}">Katalog produk</a></li><li><a href="{{ route('home') }}">Beranda</a></li></ul></div>
-      <div><h4>Bantuan</h4><ul><li><a href="{{ route('help', ['section' => 'cara-memesan']) }}#cara-memesan">Cara memesan</a></li><li><a href="{{ route('help', ['section' => 'pengambilan-barang']) }}#pengambilan-barang">Pengambilan barang</a></li><li><a href="{{ route('terms') }}">Terms of Service</a></li></ul></div>
+      <div><h4>Bantuan</h4><ul><li><a href="{{ route('help', ['section' => 'cara-memesan']) }}#cara-memesan">Cara memesan</a></li><li><a href="{{ route('help', ['section' => 'pengambilan-barang']) }}#pengambilan-barang">Pengambilan barang</a></li><li><a href="{{ route('terms') }}">Syarat & ketentuan</a></li></ul></div>
       <div><h4>Akun</h4><ul><li><a href="{{ route('login') }}">Masuk</a></li><li><a href="{{ route('register') }}">Daftar</a></li>@auth @if(auth()->user()->role === 'buyer')<li><a href="{{ route('orders.index') }}">Pesanan saya</a></li>@endif @endauth</ul></div>
     </div>
   </div>

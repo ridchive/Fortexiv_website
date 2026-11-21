@@ -19,7 +19,7 @@
   <div class="chip-row" role="tablist" aria-label="Menu bantuan">
     <a href="{{ route('help', ['section' => 'cara-memesan']) }}#cara-memesan" class="chip {{ $activeSection === 'cara-memesan' ? 'good' : '' }}">Cara memesan</a>
     <a href="{{ route('help', ['section' => 'pengambilan-barang']) }}#pengambilan-barang" class="chip {{ $activeSection === 'pengambilan-barang' ? 'good' : '' }}">Pengambilan barang</a>
-    <a href="{{ route('terms') }}" class="chip">Terms of Service</a>
+    <a href="{{ route('terms') }}" class="chip">Syarat & ketentuan</a>
   </div>
 
   <section id="cara-memesan" class="panel">

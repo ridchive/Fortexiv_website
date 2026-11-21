@@ -636,7 +636,7 @@ class MarketplaceTest extends TestCase
             'pickup_contact_name' => $buyer->name,
             'pickup_contact_phone' => '081234567890',
         ])->assertSessionHasErrors([
-            'accepted_terms' => 'Setujui Terms of Service sebelum mengonfirmasi pesanan.',
+            'accepted_terms' => 'Setujui syarat & ketentuan sebelum mengonfirmasi pesanan.',
         ]);
 
         $this->assertDatabaseCount('orders', 0);
@@ -718,7 +718,7 @@ class MarketplaceTest extends TestCase
             ->assertSee('Kontak pengambil')
             ->assertSee('<input type="hidden" name="payment_method" value="manual">', false)
             ->assertDontSee('QRIS (Midtrans)')
-            ->assertSee('Terms of Service');
+            ->assertSeeText('Syarat & ketentuan');
         $this->actingAs($buyer)->post(route('checkout'), [
             'mode' => 'cart',
             'pickup_contact_name' => $buyer->name,
@@ -1273,7 +1273,7 @@ class MarketplaceTest extends TestCase
             ->assertDontSee('Menjual sebagai proyek siswa')
             ->assertDontSee('Nama toko atau kelas');
         $this->get(route('help'))->assertOk()->assertSee('pertanyaan umum')->assertSee('Cara memesan')->assertSee('Pengambilan barang');
-        $this->get(route('terms'))->assertOk()->assertSee('Terms of Service');
+        $this->get(route('terms'))->assertOk()->assertSeeText('Syarat & ketentuan');
         $this->actingAs($buyer)->get(route('account'))->assertOk()->assertSee('Account information');
         $this->actingAs($buyer)->get(route('cart.index'))->assertOk();
         $this->actingAs($buyer)->get(route('orders.index'))->assertOk();

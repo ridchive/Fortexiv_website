@@ -332,8 +332,8 @@ class MarketplaceController extends Controller
             'accepted_terms' => ['required', 'accepted'],
             'payment_method' => ['sometimes', 'required', Rule::in([Payment::GATEWAY_MANUAL])],
         ], [
-            'accepted_terms.required' => 'Setujui Terms of Service sebelum mengonfirmasi pesanan.',
-            'accepted_terms.accepted' => 'Setujui Terms of Service sebelum mengonfirmasi pesanan.',
+            'accepted_terms.required' => 'Setujui syarat & ketentuan sebelum mengonfirmasi pesanan.',
+            'accepted_terms.accepted' => 'Setujui syarat & ketentuan sebelum mengonfirmasi pesanan.',
             'pickup_contact_name.required' => 'Nama pengambil wajib diisi.',
             'pickup_contact_phone.required' => 'Nomor WhatsApp wajib diisi.',
         ]);

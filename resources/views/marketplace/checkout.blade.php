@@ -168,7 +168,7 @@
 
       <label class="chk checkout-terms" for="accepted_terms">
         <input id="accepted_terms" name="accepted_terms" type="checkbox" value="1" @checked(old('accepted_terms')) required @error('accepted_terms') aria-invalid="true" aria-describedby="accepted_terms_error" @enderror>
-        <span>Saya telah membaca dan menyetujui <a href="{{ route('terms') }}" target="_blank" rel="noopener">Terms of Service</a>.</span>
+        <span>Saya telah membaca dan menyetujui <a href="{{ route('terms') }}" target="_blank" rel="noopener">Syarat & ketentuan</a>.</span>
       </label>
       @error('accepted_terms')
         <p class="checkout-error checkout-terms-error" id="accepted_terms_error">{{ $message }}</p>
