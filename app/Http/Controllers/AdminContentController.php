@@ -18,16 +18,28 @@ class AdminContentController extends Controller
     public function articles(): View
     {
         return view('admin.articles.index', [
-            'projects' => Project::query()->withCount(['products as article_products_count'])->orderByDesc('updated_at')->paginate(20),
+            'projects' => Project::query()
+                ->where('has_article', true)
+                ->withCount(['products as article_products_count'])
+                ->orderByDesc('updated_at')
+                ->paginate(20),
         ]);
     }
 
-    public function createArticle(): View
+    public function createArticle(Request $request): View
     {
-        $availableClasses = Project::query()->orderBy('grade')->orderBy('class_name')->get(['id', 'grade', 'class_name']);
+        $selectedClassId = $request->query('class_id');
+        $selectedProject = $selectedClassId ? Project::find($selectedClassId) : new Project;
+
+        $availableClasses = Project::query()
+            ->where('has_article', false)
+            ->when($selectedClassId, fn ($q) => $q->orWhere('id', $selectedClassId))
+            ->orderBy('grade')
+            ->orderBy('class_name')
+            ->get(['id', 'grade', 'class_name']);
 
         return view('admin.articles.form', [
-            'project' => new Project,
+            'project' => $selectedProject ?? new Project,
             'availableClasses' => $availableClasses,
         ]);
     }
@@ -36,6 +48,7 @@ class AdminContentController extends Controller
     {
         $data = $this->validatedArticle($request);
         $data['is_published'] = $request->boolean('is_published');
+        $data['has_article'] = true;
 
         if ($request->hasFile('image')) {
             $data['image'] = $request->file('image')->store('projects', 'public');
@@ -120,16 +133,17 @@ class AdminContentController extends Controller
 
         $title = $project->title;
 
-        // Reset konten artikel tanpa menghapus baris kelas, akun seller, maupun relasi produk
+        // Hilangkan artikel dari daftar (has_article = false) tanpa menghapus baris kelas & akun seller
         $project->update([
-            'title' => 'Proyek Karya Kelas '.$project->class_name,
-            'introduction' => 'Dokumentasi karya dan proyek siswa kelas '.$project->class_name.' (Level '.$project->grade.').',
-            'article_body' => "## Cerita Proyek {$project->class_name}\n\nArtikel dan dokumentasi proyek karya untuk kelas {$project->class_name} (Level {$project->grade}).",
-            'image' => null,
+            'has_article' => false,
             'is_published' => false,
+            'image' => null,
+            'title' => 'Kelas '.$project->class_name,
+            'introduction' => 'Kelas '.$project->class_name,
+            'article_body' => null,
         ]);
 
-        return redirect()->route('admin.articles.index')->with('status', 'Konten artikel proyek "'.$title.'" berhasil direset/dihapus. Data kelas dan akun seller tetap aman.');
+        return redirect()->route('admin.articles.index')->with('status', 'Artikel proyek "'.$title.'" berhasil dihapus.');
     }
 
     public function uploadArticleImage(Request $request): JsonResponse

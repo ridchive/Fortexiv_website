@@ -35,6 +35,7 @@ class MarketplaceController extends Controller
     {
         $projects = Project::query()
             ->where('is_published', true)
+            ->where('has_article', true)
             ->withCount(['products as published_products_count' => fn (Builder $query) => $query->where('status', 'published')->where('review_status', 'approved')])
             ->orderBy('id')
             ->get();
@@ -111,6 +112,7 @@ class MarketplaceController extends Controller
     {
         $projects = Project::query()
             ->where('is_published', true)
+            ->where('has_article', true)
             ->when($request->integer('class'), fn (Builder $query, int $classId) => $query->whereKey($classId))
             ->orderBy('class_name')
             ->paginate(12)
@@ -118,7 +120,7 @@ class MarketplaceController extends Controller
 
         return view('marketplace.projects', [
             'projects' => $projects,
-            'classes' => Project::query()->where('is_published', true)->orderBy('class_name')->get(['id', 'class_name']),
+            'classes' => Project::query()->where('is_published', true)->where('has_article', true)->orderBy('class_name')->get(['id', 'class_name']),
         ]);
     }
 
@@ -179,7 +181,7 @@ class MarketplaceController extends Controller
 
     public function project(Project $project, PurchaseWindow $purchaseWindow): View
     {
-        abort_unless($project->is_published, 404);
+        abort_unless($project->is_published && $project->has_article, 404);
         $project->load([
             'products' => fn (HasMany $query) => $query
                 ->where('status', 'published')

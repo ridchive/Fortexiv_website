@@ -56,7 +56,8 @@ class AdminClassController extends Controller
                 'title' => "Proyek Karya Kelas {$className}",
                 'introduction' => "Dokumentasi proyek dan karya siswa {$className} (Level {$grade}).",
                 'article_body' => $articleBody,
-                'is_published' => true,
+                'is_published' => false,
+                'has_article' => false,
             ]);
 
             if (filled($data['username'] ?? null)) {
@@ -249,7 +250,8 @@ class AdminClassController extends Controller
                         'title' => "Proyek Karya Kelas {$className}",
                         'introduction' => "Dokumentasi karya dan proyek siswa kelas {$className} (Level {$level}).",
                         'article_body' => $articleBody,
-                        'is_published' => true,
+                        'is_published' => false,
+                        'has_article' => false,
                     ]);
                 }
             }
