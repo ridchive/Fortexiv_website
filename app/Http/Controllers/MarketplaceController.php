@@ -602,6 +602,35 @@ class MarketplaceController extends Controller
         ])->header('Cache-Control', 'no-store');
     }
 
+    public function simulatePayment(Request $request, Order $order): RedirectResponse
+    {
+        abort_unless($order->buyer_id === $request->user()->id, 404);
+
+        DB::transaction(function () use ($order): void {
+            $lockedOrder = Order::query()->whereKey($order->id)->lockForUpdate()->firstOrFail();
+            abort_unless($lockedOrder->status === 'pending_payment', 422, 'Pesanan ini tidak menunggu pembayaran.');
+
+            $payment = $lockedOrder->payment()->lockForUpdate()->first();
+            abort_unless(
+                $payment !== null
+                    && $payment->gateway === Payment::GATEWAY_MANUAL
+                    && $payment->status === 'pending',
+                422,
+                'Pembayaran ini tidak dapat disimulasikan.',
+            );
+
+            $payment->update([
+                'method' => 'DEMO',
+                'status' => 'verified',
+                'verified_by' => null,
+                'verified_at' => now(),
+            ]);
+            $lockedOrder->update(['status' => 'paid']);
+        });
+
+        return redirect()->route('orders.show', $order)->with('status', 'Pembayaran berhasil disimulasikan!');
+    }
+
     public function uploadPayment(Request $request, Order $order): RedirectResponse
     {
         abort_unless($this->transferConfigured(), 503, 'Instruksi pembayaran manual belum dikonfigurasi.');

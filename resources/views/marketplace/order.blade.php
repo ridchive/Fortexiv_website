@@ -57,6 +57,14 @@
   .order-transfer-details { padding: 12px; border-radius: 8px; background: var(--soft); line-height: 1.7; }
   .order-qris-image { display: block; width: min(100%, 360px); margin: 12px auto; border: 1px solid var(--line); border-radius: 8px; background: #fff; }
   .order-payment-amount { display: flex; flex-wrap: wrap; align-items: center; gap: 10px; margin: 12px 0; }
+  .order-demo-dialog { width: min(440px, calc(100vw - 32px)); max-width: none; padding: 24px; border: 1px solid var(--line); border-radius: var(--radius); background: var(--surface); color: var(--ink); box-shadow: 0 24px 70px rgb(0 0 0 / 25%); }
+  .order-demo-dialog::backdrop { background: rgb(0 0 0 / 55%); }
+  .order-demo-dialog h3 { margin: 0; font-size: 1.2rem; }
+  .order-demo-dialog p { margin: 10px 0 0; color: var(--muted); line-height: 1.5; }
+  .order-demo-actions { display: flex; flex-wrap: wrap; justify-content: flex-end; gap: 10px; margin-top: 22px; }
+  .order-demo-actions > .btn, .order-demo-actions form { flex: 1 1 150px; }
+  .order-demo-actions form { margin: 0; }
+  .order-demo-actions form .btn { width: 100%; }
   .order-copy-feedback { min-height: 20px; color: var(--muted); font-size: 12px; }
   .order-pickup-details { display: grid; gap: 14px; }
   .order-pickup-detail { display: grid; grid-template-columns: 22px minmax(0, 1fr); align-items: start; gap: 10px; }
@@ -339,6 +347,9 @@
         @if($order->payment?->notes && $order->payment?->status !== 'rejected')
           <p class="order-summary-note">Catatan admin: {{ $order->payment->notes }}</p>
         @endif
+        @if($order->payment?->method === 'DEMO')
+          <p class="order-summary-note" data-demo-payment-note>Pembayaran dilakukan melalui mode DEMO.</p>
+        @endif
         @if($order->terms_accepted_at)
           <p class="order-summary-note">Ketentuan pesanan disetujui {{ $order->terms_accepted_at->format('d/m/Y H:i') }}.</p>
         @endif
@@ -373,6 +384,20 @@
                 <strong>{{ \App\Support\Money::format($order->total_price) }}</strong>
                 <button class="btn sec" type="button" data-copy-payment-amount="{{ $order->total_price }}">Salin Nominal</button>
               </div>
+              @if($order->payment?->gateway === \App\Models\Payment::GATEWAY_MANUAL && $order->payment?->status === 'pending')
+                <button class="btn sec" type="button" data-demo-payment-open>Demo: Simulasikan Pembayaran</button>
+                <dialog class="order-demo-dialog" aria-labelledby="demo-payment-title" aria-describedby="demo-payment-description" data-demo-payment-dialog>
+                  <h3 id="demo-payment-title">Simulasi Pembayaran</h3>
+                  <p id="demo-payment-description">Simulasikan pembayaran berhasil untuk pesanan ini?</p>
+                  <div class="order-demo-actions">
+                    <button class="btn sec" type="button" data-demo-payment-close>Batal</button>
+                    <form method="post" action="{{ route('payments.demo', $order) }}">
+                      @csrf
+                      <button class="btn" type="submit">Konfirmasi Pembayaran</button>
+                    </form>
+                  </div>
+                </dialog>
+              @endif
               <p class="order-copy-feedback" data-copy-payment-feedback aria-live="polite"></p>
               @if($qrisImageAvailable)
                 <p>Scan QRIS di atas, masukkan nominal yang sesuai, lalu unggah screenshot bukti pembayaran di bawah ini.</p>
@@ -445,6 +470,9 @@
       (() => {
         const copyButton = document.querySelector('[data-copy-payment-amount]');
         const feedback = document.querySelector('[data-copy-payment-feedback]');
+        const demoPaymentButton = document.querySelector('[data-demo-payment-open]');
+        const demoPaymentDialog = document.querySelector('[data-demo-payment-dialog]');
+        const demoPaymentCloseButton = document.querySelector('[data-demo-payment-close]');
 
         if (!copyButton || !feedback) {
           return;
@@ -464,6 +492,16 @@
               feedback.textContent = 'Nominal gagal disalin. Silakan salin secara manual.';
             });
         });
+
+        if (demoPaymentButton && demoPaymentDialog && demoPaymentCloseButton) {
+          demoPaymentButton.addEventListener('click', () => demoPaymentDialog.showModal());
+          demoPaymentCloseButton.addEventListener('click', () => demoPaymentDialog.close());
+          demoPaymentDialog.addEventListener('click', (event) => {
+            if (event.target === demoPaymentDialog) {
+              demoPaymentDialog.close();
+            }
+          });
+        }
       })();
     </script>
   @endpush

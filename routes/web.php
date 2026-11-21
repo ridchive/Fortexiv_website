@@ -73,6 +73,7 @@ Route::middleware(['auth', 'verified', 'role:buyer'])->group(function () {
     Route::post('/orders/{order:order_code}/midtrans/refresh', [MarketplaceController::class, 'refreshMidtransPaymentStatus'])
         ->middleware('throttle:6,1')
         ->name('payments.midtrans.refresh');
+    Route::post('/orders/{order:order_code}/demo-payment', [MarketplaceController::class, 'simulatePayment'])->name('payments.demo');
     Route::post('/orders/{order:order_code}/payment-proof', [MarketplaceController::class, 'uploadPayment'])->name('payments.store');
     Route::get('/orders/{order:order_code}/ticket', [MarketplaceController::class, 'ticket'])->name('tickets.show');
 });
