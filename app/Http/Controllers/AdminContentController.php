@@ -35,10 +35,20 @@ class AdminContentController extends Controller
     public function storeArticle(Request $request): RedirectResponse
     {
         $data = $this->validatedArticle($request);
-        $data['image'] = $request->file('image')?->store('projects', 'public');
         $data['is_published'] = $request->boolean('is_published');
 
-        $project = Project::create($data);
+        if ($request->hasFile('image')) {
+            $data['image'] = $request->file('image')->store('projects', 'public');
+        }
+
+        // Cari kelas yang dipilih dari Kelola Kelas agar tidak membuat row kelas duplikat
+        $project = Project::where('class_name', $data['class_name'])->first();
+
+        if ($project) {
+            $project->update($data);
+        } else {
+            $project = Project::create($data);
+        }
 
         // Auto-assign products belonging to the same class/seller
         Product::whereHas('seller', function ($q) use ($project) {
@@ -46,7 +56,7 @@ class AdminContentController extends Controller
                 ->orWhere('store_name', $project->class_name);
         })->update(['project_id' => $project->id]);
 
-        return redirect()->route('admin.articles.index')->with('status', 'Artikel proyek berhasil dibuat.');
+        return redirect()->route('admin.articles.index')->with('status', 'Artikel proyek untuk kelas "'.$project->class_name.'" berhasil disimpan.');
     }
 
     public function editArticle(Project $project): View
@@ -108,13 +118,18 @@ class AdminContentController extends Controller
             Storage::disk('public')->delete($project->image);
         }
 
-        Product::query()->where('project_id', $project->id)->update(['project_id' => null]);
-        Seller::query()->where('project_id', $project->id)->update(['project_id' => null]);
-
         $title = $project->title;
-        $project->delete();
 
-        return redirect()->route('admin.articles.index')->with('status', 'Artikel proyek "'.$title.'" berhasil dihapus.');
+        // Reset konten artikel tanpa menghapus baris kelas, akun seller, maupun relasi produk
+        $project->update([
+            'title' => 'Proyek Karya Kelas '.$project->class_name,
+            'introduction' => 'Dokumentasi karya dan proyek siswa kelas '.$project->class_name.' (Level '.$project->grade.').',
+            'article_body' => "## Cerita Proyek {$project->class_name}\n\nArtikel dan dokumentasi proyek karya untuk kelas {$project->class_name} (Level {$project->grade}).",
+            'image' => null,
+            'is_published' => false,
+        ]);
+
+        return redirect()->route('admin.articles.index')->with('status', 'Konten artikel proyek "'.$title.'" berhasil direset/dihapus. Data kelas dan akun seller tetap aman.');
     }
 
     public function uploadArticleImage(Request $request): JsonResponse

@@ -10,7 +10,7 @@
     @csrf @if($project->exists) @method('PUT') @endif
     <div class="field">
       <label for="class_name">Nama kelas</label>
-      <select class="input" id="class_name" name="class_name" required>
+      <select class="input" id="class_name" name="class_name" required @disabled($project->exists)>
         <option value="">-- Pilih Nama Kelas --</option>
         @foreach($availableClasses as $c)
           <option value="{{ $c->class_name }}" @selected(old('class_name', $project->class_name) === $c->class_name)>
@@ -21,6 +21,9 @@
           <option value="{{ $project->class_name }}" selected>{{ $project->class_name }}</option>
         @endif
       </select>
+      @if($project->exists)
+        <input type="hidden" name="class_name" value="{{ $project->class_name }}">
+      @endif
       <p class="muted small" style="margin-top: 4px;">Pilih nama kelas yang terdaftar dari Kelola Kelas.</p>
     </div>
     <div class="field"><label for="title">Judul artikel</label><input class="input" id="title" name="title" value="{{ old('title', $project->title) }}" maxlength="160" required></div>

@@ -99,9 +99,15 @@
           </td>
           <td>
             <div style="display: flex; gap: 6px; flex-wrap: wrap; align-items: center;">
-              <a href="{{ route('admin.articles.edit', $c) }}" class="badge verified" style="text-decoration: none;" title="Edit Artikel Proyek">
-                ✓ Ada Artikel
-              </a>
+              @if($c->is_published && filled($c->article_body))
+                <a href="{{ route('admin.articles.edit', $c) }}" class="badge verified" style="text-decoration: none;" title="Edit Artikel Proyek">
+                  ✓ Ada Artikel
+                </a>
+              @else
+                <a href="{{ route('admin.articles.edit', $c) }}" class="badge draft" style="text-decoration: none; color: var(--muted);" title="Kelola / Publikasikan Artikel">
+                  Draf Artikel
+                </a>
+              @endif
               @if($c->products_count > 0)
                 <span class="badge info">{{ $c->products_count }} Produk</span>
               @else
