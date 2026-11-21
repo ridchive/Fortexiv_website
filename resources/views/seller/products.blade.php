@@ -21,7 +21,7 @@
         </div>
       </td><td>{{ $product->category?->name ?? '—' }}</td><td>{{ \App\Support\Money::format($product->price) }}</td><td>{{ $product->stock }}</td><td><span class="badge {{ $product->review_status }}">{{ $reviewStatusLabels[$product->review_status] ?? $product->review_status }}</span></td>
       <td class="stack">
-        <a href="{{ route('seller.products.edit', $product) }}">Ubah</a>
+        <a class="btn btn-small sec" href="{{ route('seller.products.edit', $product) }}">Ubah</a>
         @if($product->review_status !== 'pending_review')
           <form method="post" action="{{ route('seller.products.submit-review', $product) }}">@csrf @method('PATCH')<button class="btn btn-small" type="submit">Ajukan review</button></form>
         @endif

@@ -15,6 +15,7 @@ class OrderItem extends Model
         return [
             'carbon_footprint_value_at_purchase' => 'decimal:6',
             'carbon_baseline_emission_factor_at_purchase' => 'decimal:6',
+            'carbon_reduction_value_at_purchase' => 'decimal:6',
             'carbon_contribution' => 'decimal:6',
             'carbon_legacy_product_footprint_total' => 'decimal:6',
             'carbon_quantity_at_purchase' => 'integer',

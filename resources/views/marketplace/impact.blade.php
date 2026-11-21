@@ -228,38 +228,6 @@
   <!-- ARTICLE DISPLAY SECTION -->
   <article class="impact-article-card">
     
-    <!-- Article Header -->
-    <header class="article-header">
-      <div class="article-meta-row">
-        <span class="chip good">Green Ecosystem · Inisiatif Sekolah</span>
-        <span class="article-author">Dikelola oleh Admin Konten · FORTEXIV</span>
-      </div>
-
-      <h1 class="article-title">{{ $title }}</h1>
-      <p class="article-lead">{{ $intro }}</p>
-
-      <!-- Live Accumulation Highlight Badge -->
-      <div class="impact-metric-banner">
-        <div class="metric-text-group">
-          <span class="metric-eyebrow">Total Emisi Dihindari</span>
-          <div class="metric-number-wrap">
-            <span class="metric-big-num">{{ $co2Reduced }}</span>
-            @if($co2Reduced !== 'Belum tersedia')
-              <span class="metric-unit-text">kg CO2e</span>
-            @endif
-          </div>
-          <span class="metric-footnote">CEA item-level dari pembayaran terverifikasi: (EF baseline − EF produk) × kuantitas.</span>
-          <div class="stats" style="margin-top: 12px;">
-            <div class="stat"><strong>{{ number_format($carbonSummary['total_additional_emissions'], 6, ',', '.') }} kg CO2e</strong><span>Emisi tambahan</span></div>
-            <div class="stat"><strong>{{ number_format($carbonSummary['net_avoided_emissions'], 6, ',', '.') }} kg CO2e</strong><span>Net emisi dihindari</span></div>
-          </div>
-        </div>
-        <div class="metric-cta-group">
-          <a href="{{ route('catalog.index') }}" class="btn dk sm">Pesan Karya Kelas &rarr;</a>
-        </div>
-      </div>
-    </header>
-
     <!-- Cover Header Image -->
     <div class="article-cover-wrap">
       @if($hasCoverImage)

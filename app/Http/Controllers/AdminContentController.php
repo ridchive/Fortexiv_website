@@ -10,6 +10,7 @@ use App\Services\CarbonImpactService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\View\View;
 
@@ -17,17 +18,37 @@ class AdminContentController extends Controller
 {
     public function articles(): View
     {
+        $query = Project::query()->withCount(['products as article_products_count'])->orderByDesc('updated_at');
+
+        if (Schema::hasColumn('projects', 'has_article')) {
+            $query->where('has_article', true);
+        } else {
+            $query->where('is_published', true);
+        }
+
         return view('admin.articles.index', [
-            'projects' => Project::query()->withCount(['products as article_products_count'])->orderByDesc('updated_at')->paginate(20),
+            'projects' => $query->paginate(20),
         ]);
     }
 
-    public function createArticle(): View
+    public function createArticle(Request $request): View
     {
-        $availableClasses = Project::query()->orderBy('grade')->orderBy('class_name')->get(['id', 'grade', 'class_name']);
+        $selectedClassId = $request->query('class_id');
+        $selectedProject = $selectedClassId ? Project::find($selectedClassId) : new Project;
+
+        $availableClassesQuery = Project::query();
+        if (Schema::hasColumn('projects', 'has_article')) {
+            $availableClassesQuery->where('has_article', false);
+        }
+
+        $availableClasses = $availableClassesQuery
+            ->when($selectedClassId, fn ($q) => $q->orWhere('id', $selectedClassId))
+            ->orderBy('grade')
+            ->orderBy('class_name')
+            ->get(['id', 'grade', 'class_name']);
 
         return view('admin.articles.form', [
-            'project' => new Project,
+            'project' => $selectedProject ?? new Project,
             'availableClasses' => $availableClasses,
         ]);
     }
@@ -35,18 +56,31 @@ class AdminContentController extends Controller
     public function storeArticle(Request $request): RedirectResponse
     {
         $data = $this->validatedArticle($request);
-        $data['image'] = $request->file('image')?->store('projects', 'public');
         $data['is_published'] = $request->boolean('is_published');
+        if (Schema::hasColumn('projects', 'has_article')) {
+            $data['has_article'] = true;
+        }
 
-        $project = Project::create($data);
+        if ($request->hasFile('image')) {
+            $data['image'] = $request->file('image')->store('projects', 'public');
+        }
+
+        // Cari kelas yang dipilih dari Kelola Kelas agar tidak membuat row kelas duplikat
+        $project = Project::where('class_name', $data['class_name'])->first();
+
+        if ($project) {
+            $project->update($data);
+        } else {
+            $project = Project::create($data);
+        }
 
         // Auto-assign products belonging to the same class/seller
         Product::whereHas('seller', function ($q) use ($project) {
             $q->where('project_id', $project->id)
-              ->orWhere('store_name', $project->class_name);
+                ->orWhere('store_name', $project->class_name);
         })->update(['project_id' => $project->id]);
 
-        return redirect()->route('admin.articles.index')->with('status', 'Artikel proyek berhasil dibuat.');
+        return redirect()->route('admin.articles.index')->with('status', 'Artikel proyek untuk kelas "'.$project->class_name.'" berhasil disimpan.');
     }
 
     public function editArticle(Project $project): View
@@ -82,7 +116,7 @@ class AdminContentController extends Controller
         // Auto-assign products belonging to the same class/seller
         Product::whereHas('seller', function ($q) use ($project) {
             $q->where('project_id', $project->id)
-              ->orWhere('store_name', $project->class_name);
+                ->orWhere('store_name', $project->class_name);
         })->update(['project_id' => $project->id]);
 
         return redirect()->route('admin.articles.index')->with('status', 'Artikel proyek berhasil diperbarui.');
@@ -108,11 +142,20 @@ class AdminContentController extends Controller
             Storage::disk('public')->delete($project->image);
         }
 
-        Product::query()->where('project_id', $project->id)->update(['project_id' => null]);
-        Seller::query()->where('project_id', $project->id)->update(['project_id' => null]);
-
         $title = $project->title;
-        $project->delete();
+
+        // Hilangkan artikel dari daftar tanpa menghapus baris kelas & akun seller
+        $resetData = [
+            'is_published' => false,
+            'image' => null,
+            'title' => 'Kelas '.$project->class_name,
+            'introduction' => 'Kelas '.$project->class_name,
+            'article_body' => null,
+        ];
+        if (Schema::hasColumn('projects', 'has_article')) {
+            $resetData['has_article'] = false;
+        }
+        $project->update($resetData);
 
         return redirect()->route('admin.articles.index')->with('status', 'Artikel proyek "'.$title.'" berhasil dihapus.');
     }
@@ -157,6 +200,7 @@ class AdminContentController extends Controller
             'decision' => ['required', 'in:approved,revision_requested,rejected'],
             'review_notes' => ['nullable', 'string', 'max:2000'],
             'story' => ['nullable', 'string', 'max:10000'],
+            'carbon_reduction_value' => ['nullable', 'numeric', 'min:0', 'max:999999999999.999999'],
             'carbon_baseline_emission_factor' => ['nullable', 'numeric', 'min:0', 'max:999999999999.999999', 'required_with:carbon_footprint_value'],
             'carbon_footprint_value' => ['nullable', 'numeric', 'min:0', 'max:999999999999.999999', 'required_with:carbon_baseline_emission_factor'],
             'carbon_baseline_source' => ['nullable', 'string', 'max:2000', 'required_with:carbon_baseline_emission_factor'],
@@ -174,16 +218,19 @@ class AdminContentController extends Controller
             abort_if(blank($data['story'] ?? $product->story), 422, 'Admin perlu melengkapi cerita produk sebelum menyetujui publikasi.');
         }
 
+        $carbonReduction = $data['carbon_reduction_value'] ?? null;
+
         $product->update([
             'story' => $data['story'] ?? $product->story,
-            'carbon_footprint_value' => $data['carbon_footprint_value'] ?? null,
-            'carbon_baseline_emission_factor' => $data['carbon_baseline_emission_factor'] ?? null,
-            'carbon_footprint_unit' => filled($data['carbon_footprint_value'] ?? null)
+            'carbon_reduction_value' => $carbonReduction,
+            'carbon_footprint_value' => $carbonReduction !== null ? 0 : ($data['carbon_footprint_value'] ?? null),
+            'carbon_baseline_emission_factor' => $carbonReduction !== null ? $carbonReduction : ($data['carbon_baseline_emission_factor'] ?? null),
+            'carbon_footprint_unit' => filled($carbonReduction) || filled($data['carbon_footprint_value'] ?? null)
                 ? CarbonImpactService::UNIT
                 : null,
-            'carbon_baseline_source' => $data['carbon_baseline_source'] ?? null,
-            'carbon_product_source' => $data['carbon_product_source'] ?? null,
-            'carbon_functional_unit' => $data['carbon_functional_unit'] ?? null,
+            'carbon_baseline_source' => $carbonReduction !== null ? 'Nilai pengurangan karbon langsung per produk' : ($data['carbon_baseline_source'] ?? null),
+            'carbon_product_source' => $carbonReduction !== null ? 'Nilai pengurangan karbon langsung per produk' : ($data['carbon_product_source'] ?? null),
+            'carbon_functional_unit' => $carbonReduction !== null ? '1 produk' : ($data['carbon_functional_unit'] ?? null),
             'review_status' => $data['decision'],
             'review_notes' => $data['review_notes'] ?? null,
             'reviewed_by' => $request->user()->id,

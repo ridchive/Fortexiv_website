@@ -23,6 +23,7 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\Str;
 use Illuminate\Validation\Rule;
 use Illuminate\Validation\ValidationException;
@@ -35,6 +36,7 @@ class MarketplaceController extends Controller
     {
         $projects = Project::query()
             ->where('is_published', true)
+            ->when(Schema::hasColumn('projects', 'has_article'), fn ($q) => $q->where('has_article', true))
             ->withCount(['products as published_products_count' => fn (Builder $query) => $query->where('status', 'published')->where('review_status', 'approved')])
             ->orderBy('id')
             ->get();
@@ -109,16 +111,24 @@ class MarketplaceController extends Controller
 
     public function projects(Request $request): View
     {
+        $hasArticleColumn = Schema::hasColumn('projects', 'has_article');
+
         $projects = Project::query()
             ->where('is_published', true)
+            ->when($hasArticleColumn, fn ($q) => $q->where('has_article', true))
             ->when($request->integer('class'), fn (Builder $query, int $classId) => $query->whereKey($classId))
             ->orderBy('class_name')
             ->paginate(12)
             ->withQueryString();
 
+        $classesQuery = Project::query()->where('is_published', true);
+        if ($hasArticleColumn) {
+            $classesQuery->where('has_article', true);
+        }
+
         return view('marketplace.projects', [
             'projects' => $projects,
-            'classes' => Project::query()->where('is_published', true)->orderBy('class_name')->get(['id', 'class_name']),
+            'classes' => $classesQuery->orderBy('class_name')->get(['id', 'class_name']),
         ]);
     }
 
@@ -179,7 +189,7 @@ class MarketplaceController extends Controller
 
     public function project(Project $project, PurchaseWindow $purchaseWindow): View
     {
-        abort_unless($project->is_published, 404);
+        abort_unless($project->is_published && (! Schema::hasColumn('projects', 'has_article') || $project->has_article), 404);
         $project->load([
             'products' => fn (HasMany $query) => $query
                 ->where('status', 'published')
@@ -364,12 +374,13 @@ class MarketplaceController extends Controller
                     'quantity' => $item['quantity'],
                     'price_at_order' => $product->price,
                     'subtotal' => $subtotal,
-                    'carbon_footprint_value_at_purchase' => $product->carbon_footprint_value,
+                    'carbon_reduction_value_at_purchase' => $product->carbon_reduction_value,
+                    'carbon_footprint_value_at_purchase' => $product->carbon_reduction_value !== null ? 0 : $product->carbon_footprint_value,
                     'carbon_footprint_unit_at_purchase' => CarbonImpactService::UNIT,
-                    'carbon_baseline_emission_factor_at_purchase' => $product->carbon_baseline_emission_factor,
-                    'carbon_baseline_source_at_purchase' => $product->carbon_baseline_source,
-                    'carbon_product_source_at_purchase' => $product->carbon_product_source,
-                    'carbon_functional_unit_at_purchase' => $product->carbon_functional_unit,
+                    'carbon_baseline_emission_factor_at_purchase' => $product->carbon_reduction_value !== null ? $product->carbon_reduction_value : $product->carbon_baseline_emission_factor,
+                    'carbon_baseline_source_at_purchase' => $product->carbon_reduction_value !== null ? 'Nilai pengurangan karbon langsung per produk' : $product->carbon_baseline_source,
+                    'carbon_product_source_at_purchase' => $product->carbon_reduction_value !== null ? 'Nilai pengurangan karbon langsung per produk' : $product->carbon_product_source,
+                    'carbon_functional_unit_at_purchase' => $product->carbon_reduction_value !== null ? '1 produk' : $product->carbon_functional_unit,
                     'carbon_quantity_at_purchase' => $item['quantity'],
                     'carbon_calculation_version_at_purchase' => CarbonImpactService::CALCULATION_VERSION,
                     'carbon_snapshot_source' => 'checkout',
@@ -427,6 +438,7 @@ class MarketplaceController extends Controller
                     'quantity' => $item['quantity'],
                     'price_at_order' => $item['price_at_order'],
                     'subtotal' => $item['subtotal'],
+                    'carbon_reduction_value_at_purchase' => $item['carbon_reduction_value_at_purchase'],
                     'carbon_footprint_value_at_purchase' => $item['carbon_footprint_value_at_purchase'],
                     'carbon_footprint_unit_at_purchase' => CarbonImpactService::UNIT,
                     'carbon_baseline_emission_factor_at_purchase' => $item['carbon_baseline_emission_factor_at_purchase'],

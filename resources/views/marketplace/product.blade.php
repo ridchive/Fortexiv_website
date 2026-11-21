@@ -27,7 +27,12 @@
       <div class="price" style="font:800 1.5rem var(--fd)">{{ \App\Support\Money::format($product->price) }}</div>
       <p class="muted">{{ $product->project?->class_name ?? $product->seller->store_name }} · {{ $product->category?->name ?? 'Produk kelas' }}</p>
       <p>{{ $product->description }}</p>
-      @if($product->carbon_baseline_emission_factor !== null && $product->carbon_footprint_value !== null)
+      @if($product->carbon_reduction_value !== null)
+        <section class="box">
+          <span class="eyebrow">PENGURANGAN EMISI PRODUK</span>
+          <p><strong>{{ number_format((float) $product->carbon_reduction_value, 6, ',', '.') }} kg CO2e</strong> dikurangi per produk.</p>
+        </section>
+      @elseif($product->carbon_baseline_emission_factor !== null && $product->carbon_footprint_value !== null)
         <section class="box">
           <span class="eyebrow">FAKTOR EMISI PER UNIT FUNGSIONAL</span>
           <p>Baseline konvensional: <strong>{{ number_format((float) $product->carbon_baseline_emission_factor, 6, ',', '.') }} kg CO2e</strong></p>

@@ -50,11 +50,10 @@
     </div>
   </a>
   <div class="band">
-    <span>{{ $window['banner'] }}</span>
+    <span style="flex-basis:100%"><strong>Informasi Pre-Order (PO) – Berlaku untuk Seluruh Kelas</strong></span>
+    <span>Seluruh pesanan hanya dapat diambil langsung di lokasi acara (tidak melayani pengiriman).</span>
     <span class="chip {{ $window['status'] === 'open' ? 'good' : ($window['status'] === 'upcoming' ? 'warn' : 'bad') }}">{{ $poLabel }}</span>
-    @if($window['opensAt'] && $window['closesAt'] && $window['eventAt'])
-      <span class="small">PO {{ $window['opensAt']->format('d/m/Y') }} – {{ $window['closesAt']->format('d/m/Y') }} · Pengambilan {{ $window['eventAt']->format('d/m/Y') }}</span>
-    @endif
+    <span class="small" style="flex-basis:100%">Periode PO: 15 – 21 November 2026 | Jadwal Pengambilan: 21 November 2026</span>
   </div>
 </div>
 
@@ -80,12 +79,12 @@
 
 <section class="sec-b">
   <div class="wrap">
-    <div class="sec-h"><h2>Cara pre-order dan pengambilan</h2></div>
+    <div class="sec-h"><h2>Cara Pre-Order dan Pengambilan Pesanan</h2></div>
     <ol class="steps">
-      <li><h3>Pilih produk</h3><p>Boleh dari beberapa kelas sekaligus dalam satu pesanan.</p></li>
-      <li><h3>Bayar sebelum tenggat</h3><p>@if($window['paymentDeadline'])Batas pembayaran {{ $window['paymentDeadline']->format('d/m/Y H:i') }}.@endif Pembayaran di prototype ini simulasi.</p></li>
-      <li><h3>Terima QR per kelas</h3><p>Tiap kelas yang kamu pesan punya QR pengambilan sendiri.</p></li>
-      <li><h3>Ambil di acara</h3><p>@if($window['eventAt']){{ $window['eventAt']->format('d/m/Y') }}@endif{{ $window['location'] ? ', '.Str::before($window['location'], ',') : '' }}. Tanpa ekspedisi.</p></li>
+      <li><h3>Pilih Produk</h3><p>Anda dapat memesan produk dari berbagai kategori kelas secara bersamaan dalam satu transaksi.</p></li>
+      <li><h3>Selesaikan Pembayaran</h3><p>Lakukan pembayaran sebelum batas waktu yang ditentukan agar pesanan dapat diproses.</p></li>
+      <li><h3>Dapatkan Kode QR per Kelas</h3><p>Setiap kategori kelas yang dipesan akan memiliki kode QR pengambilan yang terpisah.</p></li>
+      <li><h3>Ambil di Lokasi Acara</h3><p>Tunjukkan masing-masing kode QR kepada panitia di stan kelas terkait saat acara berlangsung.</p></li>
     </ol>
   </div>
 </section>

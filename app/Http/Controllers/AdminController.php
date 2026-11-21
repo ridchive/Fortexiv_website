@@ -153,13 +153,16 @@ class AdminController extends Controller
         $role = $request->query('role');
         $query = User::whereIn('role', ['buyer', 'seller'])->with(['seller.project'])->withCount('orders');
 
-        if (in_array($role, ['buyer', 'seller'], true)) {
-            $query->where('role', $role);
+        if ($role === 'seller') {
+            // Hanya menampilkan akun seller yang terhubung aktif ke kelas di Kelola Kelas
+            $query->where('role', 'seller')->whereHas('seller.project');
+        } elseif ($role === 'buyer') {
+            $query->where('role', 'buyer');
         }
 
         $users = $query->latest()->paginate(25)->withQueryString();
         $buyersCount = User::where('role', 'buyer')->count();
-        $sellersCount = User::where('role', 'seller')->count();
+        $sellersCount = User::where('role', 'seller')->whereHas('seller.project')->count();
         $totalCount = $buyersCount + $sellersCount;
 
         return view('admin.users', compact('users', 'role', 'buyersCount', 'sellersCount', 'totalCount'));

@@ -50,30 +50,25 @@ class CarbonFootprintManagementTest extends TestCase
             ->put(route('admin.products.decide', $product), [
                 'decision' => 'approved',
                 'story' => 'Cerita produk yang dikelola admin.',
-                'carbon_footprint_value' => '2.5',
-                'carbon_baseline_emission_factor' => '4.0',
-                'carbon_baseline_source' => 'Metodologi baseline v1',
-                'carbon_product_source' => 'Inventaris produk v1',
-                'carbon_functional_unit' => '1 tas kapasitas 10 liter',
+                'carbon_reduction_value' => '1.5',
             ])
             ->assertRedirect(route('admin.products.index', ['status' => 'pending_review']));
 
         $this->assertDatabaseHas('products', [
             'id' => $product->id,
-            'carbon_footprint_value' => 2.5,
+            'carbon_reduction_value' => 1.5,
+            'carbon_footprint_value' => 0,
             'carbon_footprint_unit' => 'kg CO2e',
-            'carbon_baseline_emission_factor' => 4.0,
-            'carbon_baseline_source' => 'Metodologi baseline v1',
-            'carbon_product_source' => 'Inventaris produk v1',
-            'carbon_functional_unit' => '1 tas kapasitas 10 liter',
+            'carbon_baseline_emission_factor' => 1.5,
+            'carbon_baseline_source' => 'Nilai pengurangan karbon langsung per produk',
+            'carbon_product_source' => 'Nilai pengurangan karbon langsung per produk',
+            'carbon_functional_unit' => '1 produk',
         ]);
 
         $this->get(route('products.show', $product))
             ->assertOk()
-            ->assertSee('FAKTOR EMISI PER UNIT FUNGSIONAL')
-            ->assertSee('2,500000 kg CO2e')
-            ->assertSee('4,000000 kg CO2e')
-            ->assertSee('1 tas kapasitas 10 liter');
+            ->assertSee('PENGURANGAN EMISI PRODUK')
+            ->assertSee('1,500000 kg CO2e');
     }
 
     public function test_admin_dashboard_aggregates_carbon_by_class_seller_and_buyer(): void
