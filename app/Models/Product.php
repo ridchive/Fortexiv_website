@@ -15,6 +15,7 @@ class Product extends Model
         return [
             'carbon_footprint_value' => 'decimal:6',
             'carbon_baseline_emission_factor' => 'decimal:6',
+            'carbon_reduction_value' => 'decimal:6',
         ];
     }
 

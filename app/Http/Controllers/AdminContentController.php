@@ -43,7 +43,7 @@ class AdminContentController extends Controller
         // Auto-assign products belonging to the same class/seller
         Product::whereHas('seller', function ($q) use ($project) {
             $q->where('project_id', $project->id)
-              ->orWhere('store_name', $project->class_name);
+                ->orWhere('store_name', $project->class_name);
         })->update(['project_id' => $project->id]);
 
         return redirect()->route('admin.articles.index')->with('status', 'Artikel proyek berhasil dibuat.');
@@ -82,7 +82,7 @@ class AdminContentController extends Controller
         // Auto-assign products belonging to the same class/seller
         Product::whereHas('seller', function ($q) use ($project) {
             $q->where('project_id', $project->id)
-              ->orWhere('store_name', $project->class_name);
+                ->orWhere('store_name', $project->class_name);
         })->update(['project_id' => $project->id]);
 
         return redirect()->route('admin.articles.index')->with('status', 'Artikel proyek berhasil diperbarui.');
@@ -157,6 +157,7 @@ class AdminContentController extends Controller
             'decision' => ['required', 'in:approved,revision_requested,rejected'],
             'review_notes' => ['nullable', 'string', 'max:2000'],
             'story' => ['nullable', 'string', 'max:10000'],
+            'carbon_reduction_value' => ['nullable', 'numeric', 'min:0', 'max:999999999999.999999'],
             'carbon_baseline_emission_factor' => ['nullable', 'numeric', 'min:0', 'max:999999999999.999999', 'required_with:carbon_footprint_value'],
             'carbon_footprint_value' => ['nullable', 'numeric', 'min:0', 'max:999999999999.999999', 'required_with:carbon_baseline_emission_factor'],
             'carbon_baseline_source' => ['nullable', 'string', 'max:2000', 'required_with:carbon_baseline_emission_factor'],
@@ -174,16 +175,19 @@ class AdminContentController extends Controller
             abort_if(blank($data['story'] ?? $product->story), 422, 'Admin perlu melengkapi cerita produk sebelum menyetujui publikasi.');
         }
 
+        $carbonReduction = $data['carbon_reduction_value'] ?? null;
+
         $product->update([
             'story' => $data['story'] ?? $product->story,
-            'carbon_footprint_value' => $data['carbon_footprint_value'] ?? null,
-            'carbon_baseline_emission_factor' => $data['carbon_baseline_emission_factor'] ?? null,
-            'carbon_footprint_unit' => filled($data['carbon_footprint_value'] ?? null)
+            'carbon_reduction_value' => $carbonReduction,
+            'carbon_footprint_value' => $carbonReduction !== null ? 0 : ($data['carbon_footprint_value'] ?? null),
+            'carbon_baseline_emission_factor' => $carbonReduction !== null ? $carbonReduction : ($data['carbon_baseline_emission_factor'] ?? null),
+            'carbon_footprint_unit' => filled($carbonReduction) || filled($data['carbon_footprint_value'] ?? null)
                 ? CarbonImpactService::UNIT
                 : null,
-            'carbon_baseline_source' => $data['carbon_baseline_source'] ?? null,
-            'carbon_product_source' => $data['carbon_product_source'] ?? null,
-            'carbon_functional_unit' => $data['carbon_functional_unit'] ?? null,
+            'carbon_baseline_source' => $carbonReduction !== null ? 'Nilai pengurangan karbon langsung per produk' : ($data['carbon_baseline_source'] ?? null),
+            'carbon_product_source' => $carbonReduction !== null ? 'Nilai pengurangan karbon langsung per produk' : ($data['carbon_product_source'] ?? null),
+            'carbon_functional_unit' => $carbonReduction !== null ? '1 produk' : ($data['carbon_functional_unit'] ?? null),
             'review_status' => $data['decision'],
             'review_notes' => $data['review_notes'] ?? null,
             'reviewed_by' => $request->user()->id,
