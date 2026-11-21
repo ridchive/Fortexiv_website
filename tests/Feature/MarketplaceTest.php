@@ -1272,7 +1272,7 @@ class MarketplaceTest extends TestCase
             ->assertDontSee('Saya ingin')
             ->assertDontSee('Menjual sebagai proyek siswa')
             ->assertDontSee('Nama toko atau kelas');
-        $this->get(route('help'))->assertOk()->assertSee('pertanyaan umum')->assertSee('Cara memesan')->assertSee('Pengambilan barang');
+        $this->get(route('help'))->assertOk()->assertSee('pertanyaan umum')->assertSee('Cara Pemesanan')->assertSee('Pengambilan Barang');
         $this->get(route('terms'))->assertOk()->assertSeeText('Syarat & ketentuan');
         $this->actingAs($buyer)->get(route('account'))->assertOk()->assertSee('Account information');
         $this->actingAs($buyer)->get(route('cart.index'))->assertOk();

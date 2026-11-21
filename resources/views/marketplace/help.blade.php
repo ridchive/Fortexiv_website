@@ -17,13 +17,13 @@
   </div>
 
   <div class="chip-row" role="tablist" aria-label="Menu bantuan">
-    <a href="{{ route('help', ['section' => 'cara-memesan']) }}#cara-memesan" class="chip {{ $activeSection === 'cara-memesan' ? 'good' : '' }}">Cara memesan</a>
-    <a href="{{ route('help', ['section' => 'pengambilan-barang']) }}#pengambilan-barang" class="chip {{ $activeSection === 'pengambilan-barang' ? 'good' : '' }}">Pengambilan barang</a>
+    <a href="{{ route('help', ['section' => 'cara-memesan']) }}#cara-memesan" class="chip {{ $activeSection === 'cara-memesan' ? 'good' : '' }}">Cara Pemesanan</a>
+    <a href="{{ route('help', ['section' => 'pengambilan-barang']) }}#pengambilan-barang" class="chip {{ $activeSection === 'pengambilan-barang' ? 'good' : '' }}">Pengambilan Barang</a>
     <a href="{{ route('terms') }}" class="chip">Syarat & ketentuan</a>
   </div>
 
   <section id="cara-memesan" class="panel">
-    <h2>Cara memesan</h2>
+    <h2>Cara Pemesanan</h2>
     <p>Jelajahi cerita proyek kelas atau katalog produk. Tambahkan beberapa produk ke keranjang untuk membuat satu pesanan lintas kelas, atau pilih Beli Sekarang untuk checkout satu produk.</p>
     <ol class="steps help-steps">
       <li><h3>Jelajahi artikel & katalog</h3><p>Baca proyek kelas dan pilih produk dari salah satu atau beberapa kelas yang ingin kamu beli.</p></li>
@@ -38,7 +38,7 @@
   </section>
 
   <section id="pengambilan-barang" class="panel">
-    <h2>Pengambilan barang</h2>
+    <h2>Pengambilan Barang</h2>
     <p>Tidak ada pengiriman kurir. Pesanan diambil langsung di Hari H acara sesuai grup kelas. Gunakan QR pickup yang muncul setelah pembayaran valid untuk mengecek dan menandai barang yang sudah diterima.</p>
     <ol class="steps help-steps">
       <li><h3>Pastikan pembayaran valid</h3><p>Setelah bukti transfer diverifikasi, sistem akan menyiapkan QR pickup untuk setiap grup kelas yang ikut dalam satu pesanan.</p></li>
