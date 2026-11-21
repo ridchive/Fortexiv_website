@@ -23,6 +23,7 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\Str;
 use Illuminate\Validation\Rule;
 use Illuminate\Validation\ValidationException;
@@ -35,7 +36,7 @@ class MarketplaceController extends Controller
     {
         $projects = Project::query()
             ->where('is_published', true)
-            ->where('has_article', true)
+            ->when(Schema::hasColumn('projects', 'has_article'), fn ($q) => $q->where('has_article', true))
             ->withCount(['products as published_products_count' => fn (Builder $query) => $query->where('status', 'published')->where('review_status', 'approved')])
             ->orderBy('id')
             ->get();
@@ -110,17 +111,24 @@ class MarketplaceController extends Controller
 
     public function projects(Request $request): View
     {
+        $hasArticleColumn = Schema::hasColumn('projects', 'has_article');
+
         $projects = Project::query()
             ->where('is_published', true)
-            ->where('has_article', true)
+            ->when($hasArticleColumn, fn ($q) => $q->where('has_article', true))
             ->when($request->integer('class'), fn (Builder $query, int $classId) => $query->whereKey($classId))
             ->orderBy('class_name')
             ->paginate(12)
             ->withQueryString();
 
+        $classesQuery = Project::query()->where('is_published', true);
+        if ($hasArticleColumn) {
+            $classesQuery->where('has_article', true);
+        }
+
         return view('marketplace.projects', [
             'projects' => $projects,
-            'classes' => Project::query()->where('is_published', true)->where('has_article', true)->orderBy('class_name')->get(['id', 'class_name']),
+            'classes' => $classesQuery->orderBy('class_name')->get(['id', 'class_name']),
         ]);
     }
 
@@ -181,7 +189,7 @@ class MarketplaceController extends Controller
 
     public function project(Project $project, PurchaseWindow $purchaseWindow): View
     {
-        abort_unless($project->is_published && $project->has_article, 404);
+        abort_unless($project->is_published && (! Schema::hasColumn('projects', 'has_article') || $project->has_article), 404);
         $project->load([
             'products' => fn (HasMany $query) => $query
                 ->where('status', 'published')

@@ -10,6 +10,7 @@ use App\Services\CarbonImpactService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\View\View;
 
@@ -17,12 +18,16 @@ class AdminContentController extends Controller
 {
     public function articles(): View
     {
+        $query = Project::query()->withCount(['products as article_products_count'])->orderByDesc('updated_at');
+
+        if (Schema::hasColumn('projects', 'has_article')) {
+            $query->where('has_article', true);
+        } else {
+            $query->where('is_published', true);
+        }
+
         return view('admin.articles.index', [
-            'projects' => Project::query()
-                ->where('has_article', true)
-                ->withCount(['products as article_products_count'])
-                ->orderByDesc('updated_at')
-                ->paginate(20),
+            'projects' => $query->paginate(20),
         ]);
     }
 
@@ -31,8 +36,12 @@ class AdminContentController extends Controller
         $selectedClassId = $request->query('class_id');
         $selectedProject = $selectedClassId ? Project::find($selectedClassId) : new Project;
 
-        $availableClasses = Project::query()
-            ->where('has_article', false)
+        $availableClassesQuery = Project::query();
+        if (Schema::hasColumn('projects', 'has_article')) {
+            $availableClassesQuery->where('has_article', false);
+        }
+
+        $availableClasses = $availableClassesQuery
             ->when($selectedClassId, fn ($q) => $q->orWhere('id', $selectedClassId))
             ->orderBy('grade')
             ->orderBy('class_name')
@@ -48,7 +57,9 @@ class AdminContentController extends Controller
     {
         $data = $this->validatedArticle($request);
         $data['is_published'] = $request->boolean('is_published');
-        $data['has_article'] = true;
+        if (Schema::hasColumn('projects', 'has_article')) {
+            $data['has_article'] = true;
+        }
 
         if ($request->hasFile('image')) {
             $data['image'] = $request->file('image')->store('projects', 'public');
@@ -133,15 +144,18 @@ class AdminContentController extends Controller
 
         $title = $project->title;
 
-        // Hilangkan artikel dari daftar (has_article = false) tanpa menghapus baris kelas & akun seller
-        $project->update([
-            'has_article' => false,
+        // Hilangkan artikel dari daftar tanpa menghapus baris kelas & akun seller
+        $resetData = [
             'is_published' => false,
             'image' => null,
             'title' => 'Kelas '.$project->class_name,
             'introduction' => 'Kelas '.$project->class_name,
             'article_body' => null,
-        ]);
+        ];
+        if (Schema::hasColumn('projects', 'has_article')) {
+            $resetData['has_article'] = false;
+        }
+        $project->update($resetData);
 
         return redirect()->route('admin.articles.index')->with('status', 'Artikel proyek "'.$title.'" berhasil dihapus.');
     }
