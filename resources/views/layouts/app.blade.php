@@ -5,6 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
   <meta name="csrf-token" content="{{ csrf_token() }}">
   <title>@yield('title', 'FORTEXIV')</title>
+  <link rel="icon" type="image/svg+xml" href="{{ asset('images/logo_fortexiv.svg') }}">
   <script>
     (() => {
       const savedTheme = localStorage.getItem('fortexiv-theme');
@@ -498,7 +499,6 @@
         --info: #8CC4E2;
         --info-bg: #17303F;
       }
-      :root:not([data-theme="light"]) .brand-logo-image { filter: invert(1); mix-blend-mode: screen; }
     }
     :root[data-theme="dark"] {
       color-scheme: dark;
@@ -529,9 +529,14 @@
     .site-header { background: var(--bg); color: var(--ink); }
     .hd { display: grid; grid-template-columns: auto minmax(180px, 1fr) auto; gap: 20px; align-items: center; padding-block: 18px; }
     .brand { display: inline-flex; align-items: center; gap: 8px; color: var(--ink); font: 800 22px/1 var(--fd); text-decoration: none; }
-    .brand-logo-frame { display: block; width: 128px; aspect-ratio: 16 / 9; flex: 0 0 128px; overflow: visible; }
-    .brand-logo-image { display: block; width: 100%; height: 100%; object-fit: contain; object-position: center; max-width: none; mix-blend-mode: multiply; }
-    :root[data-theme="dark"] .brand-logo-image { filter: invert(1); mix-blend-mode: screen; }
+    .brand:hover { color: var(--good); }
+    .brand-logo-frame { display: inline-flex; align-items: center; justify-content: center; width: 116px; max-width: 100%; aspect-ratio: 16 / 9; flex: 0 0 116px; overflow: visible; color: inherit; }
+    .brand-logo-svg { display: block; width: 100%; height: 100%; color: inherit; }
+    .brand-logo-image { display: block; width: 100%; height: 100%; object-fit: contain; object-position: center; max-width: none; }
+    .footer .brand, [data-theme="dark"] .brand, [data-theme="dark"] .admin-brand { color: var(--ink); }
+    @media (max-width: 480px) {
+      .brand-logo-frame { width: 96px; flex-basis: 96px; }
+    }
     .hsearch { display: flex; align-items: center; width: min(100%, 560px); justify-self: center; padding: 0 6px 0 16px; border: 2px solid var(--ink); border-radius: 999px; background: var(--surface); }
     .hsearch input { flex: 1; min-width: 0; padding: 9px 0; border: 0; outline: 0; background: transparent; color: var(--ink); }
     .hsearch button { display: grid; width: 36px; height: 36px; place-items: center; border: 0; background: transparent; color: var(--ink); cursor: pointer; }
@@ -1234,7 +1239,7 @@
     <aside id="adminSidebar" class="admin-sidebar">
       <div class="admin-sidebar-header">
         <a class="admin-brand" href="{{ route('admin.dashboard') }}">
-          <span class="brand-logo-frame"><img class="brand-logo-image" src="{{ asset('fortexiv-logo.jpg') }}" alt="FORTEXIV"></span><span class="admin-brand-tag">Admin</span>
+          <span class="brand-logo-frame"><x-fortexiv-logo /></span><span class="admin-brand-tag">Admin</span>
         </a>
         <button type="button" class="admin-sidebar-close" onclick="toggleAdminSidebar(false)" aria-label="Tutup Menu">
           <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
@@ -1408,7 +1413,7 @@
     <aside id="sellerSidebar" class="admin-sidebar">
       <div class="admin-sidebar-header">
         <a class="admin-brand" href="{{ route('seller.dashboard') }}">
-          <span class="brand-logo-frame"><img class="brand-logo-image" src="{{ asset('fortexiv-logo.jpg') }}" alt="FORTEXIV"></span><span class="admin-brand-tag" style="background:var(--good-bg); color:var(--good); font-weight:800;">Seller</span>
+          <span class="brand-logo-frame"><x-fortexiv-logo /></span><span class="admin-brand-tag" style="background:var(--good-bg); color:var(--good); font-weight:800;">Seller</span>
         </a>
         <button type="button" class="admin-sidebar-close" onclick="toggleSellerSidebar(false)" aria-label="Tutup Menu">
           <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
@@ -1545,7 +1550,7 @@
 @else
 <header @class(['site-header wrap', 'admin-header' => request()->routeIs('admin.*')])>
   <div class="hd">
-    <a class="brand" href="{{ route('home') }}"><span class="brand-logo-frame"><img class="brand-logo-image" src="{{ asset('fortexiv-logo.jpg') }}" alt="FORTEXIV"></span></a>
+    <a class="brand" href="{{ route('home') }}"><span class="brand-logo-frame"><x-fortexiv-logo /></span></a>
     <form class="hsearch" method="get" action="{{ route('catalog.index') }}" role="search">
       <input name="search" type="search" value="{{ request('search') }}" placeholder="Cari produk atau proyek" aria-label="Cari">
       <button type="submit" aria-label="Cari">
@@ -1613,7 +1618,7 @@
   <div class="wrap">
     <div class="cols">
       <div>
-        <a class="brand" href="{{ route('home') }}"><span class="brand-logo-frame"><img class="brand-logo-image" src="{{ asset('fortexiv-logo.jpg') }}" alt="FORTEXIV"></span></a>
+        <a class="brand" href="{{ route('home') }}"><span class="brand-logo-frame"><x-fortexiv-logo /></span></a>
         <p class="muted" style="max-width:36ch;margin-top:10px">Dokumentasi proyek kelas Green Ecosystem dan katalog pre-order dari kelas yang berpartisipasi.</p>
       </div>
       <div><h4>Jelajahi</h4><ul><li><a href="{{ route('projects.index') }}">Proyek kelas</a></li><li><a href="{{ route('catalog.index') }}">Katalog produk</a></li><li><a href="{{ route('home') }}">Beranda</a></li></ul></div>

@@ -8,7 +8,7 @@
   <article class="ticket">
     <header class="ticket-header">
       <div class="ticket-brand" aria-label="FORTEXIV">
-        <span class="brand-logo-frame ticket-logo-frame"><img class="brand-logo-image" src="{{ asset('fortexiv-logo.jpg') }}" alt="FORTEXIV"></span>
+        <span class="brand-logo-frame ticket-logo-frame"><x-fortexiv-logo /></span>
       </div>
       <span class="eyebrow">Digital Pickup Ticket</span>
       <h1 class="ticket-order-code">{{ $order->order_code }}</h1>
