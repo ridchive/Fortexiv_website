@@ -23,6 +23,7 @@
   <form method="post" action="{{ route('checkout') }}" class="checkout-layout" id="checkout-form">
     @csrf
     <input type="hidden" name="mode" value="{{ $mode }}">
+    <input type="hidden" name="terms_version_id" value="{{ $termsVersionId }}">
     @if($mode === 'now')
       <input type="hidden" name="product_id" value="{{ $items->first()['product']->id }}">
       <input type="hidden" name="quantity" value="{{ $items->first()['quantity'] }}">
@@ -110,7 +111,7 @@
 
       <label class="chk checkout-terms" for="accepted_terms" style="margin-top: 8px;">
         <input id="accepted_terms" name="accepted_terms" type="checkbox" value="1" @checked(old('accepted_terms', true)) required @error('accepted_terms') aria-invalid="true" aria-describedby="accepted_terms_error" @enderror>
-        <span>Saya menyetujui <a href="{{ route('terms') }}" target="_blank" rel="noopener">Syarat &amp; ketentuan</a> pemesanan.</span>
+        <span>Saya menyetujui <a href="{{ route('terms') }}" target="_blank" rel="noopener">Syarat &amp; ketentuan</a> pemesanan (versi {{ $termsVersion }}).</span>
       </label>
       @error('accepted_terms')
         <p class="checkout-error checkout-terms-error" id="accepted_terms_error">{{ $message }}</p>

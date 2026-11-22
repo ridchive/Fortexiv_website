@@ -1335,6 +1335,18 @@
         </div>
 
         <div>
+          <div class="admin-nav-group-title">Konten Statis</div>
+          <ul class="admin-nav-list">
+            <li>
+              <a href="{{ route('admin.terms.edit') }}" @class(['admin-nav-item', 'active' => request()->routeIs('admin.terms*')])>
+                <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M6 3h12a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2z"></path><path d="M8 8h8M8 12h8M8 16h5"></path></svg>
+                <span>Terms of Service</span>
+              </a>
+            </li>
+          </ul>
+        </div>
+
+        <div>
           <div class="admin-nav-group-title">Website Toko</div>
           <ul class="admin-nav-list">
             <li>
@@ -1376,6 +1388,7 @@
           $subpageName = 'Dashboard';
           if (request()->routeIs('admin.classes*') || request()->is('admin/classes*')) $subpageName = 'Classes';
           elseif (request()->routeIs('admin.users*') || request()->is('admin/users*')) $subpageName = 'Users';
+          elseif (request()->routeIs('admin.terms*') || request()->is('admin/terms*')) $subpageName = 'Terms of Service';
           elseif (request()->routeIs('admin.articles*') || request()->is('admin/articles*')) $subpageName = 'Articles';
           elseif (request()->routeIs('admin.products*') || request()->is('admin/products*')) $subpageName = 'Products';
           elseif (request()->routeIs('admin.event*') || request()->is('admin/event*')) $subpageName = 'Jadwal';

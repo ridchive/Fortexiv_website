@@ -107,6 +107,15 @@
 
   <div class="panel" style="display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; gap: 16px;">
     <div>
+      <div class="eyebrow">KONTEN STATIS</div>
+      <div style="font-weight: 700; font-size: 1.15rem; margin-top: 4px;">Terms of Service</div>
+      <div class="muted" style="font-size: 13px; margin-top: 4px;">Kelola draft, pratinjau, publikasi, dan riwayat versi ketentuan.</div>
+    </div>
+    <a class="btn" href="{{ route('admin.terms.edit') }}">Kelola Terms of Service</a>
+  </div>
+
+  <div class="panel" style="display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; gap: 16px;">
+    <div>
       <div class="eyebrow">GREEN ECOSYSTEM IMPACT TRACKER (GEIT)</div>
       <div style="font-weight: 700; font-size: 1.15rem; margin-top: 4px;">Artikel Dampak Lingkungan & Banner Hero Beranda</div>
       <div class="muted" style="font-size: 13px; margin-top: 4px;">Atur foto header & background Hero serta narasi artikel (.md). Kontribusi aktual dihitung dari jejak karbon produk pada pesanan berbayar.</div>

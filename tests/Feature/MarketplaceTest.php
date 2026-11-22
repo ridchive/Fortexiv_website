@@ -11,15 +11,14 @@ use App\Models\Payment;
 use App\Models\Product;
 use App\Models\Project;
 use App\Models\Seller;
+use App\Models\TermsVersion;
 use App\Models\User;
 use Database\Seeders\MarketplaceSeeder;
 use Illuminate\Auth\Notifications\VerifyEmail;
 use Illuminate\Foundation\Http\Middleware\PreventRequestForgery;
 use Illuminate\Foundation\Testing\RefreshDatabase;
-use Illuminate\Http\Client\Request as ClientRequest;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\Http;
-use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Facades\Notification;
 use Illuminate\Support\Facades\Storage;
@@ -657,6 +656,54 @@ class MarketplaceTest extends TestCase
         $this->assertSame(2, $product->fresh()->stock);
     }
 
+    public function test_checkout_rejects_a_terms_version_that_was_published_after_the_form_loaded(): void
+    {
+        $buyer = User::factory()->create();
+        $seller = $this->seller();
+        $product = Product::create([
+            'seller_id' => $seller->id,
+            'name' => 'Produk ToS',
+            'slug' => 'produk-tos',
+            'description' => 'Produk untuk uji persetujuan versi ToS.',
+            'price' => 8000,
+            'stock' => 2,
+            'review_status' => 'approved',
+            'status' => 'published',
+        ]);
+        $buyer->cartItems()->create(['product_id' => $product->id, 'quantity' => 1]);
+        $staleVersionId = TermsVersion::currentPublished()->id;
+
+        $this->actingAs($buyer)
+            ->get(route('checkout.show', ['mode' => 'cart']))
+            ->assertOk()
+            ->assertSee('name="terms_version_id" value="'.$staleVersionId.'"', false);
+
+        $admin = User::factory()->create(['role' => 'admin']);
+        $this->actingAs($admin)
+            ->post(route('admin.terms.publish'), [
+                'sections' => [
+                    ['key' => 'updated', 'title' => 'Versi baru', 'content' => '<p>Ketentuan terbaru.</p>', 'position' => 0],
+                ],
+            ])
+            ->assertRedirect(route('admin.terms.edit'));
+
+        $this->actingAs($buyer)
+            ->from(route('checkout.show', ['mode' => 'cart']))
+            ->post(route('checkout'), [
+                'mode' => 'cart',
+                'pickup_contact_name' => $buyer->name,
+                'pickup_contact_phone' => '081234567890',
+                'accepted_terms' => '1',
+                'terms_version_id' => $staleVersionId,
+            ])
+            ->assertSessionHasErrors([
+                'accepted_terms' => 'Terms of Service telah diperbarui. Tinjau versi terbaru dan setujui sebelum checkout.',
+            ]);
+
+        $this->assertDatabaseCount('orders', 0);
+        $this->assertSame(2, $product->fresh()->stock);
+    }
+
     public function test_products_remain_visible_before_the_po_opens_but_cannot_be_added_to_cart(): void
     {
         $this->travelTo('2026-10-26 12:00:00');
@@ -730,6 +777,7 @@ class MarketplaceTest extends TestCase
         $this->actingAs($buyer)->get(route('checkout.show', ['mode' => 'cart']))
             ->assertOk()
             ->assertSee('Kontak pengambil')
+            ->assertSee('name="terms_version_id" value="1"', false)
             ->assertSee('<input type="hidden" name="payment_method" value="manual">', false)
             ->assertDontSee('QRIS (Midtrans)')
             ->assertSeeText('Syarat & ketentuan');
@@ -738,6 +786,7 @@ class MarketplaceTest extends TestCase
             'pickup_contact_name' => $buyer->name,
             'pickup_contact_phone' => '081234567890',
             'accepted_terms' => '1',
+            'terms_version_id' => 1,
         ])
             ->assertRedirect();
 
@@ -748,6 +797,8 @@ class MarketplaceTest extends TestCase
         $this->assertSame(14000, $order->items->first()->price_at_order);
         $this->assertNotNull($order->terms_accepted_at);
         $this->assertSame('prototype-1.0', $order->terms_version);
+        $this->assertSame(1, $order->terms_version_id);
+        $this->assertSame($order->terms_version, $order->termsVersion->version_label);
         $this->assertNotEmpty($order->fulfillments->first()->pickup_code);
         $productQrToken = $order->fresh('items.units')->items->first()->units->first()->qr_token;
 

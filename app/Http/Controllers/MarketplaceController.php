@@ -12,14 +12,12 @@ use App\Models\OrderFulfillment;
 use App\Models\Payment;
 use App\Models\Product;
 use App\Models\Project;
+use App\Models\TermsVersion;
 use App\Services\CarbonImpactService;
 use App\Services\EmailService;
 use App\Support\PurchaseWindow;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Relations\HasMany;
-use Illuminate\Http\Client\ConnectionException;
-use Illuminate\Http\Client\RequestException;
-use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Collection;
@@ -31,7 +29,6 @@ use Illuminate\Support\Str;
 use Illuminate\Validation\Rule;
 use Illuminate\Validation\ValidationException;
 use Illuminate\View\View;
-use UnexpectedValueException;
 
 class MarketplaceController extends Controller
 {
@@ -208,7 +205,13 @@ class MarketplaceController extends Controller
 
     public function terms(): View
     {
-        return view('marketplace.terms', ['termsVersion' => config('marketplace.terms_version')]);
+        $publishedVersion = TermsVersion::currentPublished();
+
+        return view('marketplace.terms', [
+            'termsVersion' => $publishedVersion->version_label,
+            'sections' => $publishedVersion->sections,
+            'isPreview' => false,
+        ]);
     }
 
     public function account(Request $request): View
@@ -301,6 +304,7 @@ class MarketplaceController extends Controller
         }
 
         $groups = $items->groupBy(fn (array $item): string => (string) ($item['product']->project_id ?? $item['product']->seller->project_id ?? 'seller-'.$item['product']->seller_id));
+        $publishedTerms = TermsVersion::currentPublished();
 
         return view('marketplace.checkout', [
             'items' => $items,
@@ -309,7 +313,8 @@ class MarketplaceController extends Controller
             'total' => $items->sum('subtotal'),
             'window' => $purchaseWindow->details(),
             'checkoutAvailable' => $purchaseWindow->canAcceptOrders(),
-            'termsVersion' => config('marketplace.terms_version'),
+            'termsVersion' => $publishedTerms->version_label,
+            'termsVersionId' => $publishedTerms->id,
             'manualPaymentConfigured' => $this->transferConfigured(),
         ]);
     }
@@ -324,6 +329,7 @@ class MarketplaceController extends Controller
             'pickup_contact_name' => ['nullable', 'string', 'max:100'],
             'pickup_contact_phone' => ['nullable', 'string', 'max:30'],
             'accepted_terms' => ['required', 'accepted'],
+            'terms_version_id' => ['nullable', 'integer', 'exists:terms_versions,id'],
             'payment_method' => ['sometimes', 'required', Rule::in([Payment::GATEWAY_MANUAL])],
         ], [
             'accepted_terms.required' => 'Setujui syarat & ketentuan sebelum mengonfirmasi pesanan.',
@@ -336,6 +342,17 @@ class MarketplaceController extends Controller
         $order = DB::transaction(function () use ($request, $data, $purchaseWindow, $pickupContactName, $pickupContactPhone): Order {
             if (! $purchaseWindow->canAcceptOrders()) {
                 throw ValidationException::withMessages(['po' => 'Jendela PO sudah berubah. Pesanan baru tidak dapat dibuat.']);
+            }
+
+            $publishedTerms = TermsVersion::query()
+                ->where('status', 'published')
+                ->latest('id')
+                ->lockForUpdate()
+                ->firstOrFail();
+            if (isset($data['terms_version_id']) && (int) $data['terms_version_id'] !== $publishedTerms->id) {
+                throw ValidationException::withMessages([
+                    'accepted_terms' => 'Terms of Service telah diperbarui. Tinjau versi terbaru dan setujui sebelum checkout.',
+                ]);
             }
 
             $items = $data['mode'] === 'now'
@@ -412,7 +429,8 @@ class MarketplaceController extends Controller
                 'pickup_contact_name' => $pickupContactName,
                 'pickup_contact_phone' => $pickupContactPhone,
                 'terms_accepted_at' => now(),
-                'terms_version' => config('marketplace.terms_version'),
+                'terms_version_id' => $publishedTerms->id,
+                'terms_version' => $publishedTerms->version_label,
                 'expires_at' => $expiresAt,
             ]);
             $order->update(['order_code' => 'FX-'.str_pad((string) $order->id, 8, '0', STR_PAD_LEFT)]);

@@ -6,6 +6,7 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Relations\HasOne;
+use Illuminate\Support\Carbon;
 
 class Order extends Model
 {
@@ -25,7 +26,7 @@ class Order extends Model
         return $this->expires_at !== null && $this->expires_at->isPast();
     }
 
-    public function effectivePaymentDeadline(): ?\Illuminate\Support\Carbon
+    public function effectivePaymentDeadline(): ?Carbon
     {
         if ($this->expires_at) {
             return $this->expires_at;
@@ -39,6 +40,11 @@ class Order extends Model
     public function buyer(): BelongsTo
     {
         return $this->belongsTo(User::class, 'buyer_id');
+    }
+
+    public function termsVersion(): BelongsTo
+    {
+        return $this->belongsTo(TermsVersion::class, 'terms_version_id');
     }
 
     public function items(): HasMany

@@ -4,6 +4,7 @@ use App\Http\Controllers\AdminClassController;
 use App\Http\Controllers\AdminContentController;
 use App\Http\Controllers\AdminController;
 use App\Http\Controllers\AdminEventController;
+use App\Http\Controllers\AdminTermsController;
 use App\Http\Controllers\AuthController;
 use App\Http\Controllers\MarketplaceController;
 use App\Http\Controllers\SellerController;
@@ -90,6 +91,11 @@ Route::prefix('seller')->name('seller.')->middleware(['auth', 'verified', 'role:
 
 Route::prefix('admin')->name('admin.')->middleware(['auth', 'verified', 'role:admin'])->group(function () {
     Route::get('/', [AdminController::class, 'dashboard'])->name('dashboard');
+    Route::get('/terms', [AdminTermsController::class, 'edit'])->name('terms.edit');
+    Route::post('/terms/draft', [AdminTermsController::class, 'saveDraft'])->name('terms.draft');
+    Route::post('/terms/preview', [AdminTermsController::class, 'preview'])->name('terms.preview');
+    Route::post('/terms/publish', [AdminTermsController::class, 'publish'])->name('terms.publish');
+    Route::post('/terms/versions/{version}/restore', [AdminTermsController::class, 'restore'])->name('terms.restore');
     Route::get('/payments', [AdminController::class, 'payments'])->name('payments');
     Route::get('/payments/qris', fn () => redirect()->route('admin.payments'))->name('payments.qris');
     Route::post('/payments/qris', [AdminController::class, 'updateQris'])->name('payments.qris.update');
