@@ -9,6 +9,7 @@ use App\Models\Category;
 use App\Models\OrderItem;
 use App\Models\Product;
 use App\Services\CarbonImpactService;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -198,10 +199,38 @@ class SellerController extends Controller
     public function orders(Request $request): View
     {
         $seller = $request->user()->seller;
-        $items = OrderItem::where('seller_id', $seller->id)
-            ->with(['order.buyer', 'order.payment', 'fulfillment', 'units'])
-            ->latest()
-            ->paginate(20);
+        $query = OrderItem::query()
+            ->where('seller_id', $seller->id)
+            ->with(['order.buyer', 'order.payment', 'fulfillment', 'units']);
+
+        if ($search = trim((string) $request->input('search'))) {
+            $query->where(function (Builder $q) use ($search) {
+                $q->whereHas('order', function (Builder $oq) use ($search) {
+                    $oq->where('order_code', 'like', "%{$search}%")
+                        ->orWhere('pickup_contact_name', 'like', "%{$search}%")
+                        ->orWhere('pickup_contact_phone', 'like', "%{$search}%")
+                        ->orWhereHas('buyer', function (Builder $bq) use ($search) {
+                            $bq->where('name', 'like', "%{$search}%")
+                                ->orWhere('phone', 'like', "%{$search}%")
+                                ->orWhere('email', 'like', "%{$search}%");
+                        });
+                })->orWhere('product_name', 'like', "%{$search}%");
+            });
+        }
+
+        if ($status = $request->input('status')) {
+            $query->whereHas('order', fn (Builder $q) => $q->where('status', $status));
+        }
+
+        if ($productStatus = $request->input('product_status')) {
+            if ($productStatus === 'delivered') {
+                $query->whereDoesntHave('units', fn (Builder $q) => $q->where('status', '!=', 'delivered'));
+            } elseif ($productStatus === 'pending') {
+                $query->whereHas('units', fn (Builder $q) => $q->where('status', 'pending'));
+            }
+        }
+
+        $items = $query->latest()->paginate(20)->withQueryString();
 
         return view('seller.orders', compact('items'));
     }
