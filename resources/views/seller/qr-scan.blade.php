@@ -219,12 +219,9 @@
         </div>
 
         <!-- Controls & Toggle -->
-        <div class="scanner-controls" style="display: flex; gap: 8px; flex-wrap: wrap;">
-          <button class="btn lime scanner-toggle-btn" type="button" data-scanner-toggle data-qr-mode="class">
-            📷 Buka Kamera (Scan Class QR)
-          </button>
-          <button class="btn sec" type="button" data-scanner-toggle data-qr-mode="product">
-            Scan Product QR
+        <div class="scanner-controls">
+          <button class="btn lime scanner-toggle-btn" type="button" data-scanner-toggle style="width: 100%; justify-content: center; font-size: 15px; padding: 12px;">
+            📷 Buka Kamera Pemindai
           </button>
         </div>
 
@@ -239,7 +236,7 @@
         <form class="qr-manual-form" data-qr-manual-form action="#" method="POST">
           @csrf
           <div class="field" style="flex: 1; margin: 0;">
-            <label for="seller-qr-token" style="font-size: 12px; font-weight: 700; margin-bottom: 4px; display: block;">Kode Token QR / Nomor Pesanan (contoh: FTXC-..., FTXP-..., atau FX-...)</label>
+            <label for="seller-qr-token" style="font-size: 12px; font-weight: 700; margin-bottom: 4px; display: block;">Kode Token QR / Nomor Pesanan (contoh: FTXS-..., FTXC-..., atau FTXP-...)</label>
             <input class="input" id="seller-qr-token" name="token" placeholder="Ketik atau tempel kode di sini..." maxlength="80" autocomplete="off" style="font-family: monospace;">
           </div>
           <button class="btn sec" type="submit" style="white-space: nowrap;">Periksa Kode ➔</button>
