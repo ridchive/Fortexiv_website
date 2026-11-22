@@ -13,7 +13,7 @@
     <div class="field"><label for="description">Deskripsi</label><textarea class="input" id="description" name="description" rows="5" maxlength="10000" required>{{ old('description', $product->description) }}</textarea></div>
     <div class="field"><label for="price">Harga (rupiah penuh)</label><input class="input" id="price" name="price" type="number" min="1" max="100000000" value="{{ old('price', $product->price) }}" required></div>
     <div class="field"><label for="stock">Stok</label><input class="input" id="stock" name="stock" type="number" min="0" max="100000" value="{{ old('stock', $product->exists ? $product->stock : 0) }}" required></div>
-    <div class="field"><label for="category_id">Kategori</label><select class="input" id="category_id" name="category_id"><option value="">Pilih kategori</option>@foreach($categories as $category)<option value="{{ $category->id }}" @selected((string) old('category_id', $product->category_id) === (string) $category->id)>{{ $category->name }}</option>@endforeach</select></div>
+    <div class="field"><label for="category_id">Kategori</label><select class="input" id="category_id" name="category_id" required><option value="">Pilih kategori</option>@foreach($categories as $category)<option value="{{ $category->id }}" @selected((string) old('category_id', $product->category_id) === (string) $category->id)>{{ $category->name }}</option>@endforeach</select></div>
     <div class="field"><span class="eyebrow">Proyek kelas</span><p>{{ auth()->user()->seller->project?->class_name ?? auth()->user()->seller->store_name }}@if(auth()->user()->seller->project) · {{ auth()->user()->seller->project->title }}@endif</p></div>
     <div class="field">
       <span class="eyebrow">Pratinjau gambar</span>
@@ -33,7 +33,7 @@
       </div>
       <p class="muted small">Ilustrasi sementara digunakan jika belum ada foto. Pilih foto produk untuk melihat pratinjau.</p>
       <label for="image">{{ $product->image ? 'Ganti gambar produk' : 'Upload gambar produk' }} (JPG, PNG, atau WebP, maks. 5 MB)</label>
-      <input class="input" id="image" name="image" type="file" accept=".jpg,.jpeg,.png,.webp" data-product-image-input>
+      <input class="input" id="image" name="image" type="file" accept=".jpg,.jpeg,.png,.webp" data-product-image-input @if(!$product->image) required @endif>
     </div>
     <div class="stack"><button class="btn" type="submit">{{ $product->exists ? 'Simpan perubahan sebagai draf' : 'Simpan sebagai draf' }}</button><a class="btn btn-outline" href="{{ route('seller.products.index') }}">Batal</a></div>
   </form>

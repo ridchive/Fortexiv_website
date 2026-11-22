@@ -342,7 +342,23 @@
     .dashboard-actions-grid > .panel { height: 100%; margin: 0; }
     .stat strong { display: block; color: #315B2D; font: 800 24px var(--fd); }
     .stat span { color: var(--muted); font-size: 12px; }
-    .pagination { margin-top: 20px; }
+    .pagination { margin-top: 24px; }
+    .pagination nav { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; gap: 14px; width: 100%; }
+    .pagination svg, .pagination .w-5, .pagination .h-5 { width: 18px !important; height: 18px !important; min-width: 18px !important; min-height: 18px !important; max-width: 18px !important; max-height: 18px !important; display: inline-block; vertical-align: middle; fill: currentColor; }
+    .pagination .sm\:hidden { display: flex; justify-content: space-between; width: 100%; gap: 10px; margin-bottom: 8px; }
+    @media (min-width: 640px) {
+      .pagination .sm\:hidden { display: none !important; }
+      .pagination .sm\:flex { display: flex !important; }
+      .pagination .sm\:items-center { align-items: center; }
+      .pagination .sm\:justify-between { justify-content: space-between; width: 100%; }
+    }
+    .pagination p { margin: 0; font-size: 13px; color: var(--muted); }
+    .pagination .relative.z-0 { display: inline-flex; border-radius: 8px; overflow: hidden; border: 1px solid var(--line); }
+    .pagination a, .pagination span { text-decoration: none; font-size: 13px; }
+    .pagination a.relative, .pagination span.relative { display: inline-flex; align-items: center; justify-content: center; min-width: 36px; height: 36px; padding: 6px 12px; background: var(--surface); color: var(--ink); border: 1px solid var(--line); margin-left: -1px; transition: background .15s ease, color .15s ease; }
+    .pagination a.relative:hover { background: var(--soft); color: var(--lime-ink); }
+    .pagination [aria-current="page"] span { background: var(--dark) !important; color: var(--dark-ink) !important; font-weight: 700; border-color: var(--dark) !important; }
+    .pagination [aria-disabled="true"] span { color: var(--muted); opacity: .5; cursor: not-allowed; }
     .footer { padding: 26px 20px; background: #101810; color: #D8E0D5; text-align: center; font-size: 13px; }
     .footer a { color: #EAF1E6; }
     .footer-links { display: flex; justify-content: center; flex-wrap: wrap; gap: 16px; margin-bottom: 10px; }
@@ -527,7 +543,7 @@
     .app.admin-app { width: min(100%, 1240px); margin-inline: auto; padding: 24px max(16px, env(safe-area-inset-right, 0px)) 56px max(16px, env(safe-area-inset-left, 0px)); }
     .wrap { width: 100%; max-width: 1180px; padding-right: max(16px, env(safe-area-inset-right, 0px)); padding-left: max(16px, env(safe-area-inset-left, 0px)); }
     .site-header { background: var(--bg); color: var(--ink); }
-    .hd { display: grid; grid-template-columns: auto minmax(180px, 1fr) auto; gap: 20px; align-items: center; padding-block: 18px; }
+    .hd { display: flex; justify-content: space-between; align-items: center; padding-block: 18px; }
     .brand { display: inline-flex; align-items: center; gap: 8px; color: var(--ink); font: 800 22px/1 var(--fd); text-decoration: none; }
     .brand:hover { color: var(--good); }
     .brand-logo-frame { display: inline-flex; align-items: center; justify-content: center; width: 116px; max-width: 100%; aspect-ratio: 16 / 9; flex: 0 0 116px; overflow: visible; color: inherit; }
@@ -867,8 +883,7 @@
       .ft .cols { grid-template-columns: repeat(2, minmax(0, 1fr)); }
     }
     @media (max-width: 720px) {
-      .hd { grid-template-columns: 1fr auto; }
-      .hsearch { grid-column: 1 / -1; order: 3; max-width: none; }
+      .hd { display: flex; justify-content: space-between; align-items: center; }
       .hero {
         grid-template-columns: minmax(0, 1fr);
         grid-template-rows: auto auto;
@@ -1551,12 +1566,6 @@
 <header @class(['site-header wrap', 'admin-header' => request()->routeIs('admin.*')])>
   <div class="hd">
     <a class="brand" href="{{ route('home') }}"><span class="brand-logo-frame"><x-fortexiv-logo /></span></a>
-    <form class="hsearch" method="get" action="{{ route('catalog.index') }}" role="search">
-      <input name="search" type="search" value="{{ request('search') }}" placeholder="Cari produk atau proyek" aria-label="Cari">
-      <button type="submit" aria-label="Cari">
-        <svg class="ico" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><circle cx="11" cy="11" r="7"></circle><path d="m20 20-4-4"></path></svg>
-      </button>
-    </form>
     <div class="hicons">
       <button class="ib theme-toggle" type="button" data-theme-toggle aria-label="Aktifkan mode gelap" title="Aktifkan mode gelap">
         <svg class="icon-sun" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><circle cx="12" cy="12" r="4"></circle><path d="M12 2v2m0 16v2M4.93 4.93l1.42 1.42m11.3 11.3 1.42 1.42M2 12h2m16 0h2M4.93 19.07l1.42-1.42m11.3-11.3 1.42-1.42"></path></svg>
@@ -1571,6 +1580,9 @@
           <a class="ib" href="{{ route('orders.index') }}" aria-label="Pesanan saya">
             <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><path d="M6 3h9l4 4v14H6z"></path><path d="M14 3v5h5M9 12h7M9 16h7"></path></svg>
           </a>
+          <a class="ib" href="{{ route('tickets.hub') }}" aria-label="Tiket pickup" title="Tiket pickup">
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><rect x="3" y="3" width="7" height="7"></rect><rect x="14" y="3" width="7" height="7"></rect><rect x="14" y="14" width="7" height="7"></rect><rect x="3" y="14" width="7" height="7"></rect></svg>
+          </a>
         @endif
         <details class="umenu">
           <summary class="ib" aria-label="Menu akun">
@@ -1580,6 +1592,7 @@
             <div class="who"><strong>{{ auth()->user()->name }}</strong><div class="muted small">{{ auth()->user()->email }}</div></div>
             @if(auth()->user()->role === 'buyer')
               <a href="{{ route('orders.index') }}">Pesanan saya</a>
+              <a href="{{ route('tickets.hub') }}">Tiket Pickup</a>
             @elseif(auth()->user()->role === 'seller')
               <a href="{{ route('seller.dashboard') }}">Portal kelas</a>
             @elseif(auth()->user()->role === 'admin')
@@ -1621,9 +1634,9 @@
         <a class="brand" href="{{ route('home') }}"><span class="brand-logo-frame"><x-fortexiv-logo /></span></a>
         <p class="muted" style="max-width:36ch;margin-top:10px">Dokumentasi proyek kelas Green Ecosystem dan katalog pre-order dari kelas yang berpartisipasi.</p>
       </div>
-      <div><h4>Jelajahi</h4><ul><li><a href="{{ route('projects.index') }}">Proyek kelas</a></li><li><a href="{{ route('catalog.index') }}">Katalog produk</a></li><li><a href="{{ route('home') }}">Beranda</a></li></ul></div>
-      <div><h4>Bantuan</h4><ul><li><a href="{{ route('help', ['section' => 'cara-memesan']) }}#cara-memesan">Cara memesan</a></li><li><a href="{{ route('help', ['section' => 'pengambilan-barang']) }}#pengambilan-barang">Pengambilan barang</a></li><li><a href="{{ route('terms') }}">Terms of Service</a></li></ul></div>
-      <div><h4>Akun</h4><ul><li><a href="{{ route('login') }}">Masuk</a></li><li><a href="{{ route('register') }}">Daftar</a></li>@auth @if(auth()->user()->role === 'buyer')<li><a href="{{ route('orders.index') }}">Pesanan saya</a></li>@endif @endauth</ul></div>
+      <div><h4>Jelajahi</h4><ul><li><a href="{{ route('projects.index') }}">Proyek Kelas</a></li><li><a href="{{ route('catalog.index') }}">Katalog Produk</a></li><li><a href="{{ route('home') }}">Beranda</a></li></ul></div>
+      <div><h4>Bantuan</h4><ul><li><a href="{{ route('help', ['section' => 'cara-memesan']) }}#cara-memesan">Cara Pemesanan</a></li><li><a href="{{ route('help', ['section' => 'pengambilan-barang']) }}#pengambilan-barang">Pengambilan Barang</a></li><li><a href="{{ route('terms') }}">Syarat & Ketentuan</a></li></ul></div>
+      <div><h4>Akun</h4><ul><li><a href="{{ route('login') }}">Masuk</a></li><li><a href="{{ route('register') }}">Daftar</a></li>@auth @if(auth()->user()->role === 'buyer')<li><a href="{{ route('orders.index') }}">Pesanan Saya</a></li><li><a href="{{ route('tickets.hub') }}">Tiket Pickup</a></li>@endif @endauth</ul></div>
     </div>
   </div>
 </footer>

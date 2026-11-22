@@ -42,9 +42,44 @@ class AdminController extends Controller
 
     public function payments(): View
     {
-        $payments = Payment::with(['order.buyer', 'order.items.fulfillment'])->latest()->paginate(20);
+        $payments = Payment::with(['order.buyer', 'order.items'])->latest()->paginate(20);
+        $qrisImage = config('marketplace.qris_image');
+        $qrisExists = Storage::disk('public')->exists('qris-statis.png')
+            || (filled($qrisImage) && is_file(public_path($qrisImage)));
 
-        return view('admin.payments', compact('payments'));
+        return view('admin.payments', compact('payments', 'qrisImage', 'qrisExists'));
+    }
+
+    public function updateQris(Request $request): RedirectResponse
+    {
+        $request->validate([
+            'qris_image' => ['required', 'image', 'mimes:png,jpg,jpeg', 'max:5120'],
+        ], [
+            'qris_image.required' => 'Pilih file gambar QRIS.',
+            'qris_image.image' => 'File harus berupa gambar.',
+            'qris_image.mimes' => 'Format file yang didukung: PNG, JPG, JPEG.',
+            'qris_image.max' => 'Ukuran file gambar maksimal 5 MB.',
+        ]);
+
+        $file = $request->file('qris_image');
+
+        // Simpan ke storage disk public (aman untuk shared hosting/cPanel)
+        Storage::disk('public')->put('qris-statis.png', file_get_contents($file->getRealPath()));
+
+        // Sinkronkan ke public/images jika folder dapat ditulis
+        try {
+            $destinationPath = public_path('images');
+            if (! file_exists($destinationPath)) {
+                @mkdir($destinationPath, 0755, true);
+            }
+            if (is_dir($destinationPath) && is_writable($destinationPath)) {
+                @copy($file->getRealPath(), $destinationPath.DIRECTORY_SEPARATOR.'qris-statis.png');
+            }
+        } catch (\Throwable) {
+            // Abaikan jika public/ tidak memiliki permission tulis di hosting
+        }
+
+        return back()->with('status', 'Foto QRIS pembayaran berhasil diperbarui.');
     }
 
     public function paymentProof(Payment $payment)
@@ -52,7 +87,7 @@ class AdminController extends Controller
         abort_unless($payment->gateway === Payment::GATEWAY_MANUAL && filled($payment->proof_image), 404);
         abort_unless(Storage::disk('local')->exists($payment->proof_image), 404);
 
-        return Storage::disk('local')->download($payment->proof_image);
+        return Storage::disk('local')->response($payment->proof_image);
     }
 
     public function verify(Request $request, Payment $payment, CarbonImpactService $carbonImpact): RedirectResponse

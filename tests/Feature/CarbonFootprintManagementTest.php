@@ -19,6 +19,62 @@ class CarbonFootprintManagementTest extends TestCase
 {
     use RefreshDatabase;
 
+    public function test_admin_sees_only_published_approved_products_with_stock_in_live_list(): void
+    {
+        $seller = $this->seller();
+        Product::create([
+            'seller_id' => $seller->id,
+            'name' => 'Tas Live',
+            'slug' => 'tas-live',
+            'description' => 'Produk tersedia.',
+            'price' => 50000,
+            'stock' => 4,
+            'review_status' => 'approved',
+            'status' => 'published',
+        ]);
+        Product::create([
+            'seller_id' => $seller->id,
+            'name' => 'Produk Draft',
+            'slug' => 'produk-draft',
+            'description' => 'Produk belum terbit.',
+            'price' => 50000,
+            'stock' => 4,
+            'review_status' => 'approved',
+            'status' => 'draft',
+        ]);
+        Product::create([
+            'seller_id' => $seller->id,
+            'name' => 'Produk Habis',
+            'slug' => 'produk-habis',
+            'description' => 'Produk tidak punya stok.',
+            'price' => 50000,
+            'stock' => 0,
+            'review_status' => 'approved',
+            'status' => 'published',
+        ]);
+        Product::create([
+            'seller_id' => $seller->id,
+            'name' => 'Produk Belum Disetujui',
+            'slug' => 'produk-belum-disetujui',
+            'description' => 'Produk belum direview.',
+            'price' => 50000,
+            'stock' => 4,
+            'review_status' => 'pending_review',
+            'status' => 'published',
+        ]);
+        $admin = User::factory()->create(['role' => 'admin']);
+
+        $this->actingAs($admin)
+            ->get(route('admin.products.index', ['status' => 'live']))
+            ->assertOk()
+            ->assertSee('Sedang dijual (1)')
+            ->assertSee('Tas Live')
+            ->assertSee('4')
+            ->assertDontSee('Produk Draft')
+            ->assertDontSee('Produk Habis')
+            ->assertDontSee('Produk Belum Disetujui');
+    }
+
     public function test_admin_can_manage_carbon_value_and_buyer_sees_it_below_description(): void
     {
         $seller = $this->seller();

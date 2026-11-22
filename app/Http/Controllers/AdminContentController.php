@@ -178,12 +178,28 @@ class AdminContentController extends Controller
     public function products(Request $request): View
     {
         $status = $request->query('status', 'pending_review');
-        abort_unless(in_array($status, ['pending_review', 'approved', 'revision_requested', 'rejected', 'draft'], true), 404);
+        abort_unless(in_array($status, ['pending_review', 'approved', 'revision_requested', 'rejected', 'draft', 'live'], true), 404);
+
+        $products = Product::query()->with(['seller.project', 'category', 'reviewer']);
+        if ($status === 'live') {
+            $products->where('status', 'published')
+                ->where('review_status', 'approved')
+                ->where('stock', '>', 0);
+        } else {
+            $products->where('review_status', $status);
+        }
+
+        $counts = Product::query()->selectRaw('review_status, count(*) as aggregate')->groupBy('review_status')->pluck('aggregate', 'review_status');
+        $counts->put('live', Product::query()
+            ->where('status', 'published')
+            ->where('review_status', 'approved')
+            ->where('stock', '>', 0)
+            ->count());
 
         return view('admin.products.index', [
-            'products' => Product::query()->with(['seller.project', 'category', 'reviewer'])->where('review_status', $status)->latest()->paginate(20)->withQueryString(),
+            'products' => $products->latest()->paginate(20)->withQueryString(),
             'status' => $status,
-            'counts' => Product::query()->selectRaw('review_status, count(*) as aggregate')->groupBy('review_status')->pluck('aggregate', 'review_status'),
+            'counts' => $counts,
         ]);
     }
 

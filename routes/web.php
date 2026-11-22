@@ -29,6 +29,8 @@ Route::get('/storage/fallback/{path}', function (string $path) {
     return response()->file($disk->path($path));
 })->where('path', '.*')->name('storage.fallback');
 
+Route::get('/qris-image', [MarketplaceController::class, 'qrisImage'])->name('qris.image');
+
 Route::middleware('guest')->group(function () {
     Route::get('/login', [AuthController::class, 'loginForm'])->name('login');
     Route::post('/login', [AuthController::class, 'login'])->name('login.store');
@@ -73,7 +75,9 @@ Route::middleware(['auth', 'verified', 'role:buyer'])->group(function () {
     Route::post('/orders/{order:order_code}/midtrans/refresh', [MarketplaceController::class, 'refreshMidtransPaymentStatus'])
         ->middleware('throttle:6,1')
         ->name('payments.midtrans.refresh');
+    Route::post('/orders/{order:order_code}/demo-payment', [MarketplaceController::class, 'simulatePayment'])->name('payments.demo');
     Route::post('/orders/{order:order_code}/payment-proof', [MarketplaceController::class, 'uploadPayment'])->name('payments.store');
+    Route::get('/tickets', [MarketplaceController::class, 'pickupHub'])->name('tickets.hub');
     Route::get('/orders/{order:order_code}/ticket', [MarketplaceController::class, 'ticket'])->name('tickets.show');
 });
 
@@ -97,6 +101,7 @@ Route::prefix('seller')->name('seller.')->middleware(['auth', 'verified', 'role:
 Route::prefix('admin')->name('admin.')->middleware(['auth', 'verified', 'role:admin'])->group(function () {
     Route::get('/', [AdminController::class, 'dashboard'])->name('dashboard');
     Route::get('/payments', [AdminController::class, 'payments'])->name('payments');
+    Route::post('/payments/qris', [AdminController::class, 'updateQris'])->name('payments.qris.update');
     Route::get('/payments/{payment}/proof', [AdminController::class, 'paymentProof'])->name('payments.proof');
     Route::post('/payments/{payment}/verify', [AdminController::class, 'verify'])->name('payments.verify');
     Route::post('/payments/{payment}/reject', [AdminController::class, 'reject'])->name('payments.reject');

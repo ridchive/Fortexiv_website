@@ -636,7 +636,7 @@ class MarketplaceTest extends TestCase
             'pickup_contact_name' => $buyer->name,
             'pickup_contact_phone' => '081234567890',
         ])->assertSessionHasErrors([
-            'accepted_terms' => 'Setujui Terms of Service sebelum mengonfirmasi pesanan.',
+            'accepted_terms' => 'Setujui syarat & ketentuan sebelum mengonfirmasi pesanan.',
         ]);
 
         $this->assertDatabaseCount('orders', 0);
@@ -718,7 +718,7 @@ class MarketplaceTest extends TestCase
             ->assertSee('Kontak pengambil')
             ->assertSee('<input type="hidden" name="payment_method" value="manual">', false)
             ->assertDontSee('QRIS (Midtrans)')
-            ->assertSee('Terms of Service');
+            ->assertSeeText('Syarat & ketentuan');
         $this->actingAs($buyer)->post(route('checkout'), [
             'mode' => 'cart',
             'pickup_contact_name' => $buyer->name,
@@ -1253,6 +1253,128 @@ class MarketplaceTest extends TestCase
         $this->get(route('admin.dashboard'))->assertForbidden();
     }
 
+    public function test_buyer_can_simulate_manual_payment_and_receive_pickup_access(): void
+    {
+        $buyer = User::factory()->create();
+        $order = Order::create([
+            'order_code' => 'FX-DEMO0001',
+            'buyer_id' => $buyer->id,
+            'status' => 'pending_payment',
+            'total_price' => 25000,
+            'pickup_date' => now()->addDay(),
+        ]);
+        $order->payment()->create([
+            'method' => 'QRIS',
+            'gateway' => Payment::GATEWAY_MANUAL,
+            'status' => 'pending',
+        ]);
+
+        $this->actingAs($buyer)
+            ->get(route('orders.show', $order))
+            ->assertOk()
+            ->assertSee('Demo: Simulasikan Pembayaran')
+            ->assertSee('Simulasikan pembayaran berhasil untuk pesanan ini?');
+
+        $this->actingAs($buyer)
+            ->post(route('payments.demo', $order))
+            ->assertRedirect(route('orders.show', $order))
+            ->assertSessionHas('status', 'Pembayaran berhasil disimulasikan!');
+
+        $this->assertDatabaseHas('orders', [
+            'id' => $order->id,
+            'status' => 'paid',
+            'total_price' => 25000,
+        ]);
+        $this->assertDatabaseHas('payments', [
+            'order_id' => $order->id,
+            'method' => 'DEMO',
+            'status' => 'verified',
+            'verified_by' => null,
+        ]);
+
+        $this->actingAs($buyer)
+            ->get(route('orders.show', $order))
+            ->assertOk()
+            ->assertSee('Pembayaran berhasil disimulasikan!')
+            ->assertSee('Dibayar')
+            ->assertSee('Pembayaran dilakukan melalui mode DEMO.')
+            ->assertSee('Buka Tiket & Tampilkan QR', false)
+            ->assertDontSee('Demo: Simulasikan Pembayaran');
+
+        $this->assertDatabaseCount('tickets', 1);
+    }
+
+    public function test_buyer_cannot_simulate_another_buyers_payment(): void
+    {
+        $owner = User::factory()->create();
+        $order = Order::create([
+            'order_code' => 'FX-DEMO0002',
+            'buyer_id' => $owner->id,
+            'status' => 'pending_payment',
+            'total_price' => 25000,
+            'pickup_date' => now()->addDay(),
+        ]);
+        $order->payment()->create([
+            'gateway' => Payment::GATEWAY_MANUAL,
+            'status' => 'pending',
+        ]);
+
+        $this->actingAs(User::factory()->create())
+            ->post(route('payments.demo', $order))
+            ->assertNotFound();
+
+        $this->assertSame('pending_payment', $order->fresh()->status);
+        $this->assertDatabaseHas('payments', ['order_id' => $order->id, 'status' => 'pending']);
+        $this->assertDatabaseCount('tickets', 0);
+    }
+
+    public function test_buyer_cannot_simulate_a_payment_that_is_not_awaiting_payment(): void
+    {
+        $buyer = User::factory()->create();
+        $order = Order::create([
+            'order_code' => 'FX-DEMO0003',
+            'buyer_id' => $buyer->id,
+            'status' => 'waiting_verification',
+            'total_price' => 25000,
+            'pickup_date' => now()->addDay(),
+        ]);
+        $order->payment()->create([
+            'gateway' => Payment::GATEWAY_MANUAL,
+            'status' => 'pending',
+        ]);
+
+        $this->actingAs($buyer)
+            ->post(route('payments.demo', $order))
+            ->assertUnprocessable();
+
+        $this->assertSame('waiting_verification', $order->fresh()->status);
+        $this->assertDatabaseHas('payments', ['order_id' => $order->id, 'status' => 'pending']);
+        $this->assertDatabaseCount('tickets', 0);
+    }
+
+    public function test_buyer_cannot_simulate_a_midtrans_payment(): void
+    {
+        $buyer = User::factory()->create();
+        $order = $this->midtransOrder($buyer);
+
+        $this->actingAs($buyer)
+            ->get(route('orders.show', $order))
+            ->assertOk()
+            ->assertDontSee('Demo: Simulasikan Pembayaran');
+
+        $this->actingAs($buyer)
+            ->post(route('payments.demo', $order))
+            ->assertUnprocessable();
+
+        $this->assertSame('pending_payment', $order->fresh()->status);
+        $this->assertDatabaseHas('payments', [
+            'order_id' => $order->id,
+            'gateway' => Payment::GATEWAY_MIDTRANS,
+            'status' => 'pending',
+        ]);
+        $this->assertDatabaseCount('tickets', 0);
+    }
+
     public function test_sellers_cannot_edit_another_sellers_product(): void
     {
         $owner = $this->seller('owner@example.test');
@@ -1272,8 +1394,8 @@ class MarketplaceTest extends TestCase
             ->assertDontSee('Saya ingin')
             ->assertDontSee('Menjual sebagai proyek siswa')
             ->assertDontSee('Nama toko atau kelas');
-        $this->get(route('help'))->assertOk()->assertSee('pertanyaan umum')->assertSee('Cara memesan')->assertSee('Pengambilan barang');
-        $this->get(route('terms'))->assertOk()->assertSee('Terms of Service');
+        $this->get(route('help'))->assertOk()->assertSee('pertanyaan umum')->assertSee('Cara Pemesanan')->assertSee('Pengambilan Barang');
+        $this->get(route('terms'))->assertOk()->assertSeeText('Syarat & ketentuan');
         $this->actingAs($buyer)->get(route('account'))->assertOk()->assertSee('Account information');
         $this->actingAs($buyer)->get(route('cart.index'))->assertOk();
         $this->actingAs($buyer)->get(route('orders.index'))->assertOk();

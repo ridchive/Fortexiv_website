@@ -43,428 +43,261 @@
   .order-summary-row.order-total { align-items: center; padding-top: 14px; }
   .order-summary-row.order-total strong { color: var(--ink); font-size: 18px; }
   .order-summary-row:last-of-type { border-bottom: 0; }
-  .order-summary-note { margin: 12px 0 0; color: var(--muted); font-size: 12px; }
-  .order-payment-actions { margin-top: 14px; padding-top: 14px; border-top: 1px solid var(--line); }
-  .order-payment-actions h3 { margin-bottom: 8px; font-size: 1rem; }
-  .order-payment-actions p { font-size: 13px; }
-  .order-payment-actions .btn { margin: 4px 0; }
-  .order-payment-feedback { margin: 12px 0 0; padding: 11px 13px; border-radius: 8px; font-size: 13px; line-height: 1.5; }
-  .order-payment-feedback--pending { background: var(--info-bg); color: var(--info); }
-  .order-payment-feedback--success { background: var(--good-bg); color: var(--good); }
-  .order-payment-feedback--problem { background: var(--bad-bg); color: var(--bad); }
-  .order-payment-feedback--refund { background: var(--info-bg); color: var(--info); }
-  .order-payment-actions .field { margin-top: 12px; }
-  .order-transfer-details { padding: 12px; border-radius: 8px; background: var(--soft); line-height: 1.7; }
-  .order-qris-image { display: block; width: min(100%, 360px); margin: 12px auto; border: 1px solid var(--line); border-radius: 8px; background: #fff; }
-  .order-payment-amount { display: flex; flex-wrap: wrap; align-items: center; gap: 10px; margin: 12px 0; }
-  .order-copy-feedback { min-height: 20px; color: var(--muted); font-size: 12px; }
-  .order-pickup-details { display: grid; gap: 14px; }
-  .order-pickup-detail { display: grid; grid-template-columns: 22px minmax(0, 1fr); align-items: start; gap: 10px; }
-  .order-pickup-detail svg { margin-top: 2px; color: var(--good); }
-  .order-pickup-detail span, .order-pickup-detail strong { display: block; }
-  .order-pickup-detail span { color: var(--muted); font-size: 12px; }
-  .order-pickup-detail strong { margin-top: 2px; font-size: 14px; overflow-wrap: anywhere; }
-  .order-pickup-instructions { margin: 14px 0 0; padding-top: 12px; border-top: 1px solid var(--line); color: var(--muted); font-size: 13px; }
   .order-ticket { margin: 0; padding: clamp(18px, 2.5vw, 22px); border: 1px solid var(--good); border-radius: var(--radius); background: var(--good-bg); }
   .order-ticket .badge { margin-bottom: 10px; }
   .order-ticket p { margin: 10px 0 16px; color: var(--muted); font-size: 13px; }
   .order-ticket .btn { width: 100%; min-height: 44px; font-size: 14px; }
-  .order-detail .badge.order-state--problem { background: var(--bad-bg); color: var(--bad); }
-  .order-detail .badge.order-state--resolution { background: var(--info-bg); color: var(--info); }
-  .order-detail .badge.order-state--final { background: var(--good-bg); color: var(--good); }
-  .order-detail .badge.good { background: var(--good-bg); color: var(--good); }
-  .order-detail .badge.order-payment--problem { background: var(--bad-bg); color: var(--bad); }
+  .modal-backdrop-custom {
+    position: fixed;
+    inset: 0;
+    z-index: 1000;
+    background: rgba(0,0,0,0.65);
+    backdrop-filter: blur(2px);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 16px;
+  }
+  .modal-card-custom {
+    background: var(--surface);
+    color: var(--ink);
+    border: 1px solid var(--line);
+    border-radius: 14px;
+    width: min(440px, 100%);
+    box-shadow: 0 20px 45px rgba(0,0,0,0.25);
+    overflow: hidden;
+  }
   @media (max-width: 900px) {
     .order-layout { grid-template-columns: minmax(0, 1fr); gap: 20px; }
-    .order-side { grid-template-columns: repeat(2, minmax(0, 1fr)); align-items: start; }
-    .order-summary { grid-row: span 2; }
-  }
-  @media (max-width: 620px) {
-    .order-header { flex-direction: column; gap: 8px; margin: 16px 0 22px; }
-    .order-header > .badge { margin-top: 0; white-space: normal; }
     .order-side { grid-template-columns: minmax(0, 1fr); }
-    .order-summary { grid-row: auto; }
-    .order-group-header { flex-direction: column; gap: 8px; }
-    .order-group-header > .badge { align-self: flex-start; }
-    .order-item { grid-template-columns: minmax(0, 1fr); gap: 4px; }
-    .order-item-money { display: flex; justify-content: space-between; align-items: baseline; gap: 10px; text-align: left; }
-    .order-item-money span { margin-top: 0; text-align: right; white-space: normal; }
   }
 </style>
 
 @php
-  $orderStatusLabels = [
-      'pending_payment' => 'Perlu pembayaran',
-      'waiting_verification' => 'Menunggu konfirmasi',
-      'paid' => 'Aktif untuk pickup',
-      'partially_picked_up' => 'Sebagian selesai',
-      'picked_up' => 'Selesai',
-      'in_resolution' => 'Dalam resolusi',
-      'cancelled' => 'Dibatalkan',
-  ];
-  $orderStatusClasses = [
-      'pending_payment' => 'pending_payment',
-      'waiting_verification' => 'waiting_verification',
-      'paid' => 'paid',
-      'partially_picked_up' => 'partially_delivered',
-      'picked_up' => 'picked_up',
-      'in_resolution' => 'order-state--resolution',
-      'cancelled' => 'cancelled',
-  ];
-  $fulfillmentStatusLabels = [
-      'pending' => 'Menunggu pemenuhan',
-      'ready_for_pickup' => 'Siap pickup',
-      'partially_delivered' => 'Sebagian diserahkan',
-      'delivered' => 'Diserahkan',
-      'problem' => 'Bermasalah',
-      'in_resolution' => 'Dalam resolusi',
-      'final_via_resolution' => 'Final melalui resolusi',
-  ];
-  $fulfillmentStatusClasses = [
-      'pending' => 'pending',
-      'ready_for_pickup' => '',
-      'partially_delivered' => 'partially_delivered',
-      'delivered' => 'delivered',
-      'problem' => 'order-state--problem',
-      'in_resolution' => 'order-state--resolution',
-      'final_via_resolution' => 'order-state--final',
-  ];
-  $paymentStatusLabel = match ($order->payment?->status) {
-      'verified' => 'Dibayar',
-      'pending' => $order->status === 'waiting_verification' ? 'Menunggu konfirmasi' : 'Menunggu Pembayaran',
-      'rejected' => 'Pembayaran ditolak',
-      'failed' => 'Pembayaran gagal',
-      'expired' => 'Pembayaran kedaluwarsa',
-      'cancelled' => 'Pembayaran dibatalkan',
-      'refunded' => 'Dana dikembalikan',
-      'partially_refunded' => 'Dana dikembalikan sebagian',
-      default => match ($order->status) {
-          'pending_payment' => 'Menunggu pembayaran',
-          'waiting_verification' => 'Menunggu konfirmasi',
-          default => 'Belum tersedia',
-      },
-  };
-  $paymentStatusClass = match ($order->payment?->status) {
-      'verified' => 'verified',
-      'pending' => 'pending',
-      'rejected', 'failed', 'expired', 'cancelled' => 'order-payment--problem',
-      'refunded', 'partially_refunded' => 'order-state--resolution',
-      default => '',
-  };
-  $qrisImageAvailable = filled($qrisImage) && is_file(public_path($qrisImage));
+  $qrisImageAvailable = \Illuminate\Support\Facades\Storage::disk('public')->exists('qris-statis.png')
+      || (filled($qrisImage) && is_file(public_path($qrisImage)));
   $ticketAvailable = in_array($order->payment?->status, ['verified', 'partially_refunded'], true)
       && $order->ticket !== null
       && in_array($order->status, ['paid', 'partially_picked_up', 'picked_up'], true);
-  $midtransPending = $order->payment?->gateway === \App\Models\Payment::GATEWAY_MIDTRANS
-      && $order->payment?->status === 'pending'
-      && $order->status === 'pending_payment';
-  $paymentFeedback = match ($order->payment?->status) {
-      'pending' => 'Memverifikasi pembayaran dengan Midtrans. Status akan diperbarui otomatis.',
-      'verified' => 'Pembayaran berhasil. Pesanan siap diproses untuk pickup.',
-      'failed', 'rejected' => 'Pembayaran gagal. Pesanan belum dapat diproses untuk pickup.',
-      'expired' => 'Pembayaran kedaluwarsa. Pesanan belum dibayar.',
-      'cancelled' => 'Pembayaran dibatalkan.',
-      'refunded' => 'Dana pembayaran telah dikembalikan. QR pickup tidak tersedia.',
-      'partially_refunded' => 'Dana dikembalikan sebagian. Hubungi tim FORTEXIV untuk memastikan item pickup yang terdampak.',
-      default => null,
-  };
-  $paymentFeedbackClass = match ($order->payment?->status) {
-      'pending' => 'pending',
-      'verified' => 'success',
-      'failed', 'rejected', 'expired', 'cancelled' => 'problem',
-      'refunded', 'partially_refunded' => 'refund',
-      default => 'pending',
-  };
 @endphp
 
-<div class="wrap order-detail">
-  <nav class="crumb" aria-label="Breadcrumb">
-    <a href="{{ route('home') }}">Beranda</a> /
-    <a href="{{ route('orders.index') }}">Pesanan saya</a> /
-    <span>{{ $order->order_code }}</span>
-  </nav>
+@if($order->status === 'pending_payment')
+  {{-- VIEW COMPACT PEMBAYARAN MOBILE-FIRST --}}
+  <div class="wrap" style="max-width: 480px; margin: 0 auto; padding: 12px 16px 40px;">
+    <nav class="crumb" aria-label="Breadcrumb" style="margin-bottom: 14px;">
+      <a href="{{ route('orders.index') }}">← Kembali ke Pesanan Saya</a>
+    </nav>
 
-  <header class="order-header">
-    <div>
-      <span class="eyebrow">DETAIL PESANAN</span>
-      <h1>{{ $order->order_code }}</h1>
-      <p class="order-created">Dibuat {{ $order->created_at->format('d/m/Y · H:i') }}</p>
-    </div>
-    <span class="badge {{ $orderStatusClasses[$order->status] ?? '' }}" data-order-status-badge>
-      {{ $orderStatusLabels[$order->status] ?? $order->status }}
-    </span>
-  </header>
+    <div class="panel" style="padding: 22px; border-radius: 14px; text-align: center;">
+      <span class="badge pending_payment" style="margin-bottom: 8px;">Menunggu Pembayaran</span>
+      <h1 style="font-size: 1.45rem; margin: 4px 0 2px;">Pembayaran Pesanan</h1>
+      <p class="muted" style="font-size: 12.5px; margin: 0 0 16px;">Kode: <strong>{{ $order->order_code }}</strong></p>
 
-  <div class="order-layout">
-    <div class="order-main">
-      <section class="order-section" aria-labelledby="fulfillment-heading">
-        <div class="order-section-heading">
-          <div>
-            <span class="eyebrow">PICKUP PER KELAS</span>
-            <h2 id="fulfillment-heading">Status grup kelas</h2>
-          </div>
-          <span>{{ $order->fulfillments->count() }} grup kelas</span>
+      @if($order->payment?->status === 'rejected')
+        <div style="margin-bottom: 14px; text-align: left; font-size: 13px; background: var(--bad-bg); color: var(--bad); padding: 10px 14px; border-radius: 8px;">
+          <strong>Bukti sebelumnya ditolak:</strong> {{ $order->payment->notes ?: 'Silakan unggah bukti transfer yang jelas dan sesuai nominal.' }}
+        </div>
+      @endif
+
+      {{-- FOTO QRIS --}}
+      @if($qrisImageAvailable)
+        <div style="background: #fff; padding: 12px; border: 1px solid var(--line); border-radius: 12px; display: inline-block; max-width: 100%; margin-bottom: 14px;">
+          <img src="{{ Route::has('qris.image') ? route('qris.image') : url('/qris-image') }}" alt="QRIS FORTEXIV" style="max-height: 220px; width: auto; max-width: 100%; object-fit: contain; display: block; margin: 0 auto;">
+        </div>
+      @endif
+
+      {{-- TOTAL HARGA & SALIN NOMINAL --}}
+      <div style="background: var(--soft); padding: 14px; border-radius: 10px; margin-bottom: 18px;">
+        <span class="muted" style="font-size: 12.5px; display: block;">Total yang perlu dibayar adalah:</span>
+        <div style="font-size: 1.6rem; font-weight: 800; color: var(--good); font-family: var(--fd); margin: 4px 0 8px;">
+          {{ \App\Support\Money::format($order->total_price) }}
+        </div>
+        <button type="button" class="btn sec btn-sm" onclick="copyRawPrice('{{ $order->total_price }}')" style="font-size: 12px; padding: 5px 14px;">
+          <span id="copyBtnText">📋 Salin Nominal ({{ $order->total_price }})</span>
+        </button>
+      </div>
+
+      {{-- FORM UPLOAD BUKTI TF --}}
+      <form id="proofForm" method="post" action="{{ route('payments.store', $order) }}" enctype="multipart/form-data" style="text-align: left;">
+        @csrf
+        <input type="hidden" name="method" value="QRIS">
+        
+        <div class="field" style="margin-bottom: 14px;">
+          <label for="proof_input" style="display: block; font-size: 13px; font-weight: 700; margin-bottom: 6px;">
+            Masukkan file bukti transfer (JPG, PNG, PDF):
+          </label>
+          <input class="input" id="proof_input" name="proof" type="file" accept=".jpg,.jpeg,.png,.pdf" required style="font-size: 13px;">
+          @error('proof')
+            <p class="checkout-error">{{ $message }}</p>
+          @enderror
         </div>
 
-        <div class="order-groups">
-          @forelse($order->fulfillments as $fulfillment)
-            @php
-              $groupQuantity = $fulfillment->items->sum('quantity');
-              $groupSubtotal = $fulfillment->items->sum('subtotal');
-          @endphp
-            <article class="order-group">
-              <header class="order-group-header">
-                <div>
-                  <span class="eyebrow">GRUP KELAS</span>
-                  <h3>{{ $fulfillment->class_name ?? $fulfillment->project?->class_name ?? $fulfillment->seller->store_name }}</h3>
-                  <span class="order-seller">{{ $fulfillment->seller->store_name }}</span>
-                  @if($fulfillment->project?->is_published)
-                    <a class="order-story-link" href="{{ route('projects.show', $fulfillment->project) }}">Lihat cerita proyek</a>
-                  @endif
-                </div>
-                <span class="badge {{ $fulfillmentStatusClasses[$fulfillment->status] ?? '' }}">
-                  {{ $fulfillmentStatusLabels[$fulfillment->status] ?? $fulfillment->status }}
-                </span>
-              </header>
+        <button type="button" class="btn" id="btnShowConfirmPopup" onclick="handlePreSubmit()" style="width: 100%; min-height: 44px; font-weight: 700;">
+          {{ $order->payment?->status === 'rejected' ? 'Unggah Ulang Bukti Pembayaran' : 'Kirim Bukti Pembayaran' }}
+        </button>
+      </form>
 
-              <ul class="order-items">
-                @foreach($fulfillment->items as $item)
-                  @php
-                    $deliveredCount = $item->units->where('status', 'delivered')->count();
-                    $itemStatus = $deliveredCount === $item->quantity
-                        ? 'Diserahkan'
-                        : ($deliveredCount > 0 ? 'Sebagian diserahkan' : 'Menunggu pickup');
-                  @endphp
+      {{-- COLLAPSIBLE RINCIAN PESANAN --}}
+      <details style="margin-top: 16px; text-align: left; border-top: 1px solid var(--line); padding-top: 10px;">
+        <summary class="muted" style="cursor: pointer; font-size: 12.5px; font-weight: 600;">
+          Lihat rincian produk ({{ $order->items->sum('quantity') }} item) ▾
+        </summary>
+        <div style="margin-top: 10px; font-size: 12.5px; display: grid; gap: 8px;">
+          @foreach($order->items as $item)
+            <div style="display: flex; justify-content: space-between; gap: 10px;">
+              <span>• {{ $item->product_name }} ({{ $item->quantity }}) — <span class="muted">{{ $item->class_name }}</span></span>
+              <strong>{{ \App\Support\Money::format($item->subtotal) }}</strong>
+            </div>
+          @endforeach
+        </div>
+      </details>
+    </div>
+  </div>
+
+  {{-- POPUP MODAL KONFIRMASI MANUAL --}}
+  <div id="confirmManualModal" class="modal-backdrop-custom" style="display: none;">
+    <div class="modal-card-custom" role="dialog" aria-modal="true" style="max-width: 400px; text-align: center; padding: 24px;">
+      <div style="font-size: 38px; margin-bottom: 6px;">⏳</div>
+      <h3 style="margin: 0 0 10px; font-size: 1.25rem;">Informasi Verifikasi</h3>
+      <p style="font-size: 13px; line-height: 1.55; color: var(--muted); margin: 0 0 20px;">
+        Bukti transfer akan kami proses dan diverifikasi secara manual oleh admin. 
+        <strong style="color: var(--ink);">Verifikasi dapat memakan waktu beberapa saat</strong>. 
+        Tiket pickup QR akan otomatis aktif di halaman ini segera setelah verifikasi selesai.
+      </p>
+      <div style="display: flex; gap: 10px;">
+        <button type="button" class="btn sec" onclick="closeConfirmModal()" style="flex: 1;">Batal</button>
+        <button type="button" class="btn" onclick="submitProofForm()" style="flex: 1;">Lanjutkan</button>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    function copyRawPrice(price) {
+      if (navigator.clipboard && navigator.clipboard.writeText) {
+        navigator.clipboard.writeText(price).then(() => {
+          const btn = document.getElementById('copyBtnText');
+          if (btn) {
+            const orig = btn.textContent;
+            btn.textContent = '✓ Nominal Disalin!';
+            setTimeout(() => btn.textContent = orig, 2000);
+          }
+        });
+      } else {
+        alert('Nominal: ' + price);
+      }
+    }
+
+    function handlePreSubmit() {
+      const input = document.getElementById('proof_input');
+      if (!input.files || input.files.length === 0) {
+        input.reportValidity();
+        return;
+      }
+      document.getElementById('confirmManualModal').style.display = 'flex';
+    }
+
+    function closeConfirmModal() {
+      document.getElementById('confirmManualModal').style.display = 'none';
+    }
+
+    function submitProofForm() {
+      document.getElementById('confirmManualModal').style.display = 'none';
+      const btn = document.getElementById('btnShowConfirmPopup');
+      btn.disabled = true;
+      btn.textContent = 'Mengunggah bukti...';
+      document.getElementById('proofForm').submit();
+    }
+  </script>
+
+@else
+
+  {{-- VIEW PESANAN LENGKAP / WAITING VERIFICATION / LUNAS / TIKET PICKUP --}}
+  <div class="wrap order-detail">
+    <nav class="crumb" aria-label="Breadcrumb">
+      <a href="{{ route('home') }}">Beranda</a> /
+      <a href="{{ route('orders.index') }}">Pesanan saya</a> /
+      <span>{{ $order->order_code }}</span>
+    </nav>
+
+    <header class="order-header">
+      <div>
+        <span class="eyebrow">DETAIL PESANAN</span>
+        <h1>{{ $order->order_code }}</h1>
+        <p class="order-created">Dibuat {{ $order->created_at->format('d/m/Y · H:i') }}</p>
+      </div>
+      <span class="badge {{ $order->status }}">
+        @if($order->status === 'waiting_verification')
+          ⏳ Menunggu Verifikasi Admin
+        @elseif($order->status === 'paid')
+          ✓ Pembayaran Lunas
+        @else
+          {{ ucfirst(str_replace('_', ' ', $order->status)) }}
+        @endif
+      </span>
+    </header>
+
+    @if($order->status === 'waiting_verification')
+      <div class="panel" style="background: var(--good-bg); border-color: var(--good); padding: 18px 20px; margin-bottom: 24px; border-radius: 12px;">
+        <strong style="color: var(--good); font-size: 1.05rem; display: block; margin-bottom: 4px;">
+          ⏳ Bukti Transfer Telah Diterima!
+        </strong>
+        <p style="margin: 0; font-size: 13.5px; color: var(--ink); line-height: 1.55;">
+          Pembayaran Anda sedang diverifikasi secara manual oleh admin. 
+          <strong>Verifikasi dapat memakan waktu beberapa saat</strong>. 
+          Tiket &amp; QR pickup akan otomatis muncul dan aktif di halaman ini setelah verifikasi berhasil.
+        </p>
+      </div>
+    @endif
+
+    <div class="order-layout">
+      <div class="order-main">
+        <section aria-labelledby="order-items-heading">
+          <div class="order-section-heading">
+            <h2 id="order-items-heading">Produk yang dipesan</h2>
+            <span>{{ $order->items->sum('quantity') }} produk</span>
+          </div>
+
+          <div class="order-groups">
+            <div class="order-group">
+              <ul class="order-items" style="margin-top: 0; border-top: 0;">
+                @foreach($order->items as $item)
                   <li class="order-item">
                     <div>
-                      <strong class="order-item-name">{{ $item->product_name }} × {{ $item->quantity }}</strong>
-                      @if($item->carbon_contribution !== null)
-                        <span class="order-item-meta">Kontribusi CEA {{ number_format((float) $item->carbon_contribution, 6, ',', '.') }} kg CO2e</span>
-                      @elseif($order->payment?->status !== 'verified')
-                        <span class="order-item-meta">Kontribusi menunggu verifikasi pembayaran</span>
-                      @elseif(!in_array($order->status, ['paid', 'partially_picked_up', 'picked_up'], true))
-                        <span class="order-item-meta">Kontribusi belum dapat dihitung untuk pesanan ini</span>
-                      @elseif($item->carbon_baseline_emission_factor_at_purchase === null || $item->carbon_footprint_value_at_purchase === null)
-                        <span class="order-item-meta">Data faktor emisi belum lengkap</span>
-                      @else
-                        <span class="order-item-meta">Kontribusi belum tercatat</span>
-                      @endif
+                      <strong class="order-item-name">{{ $item->product_name }}</strong>
+                      <span class="order-item-meta">{{ $item->quantity }} × {{ \App\Support\Money::format($item->price_at_order) }} &middot; {{ $item->class_name }}</span>
                     </div>
                     <div class="order-item-money">
                       <strong>{{ \App\Support\Money::format($item->subtotal) }}</strong>
-                      <span>{{ $itemStatus }}</span>
                     </div>
                   </li>
                 @endforeach
               </ul>
-
-              <div class="order-group-total">
-                <span>{{ $groupQuantity }} produk dalam grup ini</span>
-                <strong>{{ \App\Support\Money::format($groupSubtotal) }}</strong>
-              </div>
-              @if($fulfillment->handed_over_at)
-                <p class="order-handover-time">Diserahkan {{ $fulfillment->handed_over_at->format('d/m/Y H:i') }}.</p>
-              @endif
-            </article>
-          @empty
-            <div class="empty"><p>Informasi grup pickup belum tersedia untuk pesanan ini.</p></div>
-          @endforelse
-        </div>
-      </section>
-
-      <section class="panel order-pickup" aria-labelledby="pickup-heading">
-        <span class="eyebrow">HARI PENGAMBILAN</span>
-        <h2 id="pickup-heading">Informasi pengambilan</h2>
-        <div class="order-pickup-details">
-          <div class="order-pickup-detail">
-            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true">
-              <rect x="3" y="5" width="18" height="16" rx="2"></rect>
-              <path d="M16 3v4M8 3v4M3 10h18"></path>
-            </svg>
-            <div>
-              <span>Tanggal dan jam pickup</span>
-              <strong>{{ $order->pickup_date->format('d/m/Y') }}</strong>
-              @if($pickupTime)
-                <span>Pukul {{ $pickupTime }}</span>
-              @endif
-            </div>
-          </div>
-          <div class="order-pickup-detail">
-            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true">
-              <path d="M20 10c0 5-8 12-8 12S4 15 4 10a8 8 0 1 1 16 0Z"></path>
-              <circle cx="12" cy="10" r="2.5"></circle>
-            </svg>
-            <div>
-              <span>Lokasi pengambilan</span>
-              <strong>{{ $pickupLocation ?: 'Informasi lokasi belum tersedia.' }}</strong>
-            </div>
-          </div>
-        </div>
-        @if($pickupInstructions)
-          <p class="order-pickup-instructions">{{ $pickupInstructions }}</p>
-        @endif
-      </section>
-    </div>
-
-    <aside class="order-side" aria-label="Ringkasan dan tiket pickup">
-      <section class="panel order-summary" aria-labelledby="summary-heading">
-        <span class="eyebrow">RINGKASAN</span>
-        <h2 id="summary-heading">Pesanan Anda</h2>
-        <div class="order-summary-row">
-          <span>Jumlah grup kelas</span>
-          <strong>{{ $order->fulfillments->count() }} grup</strong>
-        </div>
-        <div class="order-summary-row order-total">
-          <span>Total pembayaran</span>
-          <strong>{{ \App\Support\Money::format($order->total_price) }}</strong>
-        </div>
-        <div class="order-summary-row">
-          <span>Status pembayaran</span>
-          <span class="badge {{ $paymentStatusClass }}" data-payment-status-badge>{{ $paymentStatusLabel }}</span>
-        </div>
-        @if(($order->payment?->gateway === \App\Models\Payment::GATEWAY_MIDTRANS || $order->payment?->status === 'verified') && $paymentFeedback)
-          <p class="order-payment-feedback order-payment-feedback--{{ $paymentFeedbackClass }}" data-payment-feedback role="status" aria-live="polite">{{ $paymentFeedback }}</p>
-        @endif
-        @if($midtransPending)
-          <div data-midtrans-payment-monitor data-status-url="{{ route('payments.midtrans.status', $order) }}" hidden></div>
-        @endif
-        <div class="order-summary-row">
-          <span>Nama pengambil</span>
-          <strong>{{ $order->pickup_contact_name ?? $order->buyer->name }}</strong>
-        </div>
-        <div class="order-summary-row">
-          <span>WhatsApp pengambil</span>
-          <strong dir="ltr">{{ $order->pickup_contact_phone ?: 'Belum tersedia' }}</strong>
-        </div>
-        @if($order->payment?->notes && $order->payment?->status !== 'rejected')
-          <p class="order-summary-note">Catatan admin: {{ $order->payment->notes }}</p>
-        @endif
-        @if($order->terms_accepted_at)
-          <p class="order-summary-note">Ketentuan pesanan disetujui {{ $order->terms_accepted_at->format('d/m/Y H:i') }}.</p>
-        @endif
-
-        @if($order->status === 'pending_payment')
-          <div class="order-payment-actions" data-payment-actions>
-            <h3>Selesaikan pembayaran</h3>
-            @if($order->payment?->gateway === \App\Models\Payment::GATEWAY_MIDTRANS)
-              <p class="muted">Selesaikan pembayaran di halaman Midtrans. Setelah kembali, status akan diperbarui otomatis.</p>
-              @if($order->payment->snap_redirect_url)
-                <a class="btn" href="{{ $order->payment->snap_redirect_url }}">Lanjutkan pembayaran</a>
-              @elseif($order->payment->status === 'pending')
-                <p class="muted">Halaman pembayaran belum dapat disiapkan. Silakan coba lagi.</p>
-                <form method="post" action="{{ route('payments.midtrans.retry', $order) }}">
-                  @csrf
-                  <button class="btn" type="submit">Coba siapkan pembayaran lagi</button>
-                </form>
-                <p class="note warn">Jika Anda sudah menyelesaikan pembayaran, hubungi admin sebelum mencoba lagi.</p>
-              @else
-                <p class="muted">Pembayaran belum dapat dilanjutkan. Hubungi admin untuk memeriksa transaksi.</p>
-              @endif
-            @else
-              @if($order->payment?->status === 'rejected')
-                <p class="order-payment-feedback order-payment-feedback--problem" role="alert">
-                  Pembayaran ditolak. Alasan: {{ $order->payment->notes ?: 'Admin belum memberikan alasan.' }}
-                </p>
-              @endif
-              @if($qrisImageAvailable)
-                <img class="order-qris-image" src="{{ asset($qrisImage) }}" alt="QRIS statis resmi FORTEXIV">
-              @endif
-              <div class="order-payment-amount">
+              <div class="order-group-total" style="margin-top: 12px;">
+                <span>Total</span>
                 <strong>{{ \App\Support\Money::format($order->total_price) }}</strong>
-                <button class="btn sec" type="button" data-copy-payment-amount="{{ $order->total_price }}">Salin Nominal</button>
               </div>
-              <p class="order-copy-feedback" data-copy-payment-feedback aria-live="polite"></p>
-              @if($qrisImageAvailable)
-                <p>Scan QRIS di atas, masukkan nominal yang sesuai, lalu unggah screenshot bukti pembayaran di bawah ini.</p>
-              @elseif(config('marketplace.bank_name') && config('marketplace.account_name') && config('marketplace.account_number'))
-                <p>Transfer sesuai total pesanan, lalu unggah bukti transfer JPG, PNG, atau PDF (maksimum 5 MB).</p>
-              @else
-                <p class="note warn">Poster QRIS statis FORTEXIV atau informasi transfer belum dikonfigurasi. Jangan lakukan pembayaran sampai instruksi resmi tersedia.</p>
-              @endif
-              @if(config('marketplace.bank_name') && config('marketplace.account_name') && config('marketplace.account_number'))
-                <p class="order-transfer-details">
-                  <strong>{{ config('marketplace.bank_name') }}</strong><br>
-                  Nama rekening: {{ config('marketplace.account_name') }}<br>
-                  Nomor rekening: {{ config('marketplace.account_number') }}
-                </p>
-              @endif
-              @if($manualPaymentConfigured)
-                <form method="post" action="{{ route('payments.store', $order) }}" enctype="multipart/form-data">
-                  @csrf
-                  <div class="field">
-                    <label for="method">Metode pembayaran</label>
-                    <input class="input" id="method" name="method" value="{{ old('method', $qrisImageAvailable ? 'QRIS' : 'Transfer Bank') }}" maxlength="50" required>
-                    @error('method')
-                      <p class="checkout-error">{{ $message }}</p>
-                    @enderror
-                  </div>
-                  <div class="field">
-                    <label for="proof">Bukti pembayaran (JPG, PNG, atau PDF; maksimum 5 MB)</label>
-                    <input class="input" id="proof" name="proof" type="file" accept=".jpg,.jpeg,.png,.pdf" required>
-                    @error('proof')
-                      <p class="checkout-error">{{ $message }}</p>
-                    @enderror
-                  </div>
-                  <button class="btn" type="submit">{{ $order->payment?->status === 'rejected' ? 'Unggah Ulang Bukti Pembayaran' : 'Kirim Bukti Pembayaran' }}</button>
-                </form>
-              @endif
-            @endif
+            </div>
           </div>
-        @elseif($order->status === 'waiting_verification' && $order->payment?->status === 'pending')
-          <p class="order-summary-note">Pembayaran sedang diperiksa oleh admin. QR pickup akan aktif setelah pembayaran diverifikasi.</p>
-        @endif
-      </section>
+        </section>
+      </div>
 
-      <section class="order-ticket" aria-labelledby="ticket-heading">
-        <span class="badge {{ $ticketAvailable ? 'good' : 'pending' }}" data-ticket-availability-badge>
-          {{ $ticketAvailable ? 'Tiket tersedia' : 'Tiket belum tersedia' }}
-        </span>
-        <h2 id="ticket-heading">Tiket & QR pickup</h2>
-        <div data-ticket-pending @if($ticketAvailable) hidden @endif>
-          <p data-ticket-pending-message>
-            @if(in_array($order->payment?->status, ['pending', null], true))
-              QR pickup akan tersedia setelah pembayaran terverifikasi.
-            @else
-              QR pickup belum tersedia karena status pembayaran atau pesanan saat ini.
-            @endif
-          </p>
-        </div>
-        <div data-ticket-ready @unless($ticketAvailable) hidden @endunless>
-          <p>Tampilkan QR kepada petugas kelas saat mengambil produk. Penyerahan tetap dikonfirmasi untuk setiap grup kelas.</p>
-          <a class="btn lime" href="{{ route('tickets.show', $order) }}" data-ticket-link>Buka Tiket & Tampilkan QR</a>
-        </div>
-      </section>
-    </aside>
+      <aside class="order-side">
+        <section class="order-ticket" aria-labelledby="ticket-heading">
+          <span class="badge {{ $ticketAvailable ? 'good' : 'pending' }}">
+            {{ $ticketAvailable ? 'Tiket Tersedia' : 'Tiket Menunggu Verifikasi' }}
+          </span>
+          <h2 id="ticket-heading" style="margin-top: 8px;">Tiket &amp; QR Pickup</h2>
+          
+          @if($ticketAvailable)
+            <p>Tunjukkan tiket QR ini kepada petugas kelas saat pengambilan produk pada Hari H.</p>
+            <a class="btn lime" href="{{ route('tickets.show', $order) }}">Buka Tiket &amp; Tampilkan QR</a>
+          @else
+            <p>QR pickup akan otomatis aktif di sini segera setelah bukti pembayaran Anda diverifikasi oleh admin.</p>
+          @endif
+        </section>
+      </aside>
+    </div>
   </div>
-</div>
-@endsection
 
-@if($order->status === 'pending_payment' && $order->payment?->gateway !== \App\Models\Payment::GATEWAY_MIDTRANS)
-  @push('scripts')
-    <script>
-      (() => {
-        const copyButton = document.querySelector('[data-copy-payment-amount]');
-        const feedback = document.querySelector('[data-copy-payment-feedback]');
-
-        if (!copyButton || !feedback) {
-          return;
-        }
-
-        copyButton.addEventListener('click', () => {
-          if (!navigator.clipboard?.writeText) {
-            feedback.textContent = 'Browser tidak mendukung salin otomatis. Silakan salin nominal secara manual.';
-            return;
-          }
-
-          navigator.clipboard.writeText(copyButton.dataset.copyPaymentAmount)
-            .then(() => {
-              feedback.textContent = 'Nominal berhasil disalin.';
-            })
-            .catch(() => {
-              feedback.textContent = 'Nominal gagal disalin. Silakan salin secara manual.';
-            });
-        });
-      })();
-    </script>
-  @endpush
 @endif
+@endsection

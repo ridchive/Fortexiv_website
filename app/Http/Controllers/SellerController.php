@@ -118,7 +118,7 @@ class SellerController extends Controller
 
     public function store(Request $request): RedirectResponse
     {
-        $data = $this->validatedProduct($request);
+        $data = $this->validatedProduct($request, requireImage: true);
         $data['slug'] = $this->uniqueSlug($data['name']);
         $data['image'] = $request->file('image')?->store('products', 'public');
         $data['project_id'] = $request->user()->seller->project_id;
@@ -142,7 +142,7 @@ class SellerController extends Controller
     public function update(Request $request, Product $product): RedirectResponse
     {
         $this->authorizeProduct($request, $product);
-        $data = $this->validatedProduct($request);
+        $data = $this->validatedProduct($request, requireImage: ! $product->image);
         if ($product->name !== $data['name']) {
             $data['slug'] = $this->uniqueSlug($data['name'], $product->id);
         }
@@ -214,10 +214,12 @@ class SellerController extends Controller
     public function previewQr(Request $request, PreviewOrderQr $previewOrderQr): JsonResponse
     {
         $data = $request->validate([
-            'type' => ['required', Rule::in(['class', 'product'])],
+            'type' => ['required', Rule::in(['class', 'product', 'store'])],
             'token' => ['required', 'string', 'max:80'],
         ]);
-        $preview = $previewOrderQr->handle(Str::upper(trim($data['token'])), $data['type'], $request->user()->seller);
+        $token = Str::upper(trim($data['token']));
+        $type = Str::startsWith($token, 'FTXS-') ? 'store' : $data['type'];
+        $preview = $previewOrderQr->handle($token, $type, $request->user()->seller);
 
         return response()->json(['data' => $preview]);
     }
@@ -225,27 +227,57 @@ class SellerController extends Controller
     public function confirmQr(Request $request, CompleteOrderQr $completeOrderQr): JsonResponse
     {
         $data = $request->validate([
-            'type' => ['required', Rule::in(['class', 'product'])],
+            'type' => ['required', Rule::in(['class', 'product', 'store'])],
             'token' => ['required', 'string', 'max:80'],
         ]);
         $token = Str::upper(trim($data['token']));
         $seller = $request->user()->seller;
 
-        if ($data['type'] === 'class') {
-            $fulfillment = $completeOrderQr->completeClass($token, $seller, $request->user());
+        if ($data['type'] === 'store' || Str::startsWith($token, 'FTXS-')) {
+            $result = $completeOrderQr->completeStore($token, $seller, $request->user());
 
             return response()->json([
-                'message' => "Seluruh produk kelas {$fulfillment->class_name} berhasil ditandai Delivered.",
+                'message' => "Seluruh produk untuk {$result['buyer_name']} di toko {$result['store_name']} ({$result['delivered_count']} item) berhasil diserahkan (Delivered).",
+                'status' => 'delivered',
+                'data' => $result,
+            ]);
+        }
+
+        if ($data['type'] === 'class') {
+            $fulfillment = $completeOrderQr->completeClass($token, $seller, $request->user());
+            $fulfillment->load(['order.buyer', 'items.units']);
+            $products = $fulfillment->items->map(fn ($item) => [
+                'name' => $item->product_name,
+                'delivered_now' => $item->units->where('status', 'delivered')->count(),
+            ])->all();
+
+            return response()->json([
+                'message' => "Seluruh produk kelas {$fulfillment->class_name} berhasil diserahkan (Delivered).",
                 'status' => $fulfillment->status,
+                'data' => [
+                    'buyer_name' => $fulfillment->order->pickup_contact_name ?? $fulfillment->order->buyer?->name ?? 'Pembeli',
+                    'store_name' => $fulfillment->class_name,
+                    'delivered_count' => array_sum(array_column($products, 'delivered_now')),
+                    'products' => $products,
+                ],
             ]);
         }
 
         $unit = $completeOrderQr->completeProduct($token, $seller, $request->user());
-        $unit->load('orderItem');
+        $unit->load(['orderItem.order.buyer']);
 
         return response()->json([
-            'message' => "Produk {$unit->orderItem->product_name} berhasil ditandai Delivered.",
+            'message' => "Produk {$unit->orderItem->product_name} berhasil diserahkan (Delivered).",
             'status' => $unit->status,
+            'data' => [
+                'buyer_name' => $unit->orderItem->order->buyer?->name ?? 'Pembeli',
+                'store_name' => $seller->store_name,
+                'delivered_count' => 1,
+                'products' => [[
+                    'name' => $unit->orderItem->product_name,
+                    'delivered_now' => 1,
+                ]],
+            ],
         ]);
     }
 
@@ -259,15 +291,25 @@ class SellerController extends Controller
         return back()->with('status', "Grup {$fulfillment->seller->store_name} pada pesanan {$fulfillment->order->order_code} berhasil diserahkan.");
     }
 
-    private function validatedProduct(Request $request): array
+    private function validatedProduct(Request $request, bool $requireImage = false): array
     {
         return $request->validate([
             'name' => ['required', 'string', 'max:120'],
             'description' => ['required', 'string', 'max:10000'],
             'price' => ['required', 'integer', 'min:1', 'max:100000000'],
             'stock' => ['required', 'integer', 'min:0', 'max:100000'],
-            'category_id' => ['nullable', 'integer', 'exists:categories,id'],
-            'image' => ['nullable', 'image', 'mimes:jpg,jpeg,png,webp', 'max:5120'],
+            'category_id' => ['required', 'integer', 'exists:categories,id'],
+            'image' => [$requireImage ? 'required' : 'nullable', 'image', 'mimes:jpg,jpeg,png,webp', 'max:5120'],
+        ], [
+            'name.required' => 'Nama produk wajib diisi.',
+            'description.required' => 'Deskripsi produk wajib diisi.',
+            'price.required' => 'Harga produk wajib diisi.',
+            'stock.required' => 'Stok produk wajib diisi.',
+            'category_id.required' => 'Kategori produk wajib dipilih.',
+            'image.required' => 'Gambar produk wajib diunggah.',
+            'image.image' => 'File harus berupa gambar.',
+            'image.mimes' => 'Format gambar yang didukung: JPG, JPEG, PNG, WebP.',
+            'image.max' => 'Ukuran gambar maksimal 5 MB.',
         ]);
     }
 

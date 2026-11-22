@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Actions\CompleteOrderQr;
 use App\Models\CartItem;
 use App\Models\Category;
 use App\Models\EventSetting;
@@ -24,6 +25,7 @@ use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Schema;
+use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
 use Illuminate\Validation\Rule;
 use Illuminate\Validation\ValidationException;
@@ -117,6 +119,7 @@ class MarketplaceController extends Controller
             ->where('is_published', true)
             ->when($hasArticleColumn, fn ($q) => $q->where('has_article', true))
             ->when($request->integer('class'), fn (Builder $query, int $classId) => $query->whereKey($classId))
+            ->orderBy('grade')
             ->orderBy('class_name')
             ->paginate(12)
             ->withQueryString();
@@ -128,7 +131,7 @@ class MarketplaceController extends Controller
 
         return view('marketplace.projects', [
             'projects' => $projects,
-            'classes' => $classesQuery->orderBy('class_name')->get(['id', 'class_name']),
+            'classes' => $classesQuery->orderBy('grade')->orderBy('class_name')->get(['id', 'class_name', 'grade']),
         ]);
     }
 
@@ -158,19 +161,9 @@ class MarketplaceController extends Controller
             'products' => $products,
             'classes' => Project::query()
                 ->where('is_published', true)
-                ->whereIn('class_name', [
-                    'kelas 1',
-                    'kelas 2',
-                    'kelas 3',
-                    'kelas 4',
-                    'kelas 5',
-                    'kelas 7',
-                    'kelas 8',
-                    'ISTC basic & Intermediate',
-                    'ISTC Advance & Master',
-                ])
-                ->orderBy('id')
-                ->get(['id', 'class_name']),
+                ->orderBy('grade')
+                ->orderBy('class_name')
+                ->get(['id', 'class_name', 'grade']),
             'categories' => Category::query()->orderBy('name')->get(),
             'window' => $purchaseWindow->details(),
         ]);
@@ -327,18 +320,19 @@ class MarketplaceController extends Controller
             'mode' => ['required', Rule::in(['cart', 'now'])],
             'product_id' => ['required_if:mode,now', 'nullable', 'integer', 'exists:products,id'],
             'quantity' => ['required_if:mode,now', 'nullable', 'integer', 'min:1', 'max:100'],
-            'pickup_contact_name' => ['required', 'string', 'max:100'],
-            'pickup_contact_phone' => ['required', 'string', 'max:30'],
+            'pickup_contact_name' => ['nullable', 'string', 'max:100'],
+            'pickup_contact_phone' => ['nullable', 'string', 'max:30'],
             'accepted_terms' => ['required', 'accepted'],
             'payment_method' => ['sometimes', 'required', Rule::in([Payment::GATEWAY_MANUAL])],
         ], [
-            'accepted_terms.required' => 'Setujui Terms of Service sebelum mengonfirmasi pesanan.',
-            'accepted_terms.accepted' => 'Setujui Terms of Service sebelum mengonfirmasi pesanan.',
-            'pickup_contact_name.required' => 'Nama pengambil wajib diisi.',
-            'pickup_contact_phone.required' => 'Nomor WhatsApp wajib diisi.',
+            'accepted_terms.required' => 'Setujui syarat & ketentuan sebelum mengonfirmasi pesanan.',
+            'accepted_terms.accepted' => 'Setujui syarat & ketentuan sebelum mengonfirmasi pesanan.',
         ]);
 
-        $order = DB::transaction(function () use ($request, $data, $purchaseWindow): Order {
+        $pickupContactName = trim((string) ($request->input('pickup_contact_name') ?: $request->user()->name));
+        $pickupContactPhone = trim((string) ($request->input('pickup_contact_phone') ?: $request->user()->phone ?: '-'));
+
+        $order = DB::transaction(function () use ($request, $data, $purchaseWindow, $pickupContactName, $pickupContactPhone): Order {
             if (! $purchaseWindow->canAcceptOrders()) {
                 throw ValidationException::withMessages(['po' => 'Jendela PO sudah berubah. Pesanan baru tidak dapat dibuat.']);
             }
@@ -409,8 +403,8 @@ class MarketplaceController extends Controller
                 'status' => 'pending_payment',
                 'total_price' => $total,
                 'pickup_date' => $eventAt->toDateString(),
-                'pickup_contact_name' => $data['pickup_contact_name'],
-                'pickup_contact_phone' => $data['pickup_contact_phone'],
+                'pickup_contact_name' => $pickupContactName,
+                'pickup_contact_phone' => $pickupContactPhone,
                 'terms_accepted_at' => now(),
                 'terms_version' => config('marketplace.terms_version'),
             ]);
@@ -602,6 +596,35 @@ class MarketplaceController extends Controller
         ])->header('Cache-Control', 'no-store');
     }
 
+    public function simulatePayment(Request $request, Order $order): RedirectResponse
+    {
+        abort_unless($order->buyer_id === $request->user()->id, 404);
+
+        DB::transaction(function () use ($order): void {
+            $lockedOrder = Order::query()->whereKey($order->id)->lockForUpdate()->firstOrFail();
+            abort_unless($lockedOrder->status === 'pending_payment', 422, 'Pesanan ini tidak menunggu pembayaran.');
+
+            $payment = $lockedOrder->payment()->lockForUpdate()->first();
+            abort_unless(
+                $payment !== null
+                    && $payment->gateway === Payment::GATEWAY_MANUAL
+                    && $payment->status === 'pending',
+                422,
+                'Pembayaran ini tidak dapat disimulasikan.',
+            );
+
+            $payment->update([
+                'method' => 'DEMO',
+                'status' => 'verified',
+                'verified_by' => null,
+                'verified_at' => now(),
+            ]);
+            $lockedOrder->update(['status' => 'paid']);
+        });
+
+        return redirect()->route('orders.show', $order)->with('status', 'Pembayaran berhasil disimulasikan!');
+    }
+
     public function uploadPayment(Request $request, Order $order): RedirectResponse
     {
         abort_unless($this->transferConfigured(), 503, 'Instruksi pembayaran manual belum dikonfigurasi.');
@@ -639,7 +662,7 @@ class MarketplaceController extends Controller
             $lockedOrder->update(['status' => 'waiting_verification']);
         });
 
-        return back()->with('status', 'Bukti pembayaran berhasil dikirim dan menunggu verifikasi admin.');
+        return back()->with('status', 'Bukti transfer berhasil dikirim! Pembayaran Anda sedang diproses dan diverifikasi secara manual oleh admin. Proses verifikasi dapat memakan waktu beberapa saat. Tiket pickup QR akan otomatis aktif setelah pembayaran diverifikasi.');
     }
 
     public function ticket(Request $request, Order $order): View
@@ -661,6 +684,78 @@ class MarketplaceController extends Controller
         $order->load(['fulfillments.seller.project', 'fulfillments.project', 'fulfillments.items.units', 'ticket']);
 
         return view('marketplace.ticket', compact('order'));
+    }
+
+    public function pickupHub(Request $request): View
+    {
+        $user = $request->user();
+
+        $orders = $user->orders()
+            ->whereIn('status', ['paid', 'partially_picked_up'])
+            ->with(['fulfillments.seller.project', 'fulfillments.project', 'fulfillments.items.units'])
+            ->latest()
+            ->get();
+
+        $stores = [];
+        foreach ($orders as $order) {
+            foreach ($order->fulfillments as $fulfillment) {
+                $seller = $fulfillment->seller;
+                if (! $seller) {
+                    continue;
+                }
+                $sellerId = $seller->id;
+
+                if (! isset($stores[$sellerId])) {
+                    $className = $fulfillment->class_name ?? $fulfillment->project?->class_name ?? $seller->store_name;
+                    $stores[$sellerId] = [
+                        'seller' => $seller,
+                        'class_name' => $className,
+                        'pickup_code' => CompleteOrderQr::generateStoreToken($user->id, $sellerId),
+                        'total_pending' => 0,
+                        'total_delivered' => 0,
+                        'products' => [],
+                    ];
+                }
+
+                foreach ($fulfillment->items as $item) {
+                    $pName = $item->product_name;
+                    if (! isset($stores[$sellerId]['products'][$pName])) {
+                        $stores[$sellerId]['products'][$pName] = [
+                            'name' => $pName,
+                            'quantity' => 0,
+                            'pending' => 0,
+                            'delivered' => 0,
+                        ];
+                    }
+
+                    $pendingUnits = $item->units->where('status', 'pending')->count();
+                    $deliveredUnits = $item->units->where('status', 'delivered')->count();
+
+                    $stores[$sellerId]['products'][$pName]['quantity'] += (int) $item->quantity;
+                    $stores[$sellerId]['products'][$pName]['pending'] += $pendingUnits;
+                    $stores[$sellerId]['products'][$pName]['delivered'] += $deliveredUnits;
+
+                    $stores[$sellerId]['total_pending'] += $pendingUnits;
+                    $stores[$sellerId]['total_delivered'] += $deliveredUnits;
+                }
+            }
+        }
+
+        uasort($stores, function ($a, $b) {
+            if ($a['total_pending'] > 0 && $b['total_pending'] === 0) {
+                return -1;
+            }
+            if ($a['total_pending'] === 0 && $b['total_pending'] > 0) {
+                return 1;
+            }
+
+            return strcmp($a['class_name'], $b['class_name']);
+        });
+
+        return view('marketplace.pickup-hub', [
+            'stores' => $stores,
+            'activeCount' => count(array_filter($stores, fn ($s) => $s['total_pending'] > 0)),
+        ]);
     }
 
     private function availableProducts(): Builder
@@ -691,11 +786,31 @@ class MarketplaceController extends Controller
             ->map(fn (CartItem $item): array => ['product_id' => $item->product_id, 'quantity' => $item->quantity]);
     }
 
+    public function qrisImage()
+    {
+        if (Storage::disk('public')->exists('qris-statis.png')) {
+            return response()->file(Storage::disk('public')->path('qris-statis.png'), [
+                'Cache-Control' => 'no-cache, private',
+            ]);
+        }
+
+        $defaultPath = public_path(config('marketplace.qris_image', 'images/qris-statis.png'));
+        if (is_file($defaultPath)) {
+            return response()->file($defaultPath, [
+                'Cache-Control' => 'no-cache, private',
+            ]);
+        }
+
+        abort(404);
+    }
+
     private function transferConfigured(): bool
     {
         $qrisImage = config('marketplace.qris_image');
+        $hasQris = Storage::disk('public')->exists('qris-statis.png')
+            || (filled($qrisImage) && is_file(public_path($qrisImage)));
 
-        return (filled($qrisImage) && is_file(public_path($qrisImage)))
+        return $hasQris
             || (filled(config('marketplace.bank_name'))
             && filled(config('marketplace.account_name'))
             && filled(config('marketplace.account_number')));

@@ -246,8 +246,8 @@
 
     <div>
       <section class="panel" data-qr-preview hidden style="margin: 0; border: 2px solid var(--good); background: var(--surface);">
-        <div class="eyebrow" style="color: var(--good); margin-bottom: 8px;">DETAIL PESANAN PEMBELI</div>
-        <h2 data-qr-order style="margin: 0 0 14px;"></h2>
+        <div class="eyebrow" style="color: var(--good); margin-bottom: 8px;">BUKTI SERAH TERIMA (DELIVERED)</div>
+        <h2 data-qr-order style="margin: 0 0 14px; color: var(--good);">✅ Barang Berhasil Diserahkan</h2>
 
         <div style="background: var(--bg); border: 1px solid var(--line); border-radius: 8px; padding: 14px; margin-bottom: 16px;">
           <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px; font-size: 13.5px;">
@@ -256,34 +256,31 @@
               <strong data-qr-buyer style="font-size: 15px;">—</strong>
             </div>
             <div>
-              <div class="muted" style="font-size: 11.5px; font-weight: 700;">NOMOR KONTAK / WHATSAPP</div>
-              <strong data-qr-phone style="font-size: 15px;">—</strong>
-            </div>
-            <div>
-              <div class="muted" style="font-size: 11.5px; font-weight: 700;">GRUP KELAS</div>
+              <div class="muted" style="font-size: 11.5px; font-weight: 700;">BOOTH / KELAS</div>
               <span data-qr-class style="font-weight: 600;">—</span>
             </div>
             <div>
-              <div class="muted" style="font-size: 11.5px; font-weight: 700;">UNIT BELUM DIAMBIL</div>
-              <span class="badge warn" data-qr-pending>—</span>
+              <div class="muted" style="font-size: 11.5px; font-weight: 700;">STATUS PENYERAHAN</div>
+              <span class="badge delivered" data-qr-status>Delivered</span>
+            </div>
+            <div>
+              <div class="muted" style="font-size: 11.5px; font-weight: 700;">TOTAL ITEM DISERAHKAN</div>
+              <strong data-qr-delivered style="font-size: 15px; color: var(--good);">—</strong>
             </div>
           </div>
         </div>
 
         <div style="margin-bottom: 18px;">
           <div style="font-size: 13px; font-weight: 700; text-transform: uppercase; color: var(--muted); margin-bottom: 8px;">
-            DAFTAR BARANG YANG HARUS DIBERIKAN:
+            DAFTAR BARANG YANG TELAH DIBERIKAN:
           </div>
           <ul data-qr-products style="list-style: none; padding: 0; margin: 0; display: flex; flex-direction: column; gap: 8px;"></ul>
         </div>
 
         <div style="padding-top: 14px; border-top: 1px solid var(--line);">
-          <button class="btn" type="button" data-qr-confirm style="width: 100%; justify-content: center; font-size: 15px; padding: 12px; background: var(--good); border-color: var(--good); color: #fff;">
-            ✅ Konfirmasi Serah Terima Barang (Delivered)
+          <button class="btn lime" type="button" data-qr-next style="width: 100%; justify-content: center; font-size: 14px; padding: 10px;">
+            📷 Pindai QR Pesanan Berikutnya
           </button>
-          <p class="muted" style="font-size: 12px; text-align: center; margin: 8px 0 0;">
-            Pastikan produk fisik telah diserahkan sebelum menekan tombol di atas.
-          </p>
         </div>
       </section>
     </div>
@@ -306,7 +303,7 @@
   const manualForm = scannerPage.querySelector('[data-qr-manual-form]');
   const tokenInput = manualForm.querySelector('[name="token"]');
   const preview = scannerPage.querySelector('[data-qr-preview]');
-  const confirmButton = preview.querySelector('[data-qr-confirm]');
+  const nextButton = preview.querySelector('[data-qr-next]');
   const csrfMeta = document.querySelector('meta[name="csrf-token"]');
   const csrfToken = csrfMeta ? csrfMeta.content : '';
 
@@ -372,65 +369,61 @@
   };
 
   const detectQrType = (token) => {
-    if (!token) return activeType || 'class';
+    if (!token) return 'class';
     const clean = token.trim().toUpperCase();
     if (clean.startsWith('FTXP-')) return 'product';
+    if (clean.startsWith('FTXS-')) return 'store';
     return 'class';
   };
 
-  const showPreview = (data) => {
-    activeToken = data.token || activeToken;
-    activeType = data.type || activeType;
-
-    if (preview.querySelector('[data-qr-order]')) {
-      preview.querySelector('[data-qr-order]').textContent = `Order ID: ${data.order_code}`;
-    }
+  const showDeliveryResult = (result) => {
+    const data = result.data || {};
     if (preview.querySelector('[data-qr-buyer]')) {
-      preview.querySelector('[data-qr-buyer]').textContent = data.buyer_name || '—';
-    }
-    if (preview.querySelector('[data-qr-phone]')) {
-      preview.querySelector('[data-qr-phone]').textContent = data.buyer_phone || '—';
+      preview.querySelector('[data-qr-buyer]').textContent = data.buyer_name || 'Pembeli';
     }
     if (preview.querySelector('[data-qr-class]')) {
-      preview.querySelector('[data-qr-class]').textContent = data.class_name || '—';
+      preview.querySelector('[data-qr-class]').textContent = data.store_name || '—';
     }
-    if (preview.querySelector('[data-qr-pending]')) {
-      preview.querySelector('[data-qr-pending]').textContent = `${data.pending_count} unit`;
+    if (preview.querySelector('[data-qr-delivered]')) {
+      preview.querySelector('[data-qr-delivered]').textContent = `${data.delivered_count || 1} unit selesai diserahkan`;
     }
 
     const productsList = preview.querySelector('[data-qr-products]');
-    if (productsList && data.products) {
+    if (productsList) {
       productsList.replaceChildren();
-      data.products.forEach((prod) => {
-        const li = document.createElement('li');
-        li.style.cssText = 'padding: 8px 12px; background: var(--bg); border: 1px solid var(--line); border-radius: 6px; font-size: 13px;';
-        li.innerHTML = `<strong>${prod.name}</strong> × ${prod.quantity} unit &middot; <span class="badge ${prod.pending_count === 0 ? 'delivered' : 'waiting_verification'}">${prod.delivered_count} Diserahkan, ${prod.pending_count} Belum Diambil</span>`;
-        productsList.appendChild(li);
-      });
+      if (data.products && data.products.length > 0) {
+        data.products.forEach((prod) => {
+          const li = document.createElement('li');
+          li.style.cssText = 'padding: 8px 12px; background: var(--bg); border: 1px solid var(--line); border-radius: 6px; font-size: 13px; display: flex; justify-content: space-between; align-items: center;';
+          li.innerHTML = `<span><strong>${prod.name}</strong> × ${prod.delivered_now} unit</span> <span class="badge delivered">Diserahkan</span>`;
+          productsList.appendChild(li);
+        });
+      }
     }
 
     preview.hidden = false;
-    confirmButton.disabled = false;
     preview.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
   };
 
-  const previewToken = async (token) => {
+  const deliverToken = async (token) => {
     const cleanToken = token.trim().toUpperCase();
     activeToken = cleanToken;
     tokenInput.value = cleanToken;
     activeType = detectQrType(cleanToken);
     preview.hidden = true;
-    setMessage('Memeriksa kode di sistem…', 'info');
+    setMessage('Memproses serah terima barang di sistem…', 'info');
 
     try {
-      const payload = await post(scannerPage.dataset.previewUrl, {
+      const result = await post(scannerPage.dataset.confirmUrl, {
         type: activeType,
         token: activeToken,
       });
-      showPreview(payload.data);
-      setMessage('Pesanan ditemukan! Periksa detail barang sebelum konfirmasi serah-terima.', 'info');
+
+      showDeliveryResult(result);
+      setMessage(`✅ ${result.message}`, 'info');
+      tokenInput.value = '';
     } catch (err) {
-      setMessage(err.message, 'warn');
+      setMessage(`❌ ${err.message}`, 'warn');
     }
   };
 
@@ -460,7 +453,7 @@
           processing = true;
           try {
             await stopScanner();
-            await previewToken(decodedText);
+            await deliverToken(decodedText);
           } catch (e) {
             setMessage(`Gagal memproses hasil scan: ${e.message}`, 'warn');
           } finally {
@@ -505,28 +498,15 @@
       setMessage('Masukkan kode token atau nomor pesanan terlebih dahulu.', 'warn');
       return;
     }
-    await previewToken(val);
+    await deliverToken(val);
   });
 
-  confirmButton.addEventListener('click', async () => {
-    if (!activeToken) return;
-    confirmButton.disabled = true;
-    setMessage('Menyimpan konfirmasi serah terima…', 'info');
-
-    try {
-      const result = await post(scannerPage.dataset.confirmUrl, {
-        type: activeType,
-        token: activeToken,
-      });
+  if (nextButton) {
+    nextButton.addEventListener('click', async () => {
       preview.hidden = true;
-      tokenInput.value = '';
-      activeToken = null;
-      setMessage(`✅ ${result.message}`, 'info');
-    } catch (err) {
-      confirmButton.disabled = false;
-      setMessage(err.message, 'warn');
-    }
-  });
+      await startScanner();
+    });
+  }
 })();
 </script>
 @endpush
