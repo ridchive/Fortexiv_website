@@ -117,6 +117,7 @@ class MarketplaceController extends Controller
             ->where('is_published', true)
             ->when($hasArticleColumn, fn ($q) => $q->where('has_article', true))
             ->when($request->integer('class'), fn (Builder $query, int $classId) => $query->whereKey($classId))
+            ->orderBy('grade')
             ->orderBy('class_name')
             ->paginate(12)
             ->withQueryString();
@@ -128,7 +129,7 @@ class MarketplaceController extends Controller
 
         return view('marketplace.projects', [
             'projects' => $projects,
-            'classes' => $classesQuery->orderBy('class_name')->get(['id', 'class_name']),
+            'classes' => $classesQuery->orderBy('grade')->orderBy('class_name')->get(['id', 'class_name', 'grade']),
         ]);
     }
 
@@ -158,19 +159,9 @@ class MarketplaceController extends Controller
             'products' => $products,
             'classes' => Project::query()
                 ->where('is_published', true)
-                ->whereIn('class_name', [
-                    'kelas 1',
-                    'kelas 2',
-                    'kelas 3',
-                    'kelas 4',
-                    'kelas 5',
-                    'kelas 7',
-                    'kelas 8',
-                    'ISTC basic & Intermediate',
-                    'ISTC Advance & Master',
-                ])
-                ->orderBy('id')
-                ->get(['id', 'class_name']),
+                ->orderBy('grade')
+                ->orderBy('class_name')
+                ->get(['id', 'class_name', 'grade']),
             'categories' => Category::query()->orderBy('name')->get(),
             'window' => $purchaseWindow->details(),
         ]);

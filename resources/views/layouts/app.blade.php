@@ -527,7 +527,7 @@
     .app.admin-app { width: min(100%, 1240px); margin-inline: auto; padding: 24px max(16px, env(safe-area-inset-right, 0px)) 56px max(16px, env(safe-area-inset-left, 0px)); }
     .wrap { width: 100%; max-width: 1180px; padding-right: max(16px, env(safe-area-inset-right, 0px)); padding-left: max(16px, env(safe-area-inset-left, 0px)); }
     .site-header { background: var(--bg); color: var(--ink); }
-    .hd { display: grid; grid-template-columns: auto minmax(180px, 1fr) auto; gap: 20px; align-items: center; padding-block: 18px; }
+    .hd { display: flex; justify-content: space-between; align-items: center; padding-block: 18px; }
     .brand { display: inline-flex; align-items: center; gap: 8px; color: var(--ink); font: 800 22px/1 var(--fd); text-decoration: none; }
     .brand:hover { color: var(--good); }
     .brand-logo-frame { display: inline-flex; align-items: center; justify-content: center; width: 116px; max-width: 100%; aspect-ratio: 16 / 9; flex: 0 0 116px; overflow: visible; color: inherit; }
@@ -867,8 +867,7 @@
       .ft .cols { grid-template-columns: repeat(2, minmax(0, 1fr)); }
     }
     @media (max-width: 720px) {
-      .hd { grid-template-columns: 1fr auto; }
-      .hsearch { grid-column: 1 / -1; order: 3; max-width: none; }
+      .hd { display: flex; justify-content: space-between; align-items: center; }
       .hero {
         grid-template-columns: minmax(0, 1fr);
         grid-template-rows: auto auto;
@@ -1551,12 +1550,6 @@
 <header @class(['site-header wrap', 'admin-header' => request()->routeIs('admin.*')])>
   <div class="hd">
     <a class="brand" href="{{ route('home') }}"><span class="brand-logo-frame"><x-fortexiv-logo /></span></a>
-    <form class="hsearch" method="get" action="{{ route('catalog.index') }}" role="search">
-      <input name="search" type="search" value="{{ request('search') }}" placeholder="Cari produk atau proyek" aria-label="Cari">
-      <button type="submit" aria-label="Cari">
-        <svg class="ico" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><circle cx="11" cy="11" r="7"></circle><path d="m20 20-4-4"></path></svg>
-      </button>
-    </form>
     <div class="hicons">
       <button class="ib theme-toggle" type="button" data-theme-toggle aria-label="Aktifkan mode gelap" title="Aktifkan mode gelap">
         <svg class="icon-sun" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><circle cx="12" cy="12" r="4"></circle><path d="M12 2v2m0 16v2M4.93 4.93l1.42 1.42m11.3 11.3 1.42 1.42M2 12h2m16 0h2M4.93 19.07l1.42-1.42m11.3-11.3 1.42-1.42"></path></svg>

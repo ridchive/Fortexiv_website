@@ -12,7 +12,4 @@
   @if($window['eventAt'])
     <br><span>Hari H: {{ $window['eventAt']->format('d/m/Y H:i') }}</span>
   @endif
-  @if($window['location'])
-    <br><span>Lokasi: {{ $window['location'] }}</span>
-  @endif
 </div>
