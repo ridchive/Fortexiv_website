@@ -75,10 +75,12 @@
 
 @php
   $qrisImageAvailable = \Illuminate\Support\Facades\Storage::disk('public')->exists('qris-statis.png')
-      || (filled($qrisImage) && is_file(public_path($qrisImage)));
+      || (filled($qrisImage) && is_file(public_path($qrisImage)))
+      || is_file(base_path('public/images/qris-statis.png'));
   $ticketAvailable = in_array($order->payment?->status, ['verified', 'partially_refunded'], true)
       && $order->ticket !== null
       && in_array($order->status, ['paid', 'partially_picked_up', 'picked_up'], true);
+  $deadline = $order->effectivePaymentDeadline();
 @endphp
 
 @if($order->status === 'pending_payment')
@@ -99,23 +101,26 @@
         </div>
       @endif
 
-      @if($order->isExpired())
-        <div style="margin-bottom: 14px; text-align: left; font-size: 13px; background: rgba(244, 63, 94, 0.15); border: 1px solid var(--bad); color: var(--bad); padding: 14px; border-radius: 8px;">
-          <strong style="font-size: 14px; display: block; margin-bottom: 4px;">⛔ Batas Waktu Pembayaran Telah Berakhir</strong>
-          <p style="margin: 0 0 12px; font-size: 12.5px; color: var(--muted);">Pesanan ini telah melewati batas waktu pembayaran (10 menit) dan otomatis dibatalkan. Stok produk telah dikembalikan ke katalog.</p>
-          <a class="btn" href="{{ route('catalog.index') }}" style="font-size: 13px; padding: 6px 14px;">Pesan Ulang di Katalog</a>
-        </div>
-      @else
-        @if($order->effectivePaymentDeadline())
-          <div style="margin-bottom: 14px; display: inline-flex; align-items: center; gap: 6px; background: rgba(245, 158, 11, 0.1); border: 1px solid rgba(245, 158, 11, 0.3); color: #f59e0b; padding: 6px 12px; border-radius: 8px; font-size: 12.5px;">
-            <span>⏱️ Batas Bayar: <strong>{{ $order->effectivePaymentDeadline()->translatedFormat('d M Y, H:i') }} WIB</strong> (10 menit)</span>
+      {{-- BOX BATAS WAKTU BERAKHIR (KEDALUWARSA) --}}
+      <div id="paymentExpiredContent" style="{{ $order->isExpired() ? 'display: block;' : 'display: none;' }} margin-bottom: 14px; text-align: left; font-size: 13px; background: rgba(244, 63, 94, 0.15); border: 1px solid var(--bad); color: var(--bad); padding: 14px; border-radius: 8px;">
+        <strong style="font-size: 14px; display: block; margin-bottom: 4px;">⛔ Batas Waktu Pembayaran Telah Berakhir</strong>
+        <p style="margin: 0 0 12px; font-size: 12.5px; color: var(--muted);">Pesanan ini telah melewati batas waktu pembayaran (10 menit) dan otomatis dibatalkan. Stok produk telah dikembalikan ke katalog.</p>
+        <a class="btn" href="{{ route('catalog.index') }}" style="font-size: 13px; padding: 6px 14px;">Pesan Ulang di Katalog</a>
+      </div>
+
+      {{-- KONTEN PEMBAYARAN AKTIF (COUNTDOWN, QRIS, UPLOAD FORM) --}}
+      <div id="paymentActiveContent" style="{{ $order->isExpired() ? 'display: none;' : 'display: block;' }}">
+        @if($deadline)
+          <div id="countdownBox" style="margin-bottom: 14px; display: inline-flex; align-items: center; justify-content: center; gap: 8px; background: rgba(245, 158, 11, 0.12); border: 1px solid rgba(245, 158, 11, 0.35); color: #f59e0b; padding: 7px 14px; border-radius: 8px; font-size: 13px;">
+            <span>⏱️ Sisa Waktu Bayar: <strong id="countdownTimer" style="font-family: monospace; font-size: 15px; letter-spacing: 0.5px;">--:--</strong></span>
+            <span style="font-size: 11.5px; opacity: 0.85;">(Batas: {{ $deadline->translatedFormat('H:i') }} WIB)</span>
           </div>
         @endif
 
         {{-- FOTO QRIS --}}
         @if($qrisImageAvailable)
           <div style="background: #fff; padding: 12px; border: 1px solid var(--line); border-radius: 12px; display: inline-block; max-width: 100%; margin-bottom: 14px;">
-            <img src="{{ filled($qrisImage) && is_file(public_path($qrisImage)) ? asset($qrisImage) : (Route::has('qris.image') ? route('qris.image') : url('/qris-image')) }}" alt="QRIS statis resmi FORTEXIV" style="max-height: 220px; width: auto; max-width: 100%; object-fit: contain; display: block; margin: 0 auto;">
+            <img src="{{ Route::has('qris.image') ? route('qris.image') : (filled($qrisImage) && is_file(public_path($qrisImage)) ? asset($qrisImage) : url('/images/qris-statis.png')) }}" alt="QRIS statis resmi FORTEXIV" style="max-height: 220px; width: auto; max-width: 100%; object-fit: contain; display: block; margin: 0 auto;">
           </div>
           <p class="muted" style="font-size: 12.5px; margin: 0 0 14px;">
             Scan QRIS di atas, masukkan nominal yang sesuai, lalu unggah screenshot bukti pembayaran di bawah ini.
@@ -162,7 +167,7 @@
             {{ $order->payment?->status === 'rejected' ? 'Unggah Ulang Bukti Pembayaran' : 'Kirim Bukti Pembayaran' }}
           </button>
         </form>
-      @endif
+      </div>
 
       {{-- COLLAPSIBLE RINCIAN PESANAN --}}
       <details style="margin-top: 16px; text-align: left; border-top: 1px solid var(--line); padding-top: 10px;">
@@ -241,6 +246,43 @@
       btn.textContent = 'Mengunggah bukti...';
       document.getElementById('proofForm').submit();
     }
+
+    @if(! $order->isExpired() && $deadline)
+    (function initPaymentCountdown() {
+      const remainingSecondsAtLoad = {{ max(0, (int) now()->diffInSeconds($deadline, false)) }};
+      const pageLoadTime = Date.now();
+      const timerDisplay = document.getElementById('countdownTimer');
+      const activeArea = document.getElementById('paymentActiveContent');
+      const expiredArea = document.getElementById('paymentExpiredContent');
+
+      function updateCountdown() {
+        const elapsed = Math.floor((Date.now() - pageLoadTime) / 1000);
+        const currentRemaining = Math.max(0, remainingSecondsAtLoad - elapsed);
+
+        const minutes = Math.floor(currentRemaining / 60);
+        const seconds = currentRemaining % 60;
+        const formatted = String(minutes).padStart(2, '0') + ':' + String(seconds).padStart(2, '0');
+
+        if (timerDisplay) {
+          timerDisplay.textContent = formatted;
+        }
+
+        if (currentRemaining <= 0) {
+          clearInterval(countdownInterval);
+          if (activeArea) activeArea.style.display = 'none';
+          if (expiredArea) expiredArea.style.display = 'block';
+
+          // Sinkronkan status kedaluwarsa ke server
+          setTimeout(function() {
+            window.location.reload();
+          }, 1200);
+        }
+      }
+
+      updateCountdown();
+      const countdownInterval = setInterval(updateCountdown, 1000);
+    })();
+    @endif
   </script>
 
 @else

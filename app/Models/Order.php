@@ -23,7 +23,9 @@ class Order extends Model
 
     public function isExpired(): bool
     {
-        return $this->expires_at !== null && $this->expires_at->isPast();
+        $deadline = $this->effectivePaymentDeadline();
+
+        return $deadline !== null && $deadline->isPast();
     }
 
     public function effectivePaymentDeadline(): ?Carbon

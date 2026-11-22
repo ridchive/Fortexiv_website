@@ -712,6 +712,13 @@ class MarketplaceController extends Controller
             ]);
         }
 
+        $basePublicPath = base_path('public/images/qris-statis.png');
+        if (is_file($basePublicPath)) {
+            return response()->file($basePublicPath, [
+                'Cache-Control' => 'no-cache, private',
+            ]);
+        }
+
         abort(404);
     }
 
