@@ -24,6 +24,7 @@ use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Schema;
+use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
 use Illuminate\Validation\Rule;
 use Illuminate\Validation\ValidationException;
@@ -712,11 +713,31 @@ class MarketplaceController extends Controller
             ->map(fn (CartItem $item): array => ['product_id' => $item->product_id, 'quantity' => $item->quantity]);
     }
 
+    public function qrisImage()
+    {
+        if (Storage::disk('public')->exists('qris-statis.png')) {
+            return response()->file(Storage::disk('public')->path('qris-statis.png'), [
+                'Cache-Control' => 'no-cache, private',
+            ]);
+        }
+
+        $defaultPath = public_path(config('marketplace.qris_image', 'images/qris-statis.png'));
+        if (is_file($defaultPath)) {
+            return response()->file($defaultPath, [
+                'Cache-Control' => 'no-cache, private',
+            ]);
+        }
+
+        abort(404);
+    }
+
     private function transferConfigured(): bool
     {
         $qrisImage = config('marketplace.qris_image');
+        $hasQris = Storage::disk('public')->exists('qris-statis.png')
+            || (filled($qrisImage) && is_file(public_path($qrisImage)));
 
-        return (filled($qrisImage) && is_file(public_path($qrisImage)))
+        return $hasQris
             || (filled(config('marketplace.bank_name'))
             && filled(config('marketplace.account_name'))
             && filled(config('marketplace.account_number')));

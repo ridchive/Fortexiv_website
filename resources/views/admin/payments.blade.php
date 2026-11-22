@@ -358,7 +358,7 @@
           <label style="display: block; font-size: 12px; font-weight: 700; margin-bottom: 6px;">Gambar QRIS Saat Ini:</label>
           @if($qrisExists)
             <div style="text-align: center; background: #fff; padding: 12px; border: 1px solid var(--line); border-radius: 8px;">
-              <img src="{{ asset($qrisImage) }}?v={{ time() }}" alt="QRIS Statis" style="max-height: 180px; max-width: 100%; object-fit: contain;">
+              <img src="{{ (Route::has('qris.image') ? route('qris.image') : url('/qris-image')) }}?v={{ time() }}" alt="QRIS Statis" style="max-height: 180px; max-width: 100%; object-fit: contain;">
             </div>
           @else
             <div class="note warn" style="margin: 0; padding: 10px 14px; font-size: 12px;">

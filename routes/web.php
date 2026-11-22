@@ -29,6 +29,8 @@ Route::get('/storage/fallback/{path}', function (string $path) {
     return response()->file($disk->path($path));
 })->where('path', '.*')->name('storage.fallback');
 
+Route::get('/qris-image', [MarketplaceController::class, 'qrisImage'])->name('qris.image');
+
 Route::middleware('guest')->group(function () {
     Route::get('/login', [AuthController::class, 'loginForm'])->name('login');
     Route::post('/login', [AuthController::class, 'login'])->name('login.store');

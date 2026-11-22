@@ -44,7 +44,8 @@ class AdminController extends Controller
     {
         $payments = Payment::with(['order.buyer', 'order.items'])->latest()->paginate(20);
         $qrisImage = config('marketplace.qris_image');
-        $qrisExists = filled($qrisImage) && is_file(public_path($qrisImage));
+        $qrisExists = Storage::disk('public')->exists('qris-statis.png')
+            || (filled($qrisImage) && is_file(public_path($qrisImage)));
 
         return view('admin.payments', compact('payments', 'qrisImage', 'qrisExists'));
     }
@@ -61,11 +62,22 @@ class AdminController extends Controller
         ]);
 
         $file = $request->file('qris_image');
-        $destinationPath = public_path('images');
-        if (! file_exists($destinationPath)) {
-            mkdir($destinationPath, 0755, true);
+
+        // Simpan ke storage disk public (aman untuk shared hosting/cPanel)
+        Storage::disk('public')->put('qris-statis.png', file_get_contents($file->getRealPath()));
+
+        // Sinkronkan ke public/images jika folder dapat ditulis
+        try {
+            $destinationPath = public_path('images');
+            if (! file_exists($destinationPath)) {
+                @mkdir($destinationPath, 0755, true);
+            }
+            if (is_dir($destinationPath) && is_writable($destinationPath)) {
+                @copy($file->getRealPath(), $destinationPath.DIRECTORY_SEPARATOR.'qris-statis.png');
+            }
+        } catch (\Throwable) {
+            // Abaikan jika public/ tidak memiliki permission tulis di hosting
         }
-        $file->move($destinationPath, 'qris-statis.png');
 
         return back()->with('status', 'Foto QRIS pembayaran berhasil diperbarui.');
     }

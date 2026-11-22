@@ -74,7 +74,8 @@
 </style>
 
 @php
-  $qrisImageAvailable = filled($qrisImage) && is_file(public_path($qrisImage));
+  $qrisImageAvailable = \Illuminate\Support\Facades\Storage::disk('public')->exists('qris-statis.png')
+      || (filled($qrisImage) && is_file(public_path($qrisImage)));
   $ticketAvailable = in_array($order->payment?->status, ['verified', 'partially_refunded'], true)
       && $order->ticket !== null
       && in_array($order->status, ['paid', 'partially_picked_up', 'picked_up'], true);
@@ -101,7 +102,7 @@
       {{-- FOTO QRIS --}}
       @if($qrisImageAvailable)
         <div style="background: #fff; padding: 12px; border: 1px solid var(--line); border-radius: 12px; display: inline-block; max-width: 100%; margin-bottom: 14px;">
-          <img src="{{ asset($qrisImage) }}" alt="QRIS FORTEXIV" style="max-height: 220px; width: auto; max-width: 100%; object-fit: contain; display: block; margin: 0 auto;">
+          <img src="{{ Route::has('qris.image') ? route('qris.image') : url('/qris-image') }}" alt="QRIS FORTEXIV" style="max-height: 220px; width: auto; max-width: 100%; object-fit: contain; display: block; margin: 0 auto;">
         </div>
       @endif
 
