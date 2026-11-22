@@ -318,18 +318,19 @@ class MarketplaceController extends Controller
             'mode' => ['required', Rule::in(['cart', 'now'])],
             'product_id' => ['required_if:mode,now', 'nullable', 'integer', 'exists:products,id'],
             'quantity' => ['required_if:mode,now', 'nullable', 'integer', 'min:1', 'max:100'],
-            'pickup_contact_name' => ['required', 'string', 'max:100'],
-            'pickup_contact_phone' => ['required', 'string', 'max:30'],
+            'pickup_contact_name' => ['nullable', 'string', 'max:100'],
+            'pickup_contact_phone' => ['nullable', 'string', 'max:30'],
             'accepted_terms' => ['required', 'accepted'],
             'payment_method' => ['sometimes', 'required', Rule::in([Payment::GATEWAY_MANUAL])],
         ], [
             'accepted_terms.required' => 'Setujui syarat & ketentuan sebelum mengonfirmasi pesanan.',
             'accepted_terms.accepted' => 'Setujui syarat & ketentuan sebelum mengonfirmasi pesanan.',
-            'pickup_contact_name.required' => 'Nama pengambil wajib diisi.',
-            'pickup_contact_phone.required' => 'Nomor WhatsApp wajib diisi.',
         ]);
 
-        $order = DB::transaction(function () use ($request, $data, $purchaseWindow): Order {
+        $pickupContactName = trim((string) ($request->input('pickup_contact_name') ?: $request->user()->name));
+        $pickupContactPhone = trim((string) ($request->input('pickup_contact_phone') ?: $request->user()->phone ?: '-'));
+
+        $order = DB::transaction(function () use ($request, $data, $purchaseWindow, $pickupContactName, $pickupContactPhone): Order {
             if (! $purchaseWindow->canAcceptOrders()) {
                 throw ValidationException::withMessages(['po' => 'Jendela PO sudah berubah. Pesanan baru tidak dapat dibuat.']);
             }
@@ -400,8 +401,8 @@ class MarketplaceController extends Controller
                 'status' => 'pending_payment',
                 'total_price' => $total,
                 'pickup_date' => $eventAt->toDateString(),
-                'pickup_contact_name' => $data['pickup_contact_name'],
-                'pickup_contact_phone' => $data['pickup_contact_phone'],
+                'pickup_contact_name' => $pickupContactName,
+                'pickup_contact_phone' => $pickupContactPhone,
                 'terms_accepted_at' => now(),
                 'terms_version' => config('marketplace.terms_version'),
             ]);
@@ -659,7 +660,7 @@ class MarketplaceController extends Controller
             $lockedOrder->update(['status' => 'waiting_verification']);
         });
 
-        return back()->with('status', 'Bukti pembayaran berhasil dikirim dan menunggu verifikasi admin.');
+        return back()->with('status', 'Bukti transfer berhasil dikirim! Pembayaran Anda sedang diproses dan diverifikasi secara manual oleh admin. Proses verifikasi dapat memakan waktu beberapa saat. Tiket pickup QR akan otomatis aktif setelah pembayaran diverifikasi.');
     }
 
     public function ticket(Request $request, Order $order): View

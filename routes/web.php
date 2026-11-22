@@ -98,6 +98,7 @@ Route::prefix('seller')->name('seller.')->middleware(['auth', 'verified', 'role:
 Route::prefix('admin')->name('admin.')->middleware(['auth', 'verified', 'role:admin'])->group(function () {
     Route::get('/', [AdminController::class, 'dashboard'])->name('dashboard');
     Route::get('/payments', [AdminController::class, 'payments'])->name('payments');
+    Route::post('/payments/qris', [AdminController::class, 'updateQris'])->name('payments.qris.update');
     Route::get('/payments/{payment}/proof', [AdminController::class, 'paymentProof'])->name('payments.proof');
     Route::post('/payments/{payment}/verify', [AdminController::class, 'verify'])->name('payments.verify');
     Route::post('/payments/{payment}/reject', [AdminController::class, 'reject'])->name('payments.reject');

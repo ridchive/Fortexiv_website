@@ -42,9 +42,32 @@ class AdminController extends Controller
 
     public function payments(): View
     {
-        $payments = Payment::with(['order.buyer', 'order.items.fulfillment'])->latest()->paginate(20);
+        $payments = Payment::with(['order.buyer', 'order.items'])->latest()->paginate(20);
+        $qrisImage = config('marketplace.qris_image');
+        $qrisExists = filled($qrisImage) && is_file(public_path($qrisImage));
 
-        return view('admin.payments', compact('payments'));
+        return view('admin.payments', compact('payments', 'qrisImage', 'qrisExists'));
+    }
+
+    public function updateQris(Request $request): RedirectResponse
+    {
+        $request->validate([
+            'qris_image' => ['required', 'image', 'mimes:png,jpg,jpeg', 'max:5120'],
+        ], [
+            'qris_image.required' => 'Pilih file gambar QRIS.',
+            'qris_image.image' => 'File harus berupa gambar.',
+            'qris_image.mimes' => 'Format file yang didukung: PNG, JPG, JPEG.',
+            'qris_image.max' => 'Ukuran file gambar maksimal 5 MB.',
+        ]);
+
+        $file = $request->file('qris_image');
+        $destinationPath = public_path('images');
+        if (! file_exists($destinationPath)) {
+            mkdir($destinationPath, 0755, true);
+        }
+        $file->move($destinationPath, 'qris-statis.png');
+
+        return back()->with('status', 'Foto QRIS pembayaran berhasil diperbarui.');
     }
 
     public function paymentProof(Payment $payment)
@@ -52,7 +75,7 @@ class AdminController extends Controller
         abort_unless($payment->gateway === Payment::GATEWAY_MANUAL && filled($payment->proof_image), 404);
         abort_unless(Storage::disk('local')->exists($payment->proof_image), 404);
 
-        return Storage::disk('local')->download($payment->proof_image);
+        return Storage::disk('local')->response($payment->proof_image);
     }
 
     public function verify(Request $request, Payment $payment, CarbonImpactService $carbonImpact): RedirectResponse
