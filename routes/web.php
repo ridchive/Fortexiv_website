@@ -77,6 +77,7 @@ Route::middleware(['auth', 'verified', 'role:buyer'])->group(function () {
         ->name('payments.midtrans.refresh');
     Route::post('/orders/{order:order_code}/demo-payment', [MarketplaceController::class, 'simulatePayment'])->name('payments.demo');
     Route::post('/orders/{order:order_code}/payment-proof', [MarketplaceController::class, 'uploadPayment'])->name('payments.store');
+    Route::get('/tickets', [MarketplaceController::class, 'pickupHub'])->name('tickets.hub');
     Route::get('/orders/{order:order_code}/ticket', [MarketplaceController::class, 'ticket'])->name('tickets.show');
 });
 

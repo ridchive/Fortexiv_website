@@ -9,6 +9,7 @@
     <h1>Keranjang</h1>
     <p>Pesanan dari beberapa kelas digabung saat checkout, lalu diserahkan per grup kelas saat acara.</p>
   </div>
+  @include('marketplace.partials.buyer-tabs', ['activeTab' => 'cart'])
   @include('marketplace.partials.po-notice', ['window' => $window])
 
   @if($items->isEmpty())

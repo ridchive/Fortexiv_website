@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Actions\CompleteOrderQr;
 use App\Models\CartItem;
 use App\Models\Category;
 use App\Models\EventSetting;
@@ -683,6 +684,78 @@ class MarketplaceController extends Controller
         $order->load(['fulfillments.seller.project', 'fulfillments.project', 'fulfillments.items.units', 'ticket']);
 
         return view('marketplace.ticket', compact('order'));
+    }
+
+    public function pickupHub(Request $request): View
+    {
+        $user = $request->user();
+
+        $orders = $user->orders()
+            ->whereIn('status', ['paid', 'partially_picked_up'])
+            ->with(['fulfillments.seller.project', 'fulfillments.project', 'fulfillments.items.units'])
+            ->latest()
+            ->get();
+
+        $stores = [];
+        foreach ($orders as $order) {
+            foreach ($order->fulfillments as $fulfillment) {
+                $seller = $fulfillment->seller;
+                if (! $seller) {
+                    continue;
+                }
+                $sellerId = $seller->id;
+
+                if (! isset($stores[$sellerId])) {
+                    $className = $fulfillment->class_name ?? $fulfillment->project?->class_name ?? $seller->store_name;
+                    $stores[$sellerId] = [
+                        'seller' => $seller,
+                        'class_name' => $className,
+                        'pickup_code' => CompleteOrderQr::generateStoreToken($user->id, $sellerId),
+                        'total_pending' => 0,
+                        'total_delivered' => 0,
+                        'products' => [],
+                    ];
+                }
+
+                foreach ($fulfillment->items as $item) {
+                    $pName = $item->product_name;
+                    if (! isset($stores[$sellerId]['products'][$pName])) {
+                        $stores[$sellerId]['products'][$pName] = [
+                            'name' => $pName,
+                            'quantity' => 0,
+                            'pending' => 0,
+                            'delivered' => 0,
+                        ];
+                    }
+
+                    $pendingUnits = $item->units->where('status', 'pending')->count();
+                    $deliveredUnits = $item->units->where('status', 'delivered')->count();
+
+                    $stores[$sellerId]['products'][$pName]['quantity'] += (int) $item->quantity;
+                    $stores[$sellerId]['products'][$pName]['pending'] += $pendingUnits;
+                    $stores[$sellerId]['products'][$pName]['delivered'] += $deliveredUnits;
+
+                    $stores[$sellerId]['total_pending'] += $pendingUnits;
+                    $stores[$sellerId]['total_delivered'] += $deliveredUnits;
+                }
+            }
+        }
+
+        uasort($stores, function ($a, $b) {
+            if ($a['total_pending'] > 0 && $b['total_pending'] === 0) {
+                return -1;
+            }
+            if ($a['total_pending'] === 0 && $b['total_pending'] > 0) {
+                return 1;
+            }
+
+            return strcmp($a['class_name'], $b['class_name']);
+        });
+
+        return view('marketplace.pickup-hub', [
+            'stores' => $stores,
+            'activeCount' => count(array_filter($stores, fn ($s) => $s['total_pending'] > 0)),
+        ]);
     }
 
     private function availableProducts(): Builder
