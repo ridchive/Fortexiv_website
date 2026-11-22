@@ -118,7 +118,7 @@ class SellerController extends Controller
 
     public function store(Request $request): RedirectResponse
     {
-        $data = $this->validatedProduct($request);
+        $data = $this->validatedProduct($request, requireImage: true);
         $data['slug'] = $this->uniqueSlug($data['name']);
         $data['image'] = $request->file('image')?->store('products', 'public');
         $data['project_id'] = $request->user()->seller->project_id;
@@ -142,7 +142,7 @@ class SellerController extends Controller
     public function update(Request $request, Product $product): RedirectResponse
     {
         $this->authorizeProduct($request, $product);
-        $data = $this->validatedProduct($request);
+        $data = $this->validatedProduct($request, requireImage: ! $product->image);
         if ($product->name !== $data['name']) {
             $data['slug'] = $this->uniqueSlug($data['name'], $product->id);
         }
@@ -259,15 +259,25 @@ class SellerController extends Controller
         return back()->with('status', "Grup {$fulfillment->seller->store_name} pada pesanan {$fulfillment->order->order_code} berhasil diserahkan.");
     }
 
-    private function validatedProduct(Request $request): array
+    private function validatedProduct(Request $request, bool $requireImage = false): array
     {
         return $request->validate([
             'name' => ['required', 'string', 'max:120'],
             'description' => ['required', 'string', 'max:10000'],
             'price' => ['required', 'integer', 'min:1', 'max:100000000'],
             'stock' => ['required', 'integer', 'min:0', 'max:100000'],
-            'category_id' => ['nullable', 'integer', 'exists:categories,id'],
-            'image' => ['nullable', 'image', 'mimes:jpg,jpeg,png,webp', 'max:5120'],
+            'category_id' => ['required', 'integer', 'exists:categories,id'],
+            'image' => [$requireImage ? 'required' : 'nullable', 'image', 'mimes:jpg,jpeg,png,webp', 'max:5120'],
+        ], [
+            'name.required' => 'Nama produk wajib diisi.',
+            'description.required' => 'Deskripsi produk wajib diisi.',
+            'price.required' => 'Harga produk wajib diisi.',
+            'stock.required' => 'Stok produk wajib diisi.',
+            'category_id.required' => 'Kategori produk wajib dipilih.',
+            'image.required' => 'Gambar produk wajib diunggah.',
+            'image.image' => 'File harus berupa gambar.',
+            'image.mimes' => 'Format gambar yang didukung: JPG, JPEG, PNG, WebP.',
+            'image.max' => 'Ukuran gambar maksimal 5 MB.',
         ]);
     }
 
