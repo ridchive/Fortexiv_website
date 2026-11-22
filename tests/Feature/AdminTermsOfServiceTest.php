@@ -47,16 +47,23 @@ class AdminTermsOfServiceTest extends TestCase
     public function test_admin_can_open_terms_management_from_the_static_content_menu(): void
     {
         $admin = User::factory()->create(['role' => 'admin']);
+        $publishedVersion = TermsVersion::currentPublished();
+        $publishedVersion->update(['summary' => 'Dipulihkan dari prototype-1.0']);
 
         $this->actingAs($admin)
             ->get(route('admin.terms.edit'))
             ->assertOk()
             ->assertSee('Terms of Service')
             ->assertSee('Konten Statis')
+            ->assertSee('Versi Publik')
             ->assertSee('Simpan Draft')
             ->assertSee('Publikasikan')
             ->assertSee('Riwayat perubahan')
+            ->assertDontSee('prototype-1.0')
             ->assertSee(route('admin.terms.edit'), false);
+
+        $this->assertSame('prototype-1.0', $publishedVersion->fresh()->version_label);
+        $this->assertSame('Dipulihkan dari prototype-1.0', $publishedVersion->fresh()->summary);
     }
 
     public function test_public_terms_render_the_initial_content_from_database(): void

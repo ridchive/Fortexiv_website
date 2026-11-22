@@ -34,7 +34,7 @@
   <div class="row sp">
     <div>
       <span class="eyebrow">VERSI PUBLIK</span>
-      <h2 style="margin: 6px 0;">{{ $publishedVersion->version_label }}</h2>
+      <h2 style="margin: 6px 0;">Versi Publik</h2>
       <div class="tos-history-meta">
         <span>Dipublikasikan {{ $publishedVersion->published_at?->format('d M Y H:i') ?? '—' }}</span>
         <span>oleh {{ $publishedVersion->publisher?->name ?? 'Sistem' }}</span>
@@ -119,11 +119,17 @@
           'draft' => 'Draft',
           'superseded' => 'Draft terdahulu',
         ];
+        $historyTitleLabels = [
+          'published' => 'Versi Publik',
+          'archived' => 'Versi Sebelumnya',
+          'draft' => 'Draft Terbaru',
+          'superseded' => 'Draft Terdahulu',
+        ];
       @endphp
       <details class="panel tos-history-entry">
         <summary>
           <div class="row sp">
-            <strong>{{ $version->version_label ?? 'Draft #'.$version->id }}</strong>
+            <strong>{{ $historyTitleLabels[$version->status] ?? 'Versi Sebelumnya' }}</strong>
             <span class="badge {{ $version->status === 'published' ? 'verified' : ($version->status === 'draft' ? 'pending' : '') }}">{{ $statusLabels[$version->status] ?? ucfirst($version->status) }}</span>
           </div>
           <div class="tos-history-meta" style="margin-top: 6px;">
@@ -132,7 +138,7 @@
           </div>
         </summary>
         <div class="tos-history-body">
-          <p><strong>Ringkasan:</strong> {{ $version->summary }}</p>
+          <p><strong>Ringkasan:</strong> {{ str_replace('prototype-1.0', '', $version->summary) }}</p>
           @if($version->changed_sections)
             <p class="muted"><strong>Bagian berubah:</strong>
               {{ collect($version->changed_sections)->map(fn ($change) => $change['section'].' ('.$change['change'].')')->implode(', ') }}
