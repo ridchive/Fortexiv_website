@@ -32,9 +32,9 @@ class Order extends Model
             return $this->expires_at;
         }
 
-        $timeoutHours = config('marketplace.payment_timeout_hours', 24);
+        $timeoutMinutes = config('marketplace.payment_timeout_minutes', 10);
 
-        return $this->created_at ? $this->created_at->copy()->addHours($timeoutHours) : null;
+        return $this->created_at ? $this->created_at->copy()->addMinutes($timeoutMinutes) : null;
     }
 
     public function buyer(): BelongsTo

@@ -415,8 +415,8 @@ class MarketplaceController extends Controller
                 throw ValidationException::withMessages(['po' => 'Tanggal acara belum dikonfigurasi. Hubungi admin sebelum memesan.']);
             }
 
-            $timeoutHours = config('marketplace.payment_timeout_hours', 24);
-            $orderTimeout = now()->addHours($timeoutHours);
+            $timeoutMinutes = config('marketplace.payment_timeout_minutes', 10);
+            $orderTimeout = now()->addMinutes($timeoutMinutes);
             $globalDeadline = $purchaseWindow->paymentDeadline();
             $expiresAt = $globalDeadline ? $orderTimeout->min($globalDeadline) : $orderTimeout;
 

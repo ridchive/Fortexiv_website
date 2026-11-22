@@ -8,7 +8,7 @@ return [
     'po_start' => env('MARKETPLACE_PO_START', '2026-11-13 00:00:00'),
     'po_end' => env('MARKETPLACE_PO_END', '2026-11-28 23:59:59'),
     'payment_deadline' => env('MARKETPLACE_PAYMENT_DEADLINE'),
-    'payment_timeout_hours' => (int) env('PAYMENT_TIMEOUT_HOURS', 24),
+    'payment_timeout_minutes' => (int) env('PAYMENT_TIMEOUT_MINUTES', 10),
     'event_at' => env('MARKETPLACE_EVENT_AT'),
     'event_location' => env('MARKETPLACE_EVENT_LOCATION', 'Komplek Sekolah Alam Indonesia, Mampang, Pancoran Mas, Depok City, West Java 16433'),
     'pickup_instructions' => env('MARKETPLACE_PICKUP_INSTRUCTIONS'),

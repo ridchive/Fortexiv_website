@@ -9,7 +9,7 @@ Artisan::command('inspire', function () {
 })->purpose('Display an inspiring quote');
 
 Schedule::command('marketplace:cancel-expired-manual-orders')
-    ->everyFifteenMinutes()
+    ->everyMinute()
     ->withoutOverlapping();
 
 $midtransCheckInterval = (int) config('services.midtrans.status_check_interval_minutes');

@@ -100,66 +100,69 @@
       @endif
 
       @if($order->isExpired())
-        <div style="margin-bottom: 14px; text-align: left; font-size: 13px; background: rgba(244, 63, 94, 0.15); border: 1px solid var(--bad); color: var(--bad); padding: 10px 14px; border-radius: 8px;">
-          <strong>Batas Waktu Pembayaran Telah Berakhir</strong>
-          <p style="margin: 4px 0 0; font-size: 12px; color: var(--muted);">Pesanan ini telah melewati batas waktu pembayaran dan dibatalkan.</p>
+        <div style="margin-bottom: 14px; text-align: left; font-size: 13px; background: rgba(244, 63, 94, 0.15); border: 1px solid var(--bad); color: var(--bad); padding: 14px; border-radius: 8px;">
+          <strong style="font-size: 14px; display: block; margin-bottom: 4px;">⛔ Batas Waktu Pembayaran Telah Berakhir</strong>
+          <p style="margin: 0 0 12px; font-size: 12.5px; color: var(--muted);">Pesanan ini telah melewati batas waktu pembayaran (10 menit) dan otomatis dibatalkan. Stok produk telah dikembalikan ke katalog.</p>
+          <a class="btn" href="{{ route('catalog.index') }}" style="font-size: 13px; padding: 6px 14px;">Pesan Ulang di Katalog</a>
         </div>
-      @elseif($order->effectivePaymentDeadline())
-        <div style="margin-bottom: 14px; display: inline-flex; align-items: center; gap: 6px; background: rgba(245, 158, 11, 0.1); border: 1px solid rgba(245, 158, 11, 0.3); color: #f59e0b; padding: 6px 12px; border-radius: 8px; font-size: 12.5px;">
-          <span>⏱️ Batas Bayar: <strong>{{ $order->effectivePaymentDeadline()->translatedFormat('d M Y, H:i') }} WIB</strong></span>
-        </div>
-      @endif
-
-      {{-- FOTO QRIS --}}
-      @if($qrisImageAvailable)
-        <div style="background: #fff; padding: 12px; border: 1px solid var(--line); border-radius: 12px; display: inline-block; max-width: 100%; margin-bottom: 14px;">
-          <img src="{{ filled($qrisImage) && is_file(public_path($qrisImage)) ? asset($qrisImage) : (Route::has('qris.image') ? route('qris.image') : url('/qris-image')) }}" alt="QRIS statis resmi FORTEXIV" style="max-height: 220px; width: auto; max-width: 100%; object-fit: contain; display: block; margin: 0 auto;">
-        </div>
-        <p class="muted" style="font-size: 12.5px; margin: 0 0 14px;">
-          Scan QRIS di atas, masukkan nominal yang sesuai, lalu unggah screenshot bukti pembayaran di bawah ini.
-        </p>
       @else
-        <p class="note warn" style="margin-bottom: 14px; font-size: 13px;">
-          Poster QRIS statis FORTEXIV atau informasi transfer belum dikonfigurasi.
-        </p>
+        @if($order->effectivePaymentDeadline())
+          <div style="margin-bottom: 14px; display: inline-flex; align-items: center; gap: 6px; background: rgba(245, 158, 11, 0.1); border: 1px solid rgba(245, 158, 11, 0.3); color: #f59e0b; padding: 6px 12px; border-radius: 8px; font-size: 12.5px;">
+            <span>⏱️ Batas Bayar: <strong>{{ $order->effectivePaymentDeadline()->translatedFormat('d M Y, H:i') }} WIB</strong> (10 menit)</span>
+          </div>
+        @endif
+
+        {{-- FOTO QRIS --}}
+        @if($qrisImageAvailable)
+          <div style="background: #fff; padding: 12px; border: 1px solid var(--line); border-radius: 12px; display: inline-block; max-width: 100%; margin-bottom: 14px;">
+            <img src="{{ filled($qrisImage) && is_file(public_path($qrisImage)) ? asset($qrisImage) : (Route::has('qris.image') ? route('qris.image') : url('/qris-image')) }}" alt="QRIS statis resmi FORTEXIV" style="max-height: 220px; width: auto; max-width: 100%; object-fit: contain; display: block; margin: 0 auto;">
+          </div>
+          <p class="muted" style="font-size: 12.5px; margin: 0 0 14px;">
+            Scan QRIS di atas, masukkan nominal yang sesuai, lalu unggah screenshot bukti pembayaran di bawah ini.
+          </p>
+        @else
+          <p class="note warn" style="margin-bottom: 14px; font-size: 13px;">
+            Poster QRIS statis FORTEXIV atau informasi transfer belum dikonfigurasi.
+          </p>
+        @endif
+
+        @if($pickupLocation)
+          <div style="margin-bottom: 14px; font-size: 13px; color: var(--muted); text-align: left; background: var(--soft); padding: 10px 14px; border-radius: 8px;">
+            Lokasi pengambilan: <strong>{{ $pickupLocation }}</strong>
+          </div>
+        @endif
+
+        {{-- TOTAL HARGA & SALIN NOMINAL --}}
+        <div style="background: var(--soft); padding: 14px; border-radius: 10px; margin-bottom: 18px;">
+          <span class="muted" style="font-size: 12.5px; display: block;">Total yang perlu dibayar adalah:</span>
+          <div style="font-size: 1.6rem; font-weight: 800; color: var(--good); font-family: var(--fd); margin: 4px 0 8px;">
+            {{ \App\Support\Money::format($order->total_price) }}
+          </div>
+          <button type="button" class="btn sec btn-sm" data-copy-payment-amount="{{ $order->total_price }}" onclick="copyRawPrice('{{ $order->total_price }}')" style="font-size: 12px; padding: 5px 14px;">
+            <span id="copyBtnText">📋 Salin Nominal</span>
+          </button>
+        </div>
+
+        {{-- FORM UPLOAD BUKTI TF --}}
+        <form id="proofForm" method="post" action="{{ route('payments.store', $order) }}" enctype="multipart/form-data" style="text-align: left;">
+          @csrf
+          <input type="hidden" name="method" value="QRIS">
+          
+          <div class="field" style="margin-bottom: 14px;">
+            <label for="proof_input" style="display: block; font-size: 13px; font-weight: 700; margin-bottom: 6px;">
+              Masukkan file bukti transfer (JPG, PNG, PDF):
+            </label>
+            <input class="input" id="proof_input" name="proof" type="file" accept=".jpg,.jpeg,.png,.pdf" required style="font-size: 13px;">
+            @error('proof')
+              <p class="checkout-error">{{ $message }}</p>
+            @enderror
+          </div>
+
+          <button type="button" class="btn" id="btnShowConfirmPopup" onclick="handlePreSubmit()" style="width: 100%; min-height: 44px; font-weight: 700;">
+            {{ $order->payment?->status === 'rejected' ? 'Unggah Ulang Bukti Pembayaran' : 'Kirim Bukti Pembayaran' }}
+          </button>
+        </form>
       @endif
-
-      @if($pickupLocation)
-        <div style="margin-bottom: 14px; font-size: 13px; color: var(--muted); text-align: left; background: var(--soft); padding: 10px 14px; border-radius: 8px;">
-          Lokasi pengambilan: <strong>{{ $pickupLocation }}</strong>
-        </div>
-      @endif
-
-      {{-- TOTAL HARGA & SALIN NOMINAL --}}
-      <div style="background: var(--soft); padding: 14px; border-radius: 10px; margin-bottom: 18px;">
-        <span class="muted" style="font-size: 12.5px; display: block;">Total yang perlu dibayar adalah:</span>
-        <div style="font-size: 1.6rem; font-weight: 800; color: var(--good); font-family: var(--fd); margin: 4px 0 8px;">
-          {{ \App\Support\Money::format($order->total_price) }}
-        </div>
-        <button type="button" class="btn sec btn-sm" data-copy-payment-amount="{{ $order->total_price }}" onclick="copyRawPrice('{{ $order->total_price }}')" style="font-size: 12px; padding: 5px 14px;">
-          <span id="copyBtnText">📋 Salin Nominal</span>
-        </button>
-      </div>
-
-      {{-- FORM UPLOAD BUKTI TF --}}
-      <form id="proofForm" method="post" action="{{ route('payments.store', $order) }}" enctype="multipart/form-data" style="text-align: left;">
-        @csrf
-        <input type="hidden" name="method" value="QRIS">
-        
-        <div class="field" style="margin-bottom: 14px;">
-          <label for="proof_input" style="display: block; font-size: 13px; font-weight: 700; margin-bottom: 6px;">
-            Masukkan file bukti transfer (JPG, PNG, PDF):
-          </label>
-          <input class="input" id="proof_input" name="proof" type="file" accept=".jpg,.jpeg,.png,.pdf" required style="font-size: 13px;">
-          @error('proof')
-            <p class="checkout-error">{{ $message }}</p>
-          @enderror
-        </div>
-
-        <button type="button" class="btn" id="btnShowConfirmPopup" onclick="handlePreSubmit()" style="width: 100%; min-height: 44px; font-weight: 700;">
-          {{ $order->payment?->status === 'rejected' ? 'Unggah Ulang Bukti Pembayaran' : 'Kirim Bukti Pembayaran' }}
-        </button>
-      </form>
 
       {{-- COLLAPSIBLE RINCIAN PESANAN --}}
       <details style="margin-top: 16px; text-align: left; border-top: 1px solid var(--line); padding-top: 10px;">
