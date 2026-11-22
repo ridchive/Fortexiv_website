@@ -9,15 +9,18 @@ return new class extends Migration
 {
     public function up(): void
     {
+        Schema::dropIfExists('terms_versions');
+
         Schema::create('terms_versions', function (Blueprint $table) {
+            $table->engine = 'InnoDB';
             $table->id();
             $table->string('version_label', 40)->nullable()->unique();
             $table->json('sections');
             $table->string('status', 20)->index();
             $table->text('summary');
             $table->json('changed_sections');
-            $table->foreignId('created_by')->nullable()->constrained('users')->nullOnDelete();
-            $table->foreignId('published_by')->nullable()->constrained('users')->nullOnDelete();
+            $table->unsignedBigInteger('created_by')->nullable()->index();
+            $table->unsignedBigInteger('published_by')->nullable()->index();
             $table->timestamp('published_at')->nullable();
             $table->timestamps();
         });
@@ -62,14 +65,18 @@ return new class extends Migration
         ]);
 
         Schema::table('orders', function (Blueprint $table) {
-            $table->foreignId('terms_version_id')->nullable()->constrained('terms_versions')->restrictOnDelete();
+            if (! Schema::hasColumn('orders', 'terms_version_id')) {
+                $table->unsignedBigInteger('terms_version_id')->nullable()->index();
+            }
         });
     }
 
     public function down(): void
     {
         Schema::table('orders', function (Blueprint $table) {
-            $table->dropConstrainedForeignId('terms_version_id');
+            if (Schema::hasColumn('orders', 'terms_version_id')) {
+                $table->dropColumn('terms_version_id');
+            }
         });
 
         Schema::dropIfExists('terms_versions');
