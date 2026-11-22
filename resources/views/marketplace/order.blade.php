@@ -290,7 +290,7 @@
           
           @if($ticketAvailable)
             <p>Tunjukkan tiket QR ini kepada petugas kelas saat pengambilan produk pada Hari H.</p>
-            <a class="btn lime" href="{{ route('tickets.show', $order) }}">Buka Tiket &amp; Tampilkan QR</a>
+            <a class="btn lime" href="{{ Route::has('tickets.hub') ? route('tickets.hub') : url('/tickets') }}">Buka Tiket &amp; Tampilkan QR</a>
           @else
             <p>QR pickup akan otomatis aktif di sini segera setelah bukti pembayaran Anda diverifikasi oleh admin.</p>
           @endif

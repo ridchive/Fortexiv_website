@@ -591,7 +591,7 @@ class MarketplaceController extends Controller
             'payment_status' => $payment->status,
             'order_status' => $order->status,
             'ticket_available' => $ticketAvailable,
-            'ticket_url' => $ticketAvailable ? route('tickets.show', $order) : null,
+            'ticket_url' => $ticketAvailable ? (Route::has('tickets.hub') ? route('tickets.hub') : url('/tickets')) : null,
             'is_pending' => $payment->status === 'pending',
         ])->header('Cache-Control', 'no-store');
     }
@@ -665,25 +665,11 @@ class MarketplaceController extends Controller
         return back()->with('status', 'Bukti transfer berhasil dikirim! Pembayaran Anda sedang diproses dan diverifikasi secara manual oleh admin. Proses verifikasi dapat memakan waktu beberapa saat. Tiket pickup QR akan otomatis aktif setelah pembayaran diverifikasi.');
     }
 
-    public function ticket(Request $request, Order $order): View
+    public function ticket(Request $request, Order $order): RedirectResponse
     {
         abort_unless($order->buyer_id === $request->user()->id, 404);
-        $order->loadMissing('payment');
-        abort_unless(
-            in_array($order->payment?->status, ['verified', 'partially_refunded'], true)
-                && in_array($order->status, ['paid', 'partially_picked_up', 'picked_up'], true),
-            404,
-        );
-        if (! $order->ticket()->exists()) {
-            $order->ticket()->create([
-                'ticket_code' => 'FXT-'.Str::upper(Str::random(12)),
-                'issued_at' => now(),
-            ]);
-        }
-        abort_unless($order->ticket()->exists(), 404);
-        $order->load(['fulfillments.seller.project', 'fulfillments.project', 'fulfillments.items.units', 'ticket']);
 
-        return view('marketplace.ticket', compact('order'));
+        return redirect()->route('tickets.hub');
     }
 
     public function pickupHub(Request $request): View
