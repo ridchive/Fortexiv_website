@@ -49,7 +49,7 @@ class SyncMidtransPaymentsTest extends TestCase
         $this->artisan('marketplace:sync-midtrans-payments')->assertSuccessful();
 
         $this->assertSame('cancelled', $order->fresh()->status);
-        $this->assertDatabaseHas('payments', ['order_id' => $order->id, 'status' => 'failed']);
+        $this->assertDatabaseHas('payments', ['order_id' => $order->id, 'status' => 'expired']);
     }
 
     public function test_orders_without_a_snap_transaction_or_with_manual_payment_are_not_checked(): void

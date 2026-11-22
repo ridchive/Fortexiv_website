@@ -80,6 +80,10 @@ class AdminContentController extends Controller
                 ->orWhere('store_name', $project->class_name);
         })->update(['project_id' => $project->id]);
 
+        if ($request->has('product_ids')) {
+            Product::whereIn('id', (array) $request->input('product_ids'))->update(['project_id' => $project->id]);
+        }
+
         return redirect()->route('admin.articles.index')->with('status', 'Artikel proyek untuk kelas "'.$project->class_name.'" berhasil disimpan.');
     }
 
@@ -118,6 +122,10 @@ class AdminContentController extends Controller
             $q->where('project_id', $project->id)
                 ->orWhere('store_name', $project->class_name);
         })->update(['project_id' => $project->id]);
+
+        if ($request->has('product_ids')) {
+            Product::whereIn('id', (array) $request->input('product_ids'))->update(['project_id' => $project->id]);
+        }
 
         return redirect()->route('admin.articles.index')->with('status', 'Artikel proyek berhasil diperbarui.');
     }

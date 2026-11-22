@@ -303,9 +303,20 @@
               <span class="badge {{ $payment->status }}">
                 {{ $paymentStatusLabels[$payment->status] ?? ucfirst($payment->status) }}
               </span>
+              @if($payment->status === 'verified' && ($payment->verifier || $payment->verified_at))
+                <div class="muted" style="font-size: 11px; margin-top: 4px;">
+                  Oleh: {{ $payment->verifier?->name ?? 'Admin' }}<br>
+                  {{ $payment->verified_at?->format('d/m/y H:i') }}
+                </div>
+              @elseif($payment->status === 'rejected' && ($payment->verifier || $payment->verified_at))
+                <div class="muted" style="font-size: 11px; margin-top: 4px; color: var(--bad);">
+                  Oleh: {{ $payment->verifier?->name ?? 'Admin' }}<br>
+                  {{ $payment->verified_at?->format('d/m/y H:i') }}
+                </div>
+              @endif
               @if($payment->notes)
-                <div class="muted" style="font-size: 11px; max-width: 130px; margin-top: 4px; overflow-wrap: anywhere;">
-                  {{ $payment->notes }}
+                <div class="muted" style="font-size: 11px; max-width: 140px; margin-top: 4px; overflow-wrap: anywhere;">
+                  "{{ $payment->notes }}"
                 </div>
               @endif
             </td>
@@ -324,7 +335,16 @@
                       ✕ Tolak
                     </button>
                   </div>
-                @else
+                @endif
+
+                @if($payment->order && in_array($payment->order->status, ['pending_payment', 'waiting_verification'], true))
+                  <form method="post" action="{{ route('admin.orders.cancel', $payment->order) }}" onsubmit="return confirm('Batalkan pesanan #{{ $payment->order->order_code }} dan kembalikan seluruh stok barang ke sistem?');" style="margin-top: 4px;">
+                    @csrf
+                    <button type="submit" class="btn sec btn-sm" style="padding: 4px 8px; font-size: 11px; color: var(--bad); border-color: var(--line);" title="Batalkan Pesanan & Kembalikan Stok">
+                      Batalkan &amp; Kembalikan Stok
+                    </button>
+                  </form>
+                @elseif($payment->status !== 'pending' && $payment->gateway !== 'midtrans')
                   <span class="muted" style="font-size: 12px;">Selesai</span>
                 @endif
               </div>
@@ -392,7 +412,7 @@
       <div class="modal-card-custom-body">
         <p style="margin: 0; font-size: 13.5px;" id="verifyPromptText">Konfirmasi verifikasi pembayaran untuk pesanan ini?</p>
         <div>
-          <label for="received_amount_input" style="display: block; font-size: 12px; font-weight: 700; margin-bottom: 4px;">Nominal Masuk Mutasi (Opsional):</label>
+          <label for="received_amount_input" style="display: block; font-size: 12px; font-weight: 700; margin-bottom: 4px;">Nominal Masuk Sesuai Mutasi (Opsional):</label>
           <input class="input" id="received_amount_input" name="received_amount" type="number" min="0" placeholder="Biarkan kosong jika nominal pas">
         </div>
         <div>
@@ -442,6 +462,8 @@
 </div>
 
 <script>
+  let currentOrderTotal = 0;
+
   function openQrisModal() {
     document.getElementById('qrisModal').style.display = 'flex';
   }
@@ -452,6 +474,7 @@
   function openVerifyModal(paymentId, orderCode, totalPrice) {
     const form = document.getElementById('verifyForm');
     form.action = `/admin/payments/${paymentId}/verify`;
+    currentOrderTotal = parseInt(totalPrice, 10) || 0;
     document.getElementById('verifyPromptText').textContent = `Verifikasi pembayaran untuk pesanan ${orderCode}? Tiket QR pickup akan otomatis terbit.`;
     document.getElementById('received_amount_input').value = totalPrice || '';
     document.getElementById('verifyModal').style.display = 'flex';
@@ -459,6 +482,20 @@
   function closeVerifyModal() {
     document.getElementById('verifyModal').style.display = 'none';
   }
+
+  document.getElementById('verifyForm')?.addEventListener('submit', function(e) {
+    const inputVal = document.getElementById('received_amount_input').value;
+    const receivedVal = parseInt(inputVal, 10);
+    if (!isNaN(receivedVal) && receivedVal > 0 && currentOrderTotal > 0 && receivedVal < currentOrderTotal) {
+      const diff = currentOrderTotal - receivedVal;
+      const formattedDiff = 'Rp ' + diff.toLocaleString('id-ID');
+      const formattedRec = 'Rp ' + receivedVal.toLocaleString('id-ID');
+      const formattedTot = 'Rp ' + currentOrderTotal.toLocaleString('id-ID');
+      if (!confirm(`PERINGATAN KURANG BAYAR:\n\nNominal masuk (${formattedRec}) LEBIH KECIL dari total tagihan pesanan (${formattedTot}).\nSelisih kurang: ${formattedDiff}.\n\nTetap verifikasi pembayaran ini dan terbitkan tiket pickup?`)) {
+        e.preventDefault();
+      }
+    }
+  });
 
   function openRejectModal(paymentId, orderCode) {
     const form = document.getElementById('rejectForm');

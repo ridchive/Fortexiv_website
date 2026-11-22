@@ -219,9 +219,12 @@
         </div>
 
         <!-- Controls & Toggle -->
-        <div class="scanner-controls">
-          <button class="btn lime scanner-toggle-btn" type="button" data-scanner-toggle>
-            📷 Buka Kamera Pemindai
+        <div class="scanner-controls" style="display: flex; gap: 8px; flex-wrap: wrap;">
+          <button class="btn lime scanner-toggle-btn" type="button" data-scanner-toggle data-qr-mode="class">
+            📷 Buka Kamera (Scan Class QR)
+          </button>
+          <button class="btn sec" type="button" data-scanner-toggle data-qr-mode="product">
+            Scan Product QR
           </button>
         </div>
 
@@ -246,7 +249,7 @@
 
     <div>
       <section class="panel" data-qr-preview hidden style="margin: 0; border: 2px solid var(--good); background: var(--surface);">
-        <div class="eyebrow" style="color: var(--good); margin-bottom: 8px;">BUKTI SERAH TERIMA (DELIVERED)</div>
+        <div class="eyebrow" style="color: var(--good); margin-bottom: 8px;">DETAIL SEBELUM KONFIRMASI</div>
         <h2 data-qr-order style="margin: 0 0 14px; color: var(--good);">✅ Barang Berhasil Diserahkan</h2>
 
         <div style="background: var(--bg); border: 1px solid var(--line); border-radius: 8px; padding: 14px; margin-bottom: 16px;">

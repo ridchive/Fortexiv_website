@@ -10,9 +10,7 @@ return new class extends Migration
      */
     public function up(): void
     {
-        DB::table('products')
-            ->where('slug', 'pot-tanah-liat-mini')
-            ->update(['price' => 1]);
+        // No-op to preserve original catalog and seeder product price.
     }
 
     /**
@@ -20,8 +18,6 @@ return new class extends Migration
      */
     public function down(): void
     {
-        DB::table('products')
-            ->where('slug', 'pot-tanah-liat-mini')
-            ->update(['price' => 20000]);
+        // No-op.
     }
 };

@@ -89,20 +89,44 @@
     </nav>
 
     <div class="panel" style="padding: 22px; border-radius: 14px; text-align: center;">
-      <span class="badge pending_payment" style="margin-bottom: 8px;">Menunggu Pembayaran</span>
+      <span class="badge pending_payment" style="margin-bottom: 8px;">Menunggu pembayaran</span>
       <h1 style="font-size: 1.45rem; margin: 4px 0 2px;">Pembayaran Pesanan</h1>
       <p class="muted" style="font-size: 12.5px; margin: 0 0 16px;">Kode: <strong>{{ $order->order_code }}</strong></p>
 
       @if($order->payment?->status === 'rejected')
         <div style="margin-bottom: 14px; text-align: left; font-size: 13px; background: var(--bad-bg); color: var(--bad); padding: 10px 14px; border-radius: 8px;">
-          <strong>Bukti sebelumnya ditolak:</strong> {{ $order->payment->notes ?: 'Silakan unggah bukti transfer yang jelas dan sesuai nominal.' }}
+          <strong>Pembayaran ditolak:</strong> {{ $order->payment->notes ?: 'Silakan unggah bukti transfer yang jelas dan sesuai nominal.' }}
+        </div>
+      @endif
+
+      @if($order->isExpired())
+        <div style="margin-bottom: 14px; text-align: left; font-size: 13px; background: rgba(244, 63, 94, 0.15); border: 1px solid var(--bad); color: var(--bad); padding: 10px 14px; border-radius: 8px;">
+          <strong>Batas Waktu Pembayaran Telah Berakhir</strong>
+          <p style="margin: 4px 0 0; font-size: 12px; color: var(--muted);">Pesanan ini telah melewati batas waktu pembayaran dan dibatalkan.</p>
+        </div>
+      @elseif($order->effectivePaymentDeadline())
+        <div style="margin-bottom: 14px; display: inline-flex; align-items: center; gap: 6px; background: rgba(245, 158, 11, 0.1); border: 1px solid rgba(245, 158, 11, 0.3); color: #f59e0b; padding: 6px 12px; border-radius: 8px; font-size: 12.5px;">
+          <span>⏱️ Batas Bayar: <strong>{{ $order->effectivePaymentDeadline()->translatedFormat('d M Y, H:i') }} WIB</strong></span>
         </div>
       @endif
 
       {{-- FOTO QRIS --}}
       @if($qrisImageAvailable)
         <div style="background: #fff; padding: 12px; border: 1px solid var(--line); border-radius: 12px; display: inline-block; max-width: 100%; margin-bottom: 14px;">
-          <img src="{{ Route::has('qris.image') ? route('qris.image') : url('/qris-image') }}" alt="QRIS FORTEXIV" style="max-height: 220px; width: auto; max-width: 100%; object-fit: contain; display: block; margin: 0 auto;">
+          <img src="{{ filled($qrisImage) && is_file(public_path($qrisImage)) ? asset($qrisImage) : (Route::has('qris.image') ? route('qris.image') : url('/qris-image')) }}" alt="QRIS statis resmi FORTEXIV" style="max-height: 220px; width: auto; max-width: 100%; object-fit: contain; display: block; margin: 0 auto;">
+        </div>
+        <p class="muted" style="font-size: 12.5px; margin: 0 0 14px;">
+          Scan QRIS di atas, masukkan nominal yang sesuai, lalu unggah screenshot bukti pembayaran di bawah ini.
+        </p>
+      @else
+        <p class="note warn" style="margin-bottom: 14px; font-size: 13px;">
+          Poster QRIS statis FORTEXIV atau informasi transfer belum dikonfigurasi.
+        </p>
+      @endif
+
+      @if($pickupLocation)
+        <div style="margin-bottom: 14px; font-size: 13px; color: var(--muted); text-align: left; background: var(--soft); padding: 10px 14px; border-radius: 8px;">
+          Lokasi pengambilan: <strong>{{ $pickupLocation }}</strong>
         </div>
       @endif
 
@@ -112,8 +136,8 @@
         <div style="font-size: 1.6rem; font-weight: 800; color: var(--good); font-family: var(--fd); margin: 4px 0 8px;">
           {{ \App\Support\Money::format($order->total_price) }}
         </div>
-        <button type="button" class="btn sec btn-sm" onclick="copyRawPrice('{{ $order->total_price }}')" style="font-size: 12px; padding: 5px 14px;">
-          <span id="copyBtnText">📋 Salin Nominal ({{ $order->total_price }})</span>
+        <button type="button" class="btn sec btn-sm" data-copy-payment-amount="{{ $order->total_price }}" onclick="copyRawPrice('{{ $order->total_price }}')" style="font-size: 12px; padding: 5px 14px;">
+          <span id="copyBtnText">📋 Salin Nominal</span>
         </button>
       </div>
 
@@ -193,6 +217,13 @@
         input.reportValidity();
         return;
       }
+      const file = input.files[0];
+      const maxSizeBytes = 5 * 1024 * 1024;
+      if (file.size > maxSizeBytes) {
+        alert('Ukuran file bukti pembayaran terlalu besar (' + (file.size / (1024 * 1024)).toFixed(2) + ' MB). Maksimal ukuran file yang diperbolehkan adalah 5 MB.');
+        input.value = '';
+        return;
+      }
       document.getElementById('confirmManualModal').style.display = 'flex';
     }
 
@@ -227,9 +258,15 @@
       </div>
       <span class="badge {{ $order->status }}">
         @if($order->status === 'waiting_verification')
-          ⏳ Menunggu Verifikasi Admin
+          Menunggu konfirmasi
         @elseif($order->status === 'paid')
-          ✓ Pembayaran Lunas
+          Pembayaran berhasil
+        @elseif($order->status === 'partially_picked_up')
+          Sebagian selesai
+        @elseif($order->status === 'picked_up')
+          Selesai
+        @elseif($order->status === 'cancelled')
+          Dibatalkan
         @else
           {{ ucfirst(str_replace('_', ' ', $order->status)) }}
         @endif
@@ -242,9 +279,7 @@
           ⏳ Bukti Transfer Telah Diterima!
         </strong>
         <p style="margin: 0; font-size: 13.5px; color: var(--ink); line-height: 1.55;">
-          Pembayaran Anda sedang diverifikasi secara manual oleh admin. 
-          <strong>Verifikasi dapat memakan waktu beberapa saat</strong>. 
-          Tiket &amp; QR pickup akan otomatis muncul dan aktif di halaman ini setelah verifikasi berhasil.
+          Pembayaran sedang diperiksa oleh admin. QR pickup akan aktif setelah pembayaran diverifikasi.
         </p>
       </div>
     @endif
@@ -258,25 +293,61 @@
           </div>
 
           <div class="order-groups">
-            <div class="order-group">
-              <ul class="order-items" style="margin-top: 0; border-top: 0;">
-                @foreach($order->items as $item)
-                  <li class="order-item">
+            @if($order->fulfillments->isNotEmpty())
+              @foreach($order->fulfillments as $fulfillment)
+                <div class="order-group" style="margin-bottom: 14px;">
+                  <div class="order-group-header" style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 10px;">
                     <div>
-                      <strong class="order-item-name">{{ $item->product_name }}</strong>
-                      <span class="order-item-meta">{{ $item->quantity }} × {{ \App\Support\Money::format($item->price_at_order) }} &middot; {{ $item->class_name }}</span>
+                      <span class="eyebrow" style="font-size: 11px;">GRUP KELAS</span>
+                      <h3 style="margin: 2px 0 0; font-size: 1.1rem;">{{ $fulfillment->class_name ?? $fulfillment->project?->class_name ?? $fulfillment->seller->store_name }}</h3>
+                      <span class="order-seller" style="font-size: 12px; color: var(--muted);">{{ $fulfillment->seller->store_name }}</span>
                     </div>
-                    <div class="order-item-money">
-                      <strong>{{ \App\Support\Money::format($item->subtotal) }}</strong>
-                    </div>
-                  </li>
-                @endforeach
-              </ul>
-              <div class="order-group-total" style="margin-top: 12px;">
-                <span>Total</span>
-                <strong>{{ \App\Support\Money::format($order->total_price) }}</strong>
+                    <span class="badge {{ $fulfillment->status }}">
+                      {{ match($fulfillment->status) {
+                        'delivered' => 'Diserahkan',
+                        'pending' => 'Menunggu pemenuhan',
+                        'ready_for_pickup' => 'Siap pickup',
+                        'partially_delivered' => 'Sebagian diserahkan',
+                        default => ucfirst(str_replace('_', ' ', $fulfillment->status))
+                      } }}
+                    </span>
+                  </div>
+                  <ul class="order-items" style="margin-top: 0; border-top: 1px solid var(--line);">
+                    @foreach($fulfillment->items as $item)
+                      <li class="order-item">
+                        <div>
+                          <strong class="order-item-name">{{ $item->product_name }}</strong>
+                          <span class="order-item-meta">{{ $item->quantity }} × {{ \App\Support\Money::format($item->price_at_order) }}</span>
+                        </div>
+                        <div class="order-item-money">
+                          <strong>{{ \App\Support\Money::format($item->subtotal) }}</strong>
+                        </div>
+                      </li>
+                    @endforeach
+                  </ul>
+                </div>
+              @endforeach
+            @else
+              <div class="order-group">
+                <ul class="order-items" style="margin-top: 0; border-top: 0;">
+                  @foreach($order->items as $item)
+                    <li class="order-item">
+                      <div>
+                        <strong class="order-item-name">{{ $item->product_name }}</strong>
+                        <span class="order-item-meta">{{ $item->quantity }} × {{ \App\Support\Money::format($item->price_at_order) }} &middot; {{ $item->class_name }}</span>
+                      </div>
+                      <div class="order-item-money">
+                        <strong>{{ \App\Support\Money::format($item->subtotal) }}</strong>
+                      </div>
+                    </li>
+                  @endforeach
+                </ul>
+                <div class="order-group-total" style="margin-top: 12px;">
+                  <span>Total</span>
+                  <strong>{{ \App\Support\Money::format($order->total_price) }}</strong>
+                </div>
               </div>
-            </div>
+            @endif
           </div>
         </section>
       </div>
@@ -284,15 +355,15 @@
       <aside class="order-side">
         <section class="order-ticket" aria-labelledby="ticket-heading">
           <span class="badge {{ $ticketAvailable ? 'good' : 'pending' }}">
-            {{ $ticketAvailable ? 'Tiket Tersedia' : 'Tiket Menunggu Verifikasi' }}
+            {{ $ticketAvailable ? 'Aktif untuk pickup' : 'Tiket Menunggu Verifikasi' }}
           </span>
           <h2 id="ticket-heading" style="margin-top: 8px;">Tiket &amp; QR Pickup</h2>
           
           @if($ticketAvailable)
             <p>Tunjukkan tiket QR ini kepada petugas kelas saat pengambilan produk pada Hari H.</p>
-            <a class="btn lime" href="{{ Route::has('tickets.hub') ? route('tickets.hub') : url('/tickets') }}">Buka Tiket &amp; Tampilkan QR</a>
+            <a class="btn lime" href="{{ Route::has('tickets.hub') ? route('tickets.hub') : url('/tickets') }}">Buka Tiket & Tampilkan QR</a>
           @else
-            <p>QR pickup akan otomatis aktif di sini segera setelah bukti pembayaran Anda diverifikasi oleh admin.</p>
+            <p>QR pickup akan aktif setelah pembayaran diverifikasi.</p>
           @endif
         </section>
       </aside>

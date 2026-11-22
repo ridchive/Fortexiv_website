@@ -8,6 +8,10 @@ Artisan::command('inspire', function () {
     $this->comment(Inspiring::quote());
 })->purpose('Display an inspiring quote');
 
+Schedule::command('marketplace:cancel-expired-manual-orders')
+    ->everyFifteenMinutes()
+    ->withoutOverlapping();
+
 $midtransCheckInterval = (int) config('services.midtrans.status_check_interval_minutes');
 
 if ($midtransCheckInterval > 0) {

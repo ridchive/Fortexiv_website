@@ -16,7 +16,24 @@ class Order extends Model
         return [
             'pickup_date' => 'date',
             'terms_accepted_at' => 'datetime',
+            'expires_at' => 'datetime',
         ];
+    }
+
+    public function isExpired(): bool
+    {
+        return $this->expires_at !== null && $this->expires_at->isPast();
+    }
+
+    public function effectivePaymentDeadline(): ?\Illuminate\Support\Carbon
+    {
+        if ($this->expires_at) {
+            return $this->expires_at;
+        }
+
+        $timeoutHours = config('marketplace.payment_timeout_hours', 24);
+
+        return $this->created_at ? $this->created_at->copy()->addHours($timeoutHours) : null;
     }
 
     public function buyer(): BelongsTo

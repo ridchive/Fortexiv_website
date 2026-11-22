@@ -22,4 +22,9 @@ class Payment extends Model
     {
         return $this->belongsTo(Order::class);
     }
+
+    public function verifier(): BelongsTo
+    {
+        return $this->belongsTo(User::class, 'verified_by');
+    }
 }

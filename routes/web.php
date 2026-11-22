@@ -66,16 +66,6 @@ Route::middleware(['auth', 'verified', 'role:buyer'])->group(function () {
     Route::post('/checkout', [MarketplaceController::class, 'checkout'])->name('checkout');
     Route::get('/orders', [MarketplaceController::class, 'orders'])->name('orders.index');
     Route::get('/orders/{order:order_code}', [MarketplaceController::class, 'order'])->name('orders.show');
-    Route::get('/orders/{order:order_code}/midtrans/status', [MarketplaceController::class, 'midtransPaymentStatus'])
-        ->middleware('throttle:60,1')
-        ->name('payments.midtrans.status');
-    Route::post('/orders/{order:order_code}/midtrans/retry', [MarketplaceController::class, 'retryMidtransPayment'])
-        ->middleware('throttle:6,1')
-        ->name('payments.midtrans.retry');
-    Route::post('/orders/{order:order_code}/midtrans/refresh', [MarketplaceController::class, 'refreshMidtransPaymentStatus'])
-        ->middleware('throttle:6,1')
-        ->name('payments.midtrans.refresh');
-    Route::post('/orders/{order:order_code}/demo-payment', [MarketplaceController::class, 'simulatePayment'])->name('payments.demo');
     Route::post('/orders/{order:order_code}/payment-proof', [MarketplaceController::class, 'uploadPayment'])->name('payments.store');
     Route::get('/tickets', [MarketplaceController::class, 'pickupHub'])->name('tickets.hub');
     Route::get('/orders/{order:order_code}/ticket', [MarketplaceController::class, 'ticket'])->name('tickets.show');
@@ -106,6 +96,7 @@ Route::prefix('admin')->name('admin.')->middleware(['auth', 'verified', 'role:ad
     Route::get('/payments/{payment}/proof', [AdminController::class, 'paymentProof'])->name('payments.proof');
     Route::post('/payments/{payment}/verify', [AdminController::class, 'verify'])->name('payments.verify');
     Route::post('/payments/{payment}/reject', [AdminController::class, 'reject'])->name('payments.reject');
+    Route::post('/orders/{order}/cancel', [AdminController::class, 'cancelOrder'])->name('orders.cancel');
     Route::post('/order-items/{orderItem}/carbon-impact/adjust', [AdminController::class, 'adjustCarbonImpact'])->name('carbon-impact.adjust');
     Route::get('/users', [AdminController::class, 'users'])->name('users');
     Route::patch('/users/{user}/toggle-active', [AdminController::class, 'toggleUser'])->name('users.toggle');

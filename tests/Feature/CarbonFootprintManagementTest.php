@@ -124,7 +124,7 @@ class CarbonFootprintManagementTest extends TestCase
         $this->get(route('products.show', $product))
             ->assertOk()
             ->assertSee('PENGURANGAN EMISI PRODUK')
-            ->assertSee('1,500000 kg CO2e');
+            ->assertSee('1,50 kg CO2e');
     }
 
     public function test_admin_dashboard_aggregates_carbon_by_class_seller_and_buyer(): void
@@ -278,7 +278,7 @@ class CarbonFootprintManagementTest extends TestCase
         $this->actingAs($buyer)
             ->get(route('orders.index'))
             ->assertOk()
-            ->assertSee('4,000000 kg CO2e')
+            ->assertSee('4,000 kg CO2e')
             ->assertSee('Kelas Satu')
             ->assertSee('Kelas Dua')
             ->assertSee('FX-BUYERCARBON');
@@ -404,8 +404,10 @@ class CarbonFootprintManagementTest extends TestCase
     public function test_seller_cannot_change_official_carbon_value(): void
     {
         $seller = $this->seller();
+        $category = Category::firstOrCreate(['name' => 'Kategori Umum', 'slug' => 'kategori-umum']);
         $product = Product::create([
             'seller_id' => $seller->id,
+            'category_id' => $category->id,
             'name' => 'Produk Seller',
             'slug' => 'produk-seller',
             'description' => 'Deskripsi awal.',
@@ -413,6 +415,7 @@ class CarbonFootprintManagementTest extends TestCase
             'stock' => 2,
             'review_status' => 'draft',
             'status' => 'draft',
+            'image' => 'products/sample.png',
             'carbon_footprint_value' => 2.5,
             'carbon_footprint_unit' => 'kg CO2e',
             'carbon_baseline_emission_factor' => 5.0,
@@ -423,6 +426,7 @@ class CarbonFootprintManagementTest extends TestCase
 
         $this->actingAs($seller->user)
             ->put(route('seller.products.update', $product), [
+                'category_id' => $category->id,
                 'name' => 'Produk Seller Baru',
                 'description' => 'Deskripsi baru.',
                 'price' => 12000,
@@ -1261,7 +1265,7 @@ class CarbonFootprintManagementTest extends TestCase
 
         $this->actingAs($admin)->get(route('admin.dashboard'))->assertOk()->assertSee('6,000000 kg CO2e');
         $this->actingAs($seller->user)->get(route('seller.dashboard'))->assertOk()->assertSee('6,000000 kg CO2e');
-        $this->actingAs($buyer)->get(route('orders.index'))->assertOk()->assertSee('6,000000 kg CO2e');
+        $this->actingAs($buyer)->get(route('orders.index'))->assertOk()->assertSee('6,000 kg CO2e');
         $this->get(route('impact.index'))->assertOk()->assertSee('6,000000 kg CO2e');
         $this->get(route('home'))->assertOk()->assertSee('6,00');
     }

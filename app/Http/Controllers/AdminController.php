@@ -2,7 +2,10 @@
 
 namespace App\Http\Controllers;
 
+use App\Actions\CancelOrder;
 use App\Actions\CompleteOrderFulfillment;
+use App\Mail\PaymentRejectedMail;
+use App\Mail\PaymentVerifiedMail;
 use App\Models\Order;
 use App\Models\OrderItem;
 use App\Models\Payment;
@@ -10,9 +13,11 @@ use App\Models\Project;
 use App\Models\Seller;
 use App\Models\User;
 use App\Services\CarbonImpactService;
+use App\Services\EmailService;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
 use Illuminate\View\View;
@@ -42,7 +47,7 @@ class AdminController extends Controller
 
     public function payments(): View
     {
-        $payments = Payment::with(['order.buyer', 'order.items'])->latest()->paginate(20);
+        $payments = Payment::with(['order.buyer', 'order.items.seller.project', 'verifier'])->latest()->paginate(20);
         $qrisImage = config('marketplace.qris_image');
         $qrisExists = Storage::disk('public')->exists('qris-statis.png')
             || (filled($qrisImage) && is_file(public_path($qrisImage)));
@@ -90,7 +95,7 @@ class AdminController extends Controller
         return Storage::disk('local')->response($payment->proof_image);
     }
 
-    public function verify(Request $request, Payment $payment, CarbonImpactService $carbonImpact): RedirectResponse
+    public function verify(Request $request, Payment $payment, CarbonImpactService $carbonImpact, EmailService $emailService): RedirectResponse
     {
         $data = $request->validate([
             'received_amount' => ['nullable', 'integer', 'min:0', 'max:4294967295'],
@@ -122,10 +127,26 @@ class AdminController extends Controller
             $carbonImpact->recordEligiblePurchase($order);
         });
 
+        try {
+            $order = $payment->order()->first();
+            $order?->loadMissing('buyer');
+            if ($order?->buyer?->email) {
+                $emailService->send(
+                    new PaymentVerifiedMail($order),
+                    $order->buyer->email
+                );
+            }
+        } catch (\Throwable $e) {
+            Log::warning('Failed to send payment verified email', [
+                'payment_id' => $payment->id,
+                'error' => $e->getMessage(),
+            ]);
+        }
+
         return back()->with('status', 'Pembayaran diverifikasi dan ticket pickup diterbitkan.');
     }
 
-    public function reject(Request $request, Payment $payment): RedirectResponse
+    public function reject(Request $request, Payment $payment, EmailService $emailService): RedirectResponse
     {
         $data = $request->validate(['notes' => ['required', 'string', 'max:255']]);
         DB::transaction(function () use ($payment, $data) {
@@ -148,7 +169,34 @@ class AdminController extends Controller
             $order->update(['status' => 'pending_payment']);
         });
 
+        try {
+            $order = $payment->order()->first();
+            $order?->loadMissing('buyer');
+            if ($order?->buyer?->email) {
+                $emailService->send(
+                    new PaymentRejectedMail($order, $data['notes']),
+                    $order->buyer->email
+                );
+            }
+        } catch (\Throwable $e) {
+            Log::warning('Failed to send payment rejected email', [
+                'payment_id' => $payment->id,
+                'error' => $e->getMessage(),
+            ]);
+        }
+
         return back()->with('status', 'Pembayaran ditolak. Pembeli dapat mengunggah bukti pembayaran baru.');
+    }
+
+    public function cancelOrder(Order $order, CancelOrder $cancelOrder): RedirectResponse
+    {
+        $cancelled = $cancelOrder->handle($order, 'Dibatalkan manual oleh admin');
+
+        if (! $cancelled) {
+            return back()->with('error', 'Pesanan tidak dapat dibatalkan karena statusnya sudah berubah.');
+        }
+
+        return back()->with('status', 'Pesanan #'.$order->order_code.' berhasil dibatalkan dan stok dikembalikan.');
     }
 
     public function adjustCarbonImpact(

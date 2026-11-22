@@ -2,6 +2,9 @@
 
 namespace Tests\Feature;
 
+use App\Mail\PaymentProofUploadedMail;
+use App\Mail\PaymentRejectedMail;
+use App\Mail\PaymentVerifiedMail;
 use App\Models\Category;
 use App\Models\Order;
 use App\Models\Payment;
@@ -17,6 +20,7 @@ use Illuminate\Http\Client\Request as ClientRequest;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Facades\Notification;
 use Illuminate\Support\Facades\Storage;
 use Tests\TestCase;
@@ -110,6 +114,7 @@ class MarketplaceTest extends TestCase
             'outcome' => 'Kebun kelas menghasilkan bahan pangan.',
             'article_body' => "## Latar belakang\n\n<script>alert('unsafe')</script>",
             'is_published' => true,
+            'has_article' => true,
         ]);
 
         $this->get(route('projects.index'))
@@ -307,6 +312,8 @@ class MarketplaceTest extends TestCase
             'introduction' => 'A project introduction.',
             'story' => 'A project story.',
             'outcome' => 'A project outcome.',
+            'is_published' => true,
+            'has_article' => true,
         ]);
         $seller = $this->seller();
         Product::create(['seller_id' => $seller->id, 'name' => 'Published tote', 'slug' => 'published-tote', 'description' => 'Handmade tote', 'price' => 14000, 'stock' => 2, 'review_status' => 'approved', 'status' => 'published']);
@@ -316,8 +323,8 @@ class MarketplaceTest extends TestCase
         $this->get(route('home'))
             ->assertOk()
             ->assertSee('Konsumsi Bijak, Bumi Lestari.')
-            ->assertSee('Catatan dari tim kelas')
-            ->assertSee('Komplek Sekolah Alam Indonesia');
+            ->assertSee('Cerita dari kelas')
+            ->assertSee('Informasi Pre-Order (PO)');
 
         $this->get(route('catalog.index'))
             ->assertOk()
@@ -354,6 +361,7 @@ class MarketplaceTest extends TestCase
                 'story' => "Story {$number}.",
                 'outcome' => "Outcome {$number}.",
                 'is_published' => true,
+                'has_article' => true,
             ]);
         }
 
@@ -389,6 +397,8 @@ class MarketplaceTest extends TestCase
             'introduction' => 'A project introduction.',
             'story' => 'A project story.',
             'outcome' => 'A project outcome.',
+            'is_published' => true,
+            'has_article' => true,
         ]);
 
         $this->get(route('projects.show', $project))
@@ -404,6 +414,7 @@ class MarketplaceTest extends TestCase
         $this->post(route('register.store'), [
             'name' => 'Student Seller',
             'email' => 'seller@example.test',
+            'phone' => '081234567890',
             'role' => 'seller',
             'store_name' => 'Class 3 Makers',
             'password' => 'secure-password',
@@ -421,6 +432,7 @@ class MarketplaceTest extends TestCase
         $this->post(route('register.store'), [
             'name' => 'Injected Admin',
             'email' => 'admin@example.test',
+            'phone' => '081234567891',
             'role' => 'admin',
             'password' => 'secure-password',
             'password_confirmation' => 'secure-password',
@@ -495,6 +507,8 @@ class MarketplaceTest extends TestCase
             'introduction' => 'Mengolah limbah menjadi karya.',
             'story' => 'Cerita lengkap proyek kelas.',
             'outcome' => 'Produk kriya ramah lingkungan.',
+            'is_published' => true,
+            'has_article' => true,
         ]);
         $seller->update(['project_id' => $project->id]);
         $category = Category::create(['name' => 'Aksesori', 'slug' => 'aksesori']);
@@ -807,12 +821,10 @@ class MarketplaceTest extends TestCase
 
         $pickupCode = $order->fresh()->fulfillments->first()->pickup_code;
         $this->actingAs($buyer)->get(route('tickets.show', $order))
+            ->assertRedirect(route('tickets.hub'));
+        $this->actingAs($buyer)->get(route('tickets.hub'))
             ->assertOk()
-            ->assertSee($pickupCode)
-            ->assertSee('QR KELAS')
-            ->assertSee('QR produk')
-            ->assertSee($productQrToken)
-            ->assertSee('data-qr-value="'.$pickupCode.'"', false);
+            ->assertSee('Tiket Pickup Toko');
 
         $this->actingAs($admin)->from(route('admin.pickup'))->post(route('admin.pickup.validate'), [
             'pickup_code' => $pickupCode,
@@ -927,14 +939,10 @@ class MarketplaceTest extends TestCase
             ->assertSee('Menunggu pemenuhan')
             ->assertSee('Buka Tiket & Tampilkan QR', false);
         $this->actingAs($buyer)->get(route('tickets.show', $order))
+            ->assertRedirect(route('tickets.hub'));
+        $this->actingAs($buyer)->get(route('tickets.hub'))
             ->assertOk()
-            ->assertSee($firstPickupCode)
-            ->assertSee($secondPickupCode)
-            ->assertSee('Sebagian diserahkan')
-            ->assertSee('Menunggu pengambilan')
-            ->assertSee('data-qr-download disabled', false)
-            ->assertSee('data-token-download="'.$firstPickupCode.'"', false)
-            ->assertSee('data-token-download="'.$secondPickupCode.'"', false);
+            ->assertSee('Tiket Pickup Toko');
 
         $this->actingAs($firstSeller->user)->post(route('seller.pickup'), ['pickup_code' => $firstPickupCode])
             ->assertSessionHasErrors('pickup_code');
@@ -1173,7 +1181,7 @@ class MarketplaceTest extends TestCase
             ->from(route('seller.products.create'))
             ->post(route('seller.products.store'), [])
             ->assertSessionHasErrors([
-                'name' => 'Kolom nama produk wajib diisi.',
+                'name' => 'Nama produk wajib diisi.',
             ]);
     }
 
@@ -1253,7 +1261,7 @@ class MarketplaceTest extends TestCase
         $this->get(route('admin.dashboard'))->assertForbidden();
     }
 
-    public function test_buyer_can_simulate_manual_payment_and_receive_pickup_access(): void
+    public function test_demo_payment_route_is_removed_and_returns_404(): void
     {
         $buyer = User::factory()->create();
         $order = Order::create([
@@ -1263,116 +1271,184 @@ class MarketplaceTest extends TestCase
             'total_price' => 25000,
             'pickup_date' => now()->addDay(),
         ]);
-        $order->payment()->create([
-            'method' => 'QRIS',
-            'gateway' => Payment::GATEWAY_MANUAL,
-            'status' => 'pending',
-        ]);
 
         $this->actingAs($buyer)
-            ->get(route('orders.show', $order))
-            ->assertOk()
-            ->assertSee('Demo: Simulasikan Pembayaran')
-            ->assertSee('Simulasikan pembayaran berhasil untuk pesanan ini?');
-
-        $this->actingAs($buyer)
-            ->post(route('payments.demo', $order))
-            ->assertRedirect(route('orders.show', $order))
-            ->assertSessionHas('status', 'Pembayaran berhasil disimulasikan!');
-
-        $this->assertDatabaseHas('orders', [
-            'id' => $order->id,
-            'status' => 'paid',
-            'total_price' => 25000,
-        ]);
-        $this->assertDatabaseHas('payments', [
-            'order_id' => $order->id,
-            'method' => 'DEMO',
-            'status' => 'verified',
-            'verified_by' => null,
-        ]);
-
-        $this->actingAs($buyer)
-            ->get(route('orders.show', $order))
-            ->assertOk()
-            ->assertSee('Pembayaran berhasil disimulasikan!')
-            ->assertSee('Dibayar')
-            ->assertSee('Pembayaran dilakukan melalui mode DEMO.')
-            ->assertSee('Buka Tiket & Tampilkan QR', false)
-            ->assertDontSee('Demo: Simulasikan Pembayaran');
-
-        $this->assertDatabaseCount('tickets', 1);
-    }
-
-    public function test_buyer_cannot_simulate_another_buyers_payment(): void
-    {
-        $owner = User::factory()->create();
-        $order = Order::create([
-            'order_code' => 'FX-DEMO0002',
-            'buyer_id' => $owner->id,
-            'status' => 'pending_payment',
-            'total_price' => 25000,
-            'pickup_date' => now()->addDay(),
-        ]);
-        $order->payment()->create([
-            'gateway' => Payment::GATEWAY_MANUAL,
-            'status' => 'pending',
-        ]);
-
-        $this->actingAs(User::factory()->create())
-            ->post(route('payments.demo', $order))
+            ->post('/orders/'.$order->order_code.'/demo-payment')
             ->assertNotFound();
 
         $this->assertSame('pending_payment', $order->fresh()->status);
-        $this->assertDatabaseHas('payments', ['order_id' => $order->id, 'status' => 'pending']);
         $this->assertDatabaseCount('tickets', 0);
     }
 
-    public function test_buyer_cannot_simulate_a_payment_that_is_not_awaiting_payment(): void
+    public function test_payment_workflow_sends_email_notifications_on_upload_verify_and_reject(): void
+    {
+        Mail::fake();
+
+        $buyer = User::factory()->create(['email' => 'buyer-notif@example.test']);
+        $seller = $this->seller();
+        $product = Product::create([
+            'seller_id' => $seller->id,
+            'name' => 'Email Test Product',
+            'slug' => 'email-test-product',
+            'description' => 'Test',
+            'price' => 50000,
+            'stock' => 5,
+            'review_status' => 'approved',
+            'status' => 'published',
+        ]);
+
+        $this->actingAs($buyer)->post(route('cart.store'), ['product_id' => $product->id, 'quantity' => 1]);
+        $this->actingAs($buyer)->post(route('checkout'), [
+            'mode' => 'cart',
+            'pickup_contact_name' => $buyer->name,
+            'pickup_contact_phone' => '081234567890',
+            'accepted_terms' => '1',
+        ])->assertRedirect();
+
+        $order = Order::where('buyer_id', $buyer->id)->firstOrFail();
+
+        // 1. Upload proof
+        $this->actingAs($buyer)->post(route('payments.store', $order), [
+            'method' => 'QRIS',
+            'proof' => UploadedFile::fake()->create('proof.png', 500, 'image/png'),
+        ])->assertRedirect();
+
+        Mail::assertSent(PaymentProofUploadedMail::class, function ($mail) use ($buyer, $order) {
+            return $mail->hasTo($buyer->email) && $mail->order->id === $order->id;
+        });
+
+        // 2. Admin rejects payment
+        $admin = User::factory()->create(['role' => 'admin']);
+        $payment = $order->fresh()->payment;
+
+        $this->actingAs($admin)->post(route('admin.payments.reject', $payment), [
+            'notes' => 'Nominal transfer tidak sesuai tagihan',
+        ])->assertRedirect();
+
+        Mail::assertSent(PaymentRejectedMail::class, function ($mail) use ($buyer, $order) {
+            return $mail->hasTo($buyer->email)
+                && $mail->order->id === $order->id
+                && $mail->reason === 'Nominal transfer tidak sesuai tagihan';
+        });
+
+        // 3. Buyer re-uploads
+        $this->actingAs($buyer)->post(route('payments.store', $order), [
+            'method' => 'QRIS',
+            'proof' => UploadedFile::fake()->create('proof-fixed.png', 500, 'image/png'),
+        ])->assertRedirect();
+
+        // 4. Admin verifies payment
+        $this->actingAs($admin)->post(route('admin.payments.verify', $payment->fresh()), [
+            'received_amount' => 50000,
+            'notes' => 'Lunas pas',
+        ])->assertRedirect();
+
+        Mail::assertSent(PaymentVerifiedMail::class, function ($mail) use ($buyer, $order) {
+            return $mail->hasTo($buyer->email) && $mail->order->id === $order->id;
+        });
+    }
+
+    public function test_buyer_cannot_upload_proof_for_an_expired_order(): void
     {
         $buyer = User::factory()->create();
         $order = Order::create([
-            'order_code' => 'FX-DEMO0003',
+            'order_code' => 'FX-EXPIRED01',
             'buyer_id' => $buyer->id,
-            'status' => 'waiting_verification',
-            'total_price' => 25000,
+            'status' => 'pending_payment',
+            'total_price' => 30000,
             'pickup_date' => now()->addDay(),
-        ]);
-        $order->payment()->create([
-            'gateway' => Payment::GATEWAY_MANUAL,
-            'status' => 'pending',
+            'expires_at' => now()->subHour(),
         ]);
 
-        $this->actingAs($buyer)
-            ->post(route('payments.demo', $order))
-            ->assertUnprocessable();
+        $this->assertTrue($order->isExpired());
 
-        $this->assertSame('waiting_verification', $order->fresh()->status);
-        $this->assertDatabaseHas('payments', ['order_id' => $order->id, 'status' => 'pending']);
-        $this->assertDatabaseCount('tickets', 0);
-    }
-
-    public function test_buyer_cannot_simulate_a_midtrans_payment(): void
-    {
-        $buyer = User::factory()->create();
-        $order = $this->midtransOrder($buyer);
-
-        $this->actingAs($buyer)
-            ->get(route('orders.show', $order))
-            ->assertOk()
-            ->assertDontSee('Demo: Simulasikan Pembayaran');
-
-        $this->actingAs($buyer)
-            ->post(route('payments.demo', $order))
-            ->assertUnprocessable();
+        $this->actingAs($buyer)->post(route('payments.store', $order), [
+            'method' => 'QRIS',
+            'proof' => UploadedFile::fake()->create('late-proof.png', 300, 'image/png'),
+        ])->assertUnprocessable();
 
         $this->assertSame('pending_payment', $order->fresh()->status);
-        $this->assertDatabaseHas('payments', [
-            'order_id' => $order->id,
-            'gateway' => Payment::GATEWAY_MIDTRANS,
-            'status' => 'pending',
+        $this->assertNull($order->fresh()->payment);
+    }
+
+    public function test_cancel_expired_orders_command_cancels_unpaid_orders_and_restores_stock_idempotently(): void
+    {
+        $buyer = User::factory()->create();
+        $seller = $this->seller();
+        $product = Product::create([
+            'seller_id' => $seller->id,
+            'name' => 'Stock Test Item',
+            'slug' => 'stock-test-item',
+            'description' => 'Test',
+            'price' => 15000,
+            'stock' => 10,
+            'review_status' => 'approved',
+            'status' => 'published',
         ]);
-        $this->assertDatabaseCount('tickets', 0);
+
+        $this->actingAs($buyer)->post(route('cart.store'), ['product_id' => $product->id, 'quantity' => 4]);
+        $this->actingAs($buyer)->post(route('checkout'), [
+            'mode' => 'cart',
+            'pickup_contact_name' => $buyer->name,
+            'pickup_contact_phone' => '081234567890',
+            'accepted_terms' => '1',
+        ]);
+
+        $order = Order::where('buyer_id', $buyer->id)->firstOrFail();
+        $this->assertSame(6, $product->fresh()->stock);
+
+        // Simulate order passed expiry
+        $order->update(['expires_at' => now()->subMinute()]);
+
+        // Run command
+        $this->artisan('marketplace:cancel-expired-manual-orders')
+            ->expectsOutputToContain('Successfully cancelled 1 expired orders.')
+            ->assertExitCode(0);
+
+        $this->assertSame('cancelled', $order->fresh()->status);
+        $this->assertSame(10, $product->fresh()->stock);
+
+        // Run command again (idempotent - no double stock increment)
+        $this->artisan('marketplace:cancel-expired-manual-orders')
+            ->expectsOutputToContain('No expired orders found.')
+            ->assertExitCode(0);
+
+        $this->assertSame(10, $product->fresh()->stock);
+    }
+
+    public function test_admin_can_cancel_order_and_restore_stock_manually(): void
+    {
+        $buyer = User::factory()->create();
+        $seller = $this->seller();
+        $product = Product::create([
+            'seller_id' => $seller->id,
+            'name' => 'Manual Cancel Item',
+            'slug' => 'manual-cancel-item',
+            'description' => 'Test',
+            'price' => 20000,
+            'stock' => 5,
+            'review_status' => 'approved',
+            'status' => 'published',
+        ]);
+
+        $this->actingAs($buyer)->post(route('cart.store'), ['product_id' => $product->id, 'quantity' => 2]);
+        $this->actingAs($buyer)->post(route('checkout'), [
+            'mode' => 'cart',
+            'pickup_contact_name' => $buyer->name,
+            'pickup_contact_phone' => '081234567890',
+            'accepted_terms' => '1',
+        ]);
+
+        $order = Order::where('buyer_id', $buyer->id)->firstOrFail();
+        $this->assertSame(3, $product->fresh()->stock);
+
+        $admin = User::factory()->create(['role' => 'admin']);
+        $this->actingAs($admin)
+            ->post(route('admin.orders.cancel', $order))
+            ->assertRedirect();
+
+        $this->assertSame('cancelled', $order->fresh()->status);
+        $this->assertSame(5, $product->fresh()->stock);
     }
 
     public function test_sellers_cannot_edit_another_sellers_product(): void
@@ -1401,7 +1477,7 @@ class MarketplaceTest extends TestCase
         $this->actingAs($buyer)->get(route('orders.index'))->assertOk();
 
         $seller = $this->seller('pages-seller@example.test');
-        $this->actingAs($seller->user)->get(route('seller.dashboard'))->assertOk()->assertSee('DASHBOARD PENJUAL');
+        $this->actingAs($seller->user)->get(route('seller.dashboard'))->assertOk()->assertSee('Dashboard Penjual');
         $this->actingAs($seller->user)->get(route('seller.products.index'))->assertOk()->assertSee('Produk Anda');
         $this->actingAs($seller->user)->get(route('seller.products.create'))->assertOk()->assertSee('Tambah produk');
         $this->actingAs($seller->user)->get(route('seller.orders'))->assertOk();
@@ -1443,6 +1519,7 @@ class MarketplaceTest extends TestCase
             'marketplace.bank_name' => null,
             'marketplace.account_name' => null,
             'marketplace.account_number' => null,
+            'marketplace.qris_image' => null,
             'services.midtrans.server_key' => null,
         ]);
         $buyer = User::factory()->create();
@@ -1610,27 +1687,9 @@ class MarketplaceTest extends TestCase
         Http::assertNothingSent();
     }
 
-    public function test_midtrans_notification_finds_the_order_by_its_suffixed_midtrans_order_id(): void
+    public function test_midtrans_notification_webhook_route_is_disabled_and_returns_404(): void
     {
-        config(['services.midtrans.server_key' => 'sandbox-server-key']);
-        $order = $this->midtransOrder(User::factory()->create());
-        $order->payment()->update(['midtrans_order_id' => 'FX-MIDTRANS01-AB12CD']);
-        Http::preventStrayRequests();
-        Http::fake([
-            'https://api.sandbox.midtrans.com/v2/FX-MIDTRANS01-AB12CD/status' => Http::response([
-                'order_id' => 'FX-MIDTRANS01-AB12CD',
-                'gross_amount' => '14000.00',
-                'transaction_status' => 'settlement',
-                'payment_type' => 'qris',
-                'transaction_id' => 'midtrans-transaction-suffixed',
-            ]),
-        ]);
-        $notification = $this->midtransNotification($order, ['order_id' => 'FX-MIDTRANS01-AB12CD']);
-
-        $this->postJson(route('midtrans.notifications'), $notification)->assertOk();
-
-        $this->assertSame('paid', $order->fresh()->status);
-        $this->assertDatabaseCount('tickets', 1);
+        $this->postJson('/api/midtrans/notifications', [])->assertNotFound();
     }
 
     public function test_checkout_defaults_to_manual_payment_when_midtrans_is_the_only_configured_gateway(): void
@@ -1743,77 +1802,14 @@ class MarketplaceTest extends TestCase
         Http::assertNothingSent();
     }
 
-    public function test_buyer_can_retry_midtrans_for_an_order_without_a_payment_url(): void
+    public function test_midtrans_retry_route_is_removed_and_returns_404(): void
     {
-        config([
-            'services.midtrans.server_key' => 'sandbox-server-key',
-            'services.midtrans.base_url' => 'https://app.sandbox.midtrans.com',
-        ]);
-        Http::preventStrayRequests();
-        Http::fake([
-            'https://app.sandbox.midtrans.com/snap/v1/transactions' => Http::response([
-                'token' => 'retry-snap-token',
-                'redirect_url' => 'https://app.sandbox.midtrans.com/snap/v4/redirection/retry-snap-token',
-            ], 201),
-        ]);
         $buyer = User::factory()->create();
         $order = $this->midtransOrder($buyer);
 
-        $this->actingAs($buyer)->get(route('orders.show', $order))
-            ->assertOk()
-            ->assertSee('Coba siapkan halaman pembayaran lagi');
-
-        $this->actingAs($buyer)->post(route('payments.midtrans.retry', $order))
-            ->assertRedirect('https://app.sandbox.midtrans.com/snap/v4/redirection/retry-snap-token');
-        $this->actingAs($buyer)->post(route('payments.midtrans.retry', $order))
-            ->assertRedirect('https://app.sandbox.midtrans.com/snap/v4/redirection/retry-snap-token');
-
-        $this->assertDatabaseCount('orders', 1);
-        $this->assertDatabaseHas('payments', [
-            'order_id' => $order->id,
-            'snap_token' => 'retry-snap-token',
-            'snap_redirect_url' => 'https://app.sandbox.midtrans.com/snap/v4/redirection/retry-snap-token',
-        ]);
-        $midtransOrderId = $order->payment()->value('midtrans_order_id');
-        $this->assertMatchesRegularExpression('/^FX-MIDTRANS01-[A-Z0-9]{6}$/', $midtransOrderId);
-        Http::assertSent(fn (ClientRequest $request): bool => $request->url() === 'https://app.sandbox.midtrans.com/snap/v1/transactions'
-            && $request['transaction_details']['order_id'] === $midtransOrderId);
-        Http::assertSentCount(1);
-    }
-
-    public function test_buyer_cannot_retry_midtrans_for_another_buyers_order(): void
-    {
-        Http::preventStrayRequests();
-        $buyer = User::factory()->create();
-        $otherBuyer = User::factory()->create();
-        $order = $this->midtransOrder($buyer);
-
-        $this->actingAs($otherBuyer)->post(route('payments.midtrans.retry', $order))
+        $this->actingAs($buyer)
+            ->post('/orders/'.$order->order_code.'/midtrans/retry')
             ->assertNotFound();
-
-        $this->assertNull($order->payment->fresh()->snap_redirect_url);
-    }
-
-    public function test_failed_midtrans_retry_keeps_order_available_for_another_attempt(): void
-    {
-        config([
-            'services.midtrans.server_key' => 'sandbox-server-key',
-            'services.midtrans.base_url' => 'https://app.sandbox.midtrans.com',
-        ]);
-        Http::preventStrayRequests();
-        Http::fake([
-            'https://app.sandbox.midtrans.com/snap/v1/transactions' => Http::response(['message' => 'Unavailable'], 500),
-        ]);
-        $buyer = User::factory()->create();
-        $order = $this->midtransOrder($buyer);
-
-        $this->actingAs($buyer)->post(route('payments.midtrans.retry', $order))
-            ->assertRedirect(route('orders.show', $order))
-            ->assertSessionHas('error');
-
-        $this->assertSame('pending_payment', $order->fresh()->status);
-        $this->assertNull($order->payment->fresh()->snap_redirect_url);
-        $this->assertDatabaseCount('orders', 1);
     }
 
     public function test_midtrans_checkout_cannot_redirect_to_an_untrusted_payment_url(): void
@@ -1852,293 +1848,18 @@ class MarketplaceTest extends TestCase
         Http::assertNothingSent();
     }
 
-    public function test_midtrans_settlement_marks_the_order_paid_and_issues_only_one_ticket(): void
-    {
-        config(['services.midtrans.server_key' => 'sandbox-server-key']);
-        Log::spy();
-        $buyer = User::factory()->create();
-        $order = $this->midtransOrder($buyer);
-        $notification = $this->midtransNotification($order, [
-            'transaction_status' => 'settlement',
-        ]);
-        $this->fakeMidtransStatus($order, [
-            'transaction_status' => 'settlement',
-            'payment_type' => 'bank_transfer',
-            'transaction_id' => 'midtrans-transaction-1',
-        ]);
-
-        $this->postJson(route('midtrans.notifications'), $notification)->assertOk()->assertJson(['status' => 'ok']);
-        $this->postJson(route('midtrans.notifications'), $notification)->assertOk();
-
-        Log::shouldHaveReceived('debug')
-            ->with('Midtrans notification signature validation completed.', [
-                'order_id' => $order->order_code,
-                'status_code' => '200',
-                'gross_amount' => '14000.00',
-                'server_key_configured' => true,
-                'received_signature_length' => 128,
-                'received_signature_is_sha512_hex' => true,
-                'algorithm' => 'SHA-512(order_id + status_code + gross_amount + server_key)',
-                'result' => 'valid',
-            ])
-            ->twice();
-        Log::shouldHaveReceived('info')
-            ->with('Midtrans webhook HTTP request received.', [
-                'method' => 'POST',
-                'content_type' => 'application/json',
-            ])
-            ->twice();
-        Log::shouldHaveReceived('info')
-            ->with('Midtrans notification received.', [
-                'order_id' => $order->order_code,
-                'transaction_id' => 'midtrans-transaction-1',
-                'status_code' => '200',
-                'transaction_status' => 'settlement',
-                'payment_type' => 'qris',
-            ])
-            ->twice();
-
-        $this->assertSame('paid', $order->fresh()->status);
-        $this->assertDatabaseHas('payments', [
-            'order_id' => $order->id,
-            'status' => 'verified',
-            'method' => 'bank_transfer',
-            'transaction_id' => 'midtrans-transaction-1',
-        ]);
-        $this->assertDatabaseCount('tickets', 1);
-    }
-
-    public function test_midtrans_notification_with_an_invalid_signature_returns_401_without_checking_the_status_api(): void
-    {
-        config([
-            'app.env' => 'local',
-            'services.midtrans.server_key' => 'sandbox-server-key',
-        ]);
-        $order = $this->midtransOrder(User::factory()->create());
-        $this->fakeMidtransStatus($order);
-        $notification = $this->midtransNotification($order);
-        $notification['signature_key'] = str_repeat('0', 128);
-
-        $this->postJson(route('midtrans.notifications'), $notification)
-            ->assertUnauthorized()
-            ->assertJson(['message' => 'Invalid Midtrans notification signature.']);
-
-        Http::assertNothingSent();
-        $this->assertSame('pending_payment', $order->fresh()->status);
-        $this->assertDatabaseHas('payments', ['order_id' => $order->id, 'status' => 'pending']);
-        $this->assertDatabaseCount('tickets', 0);
-    }
-
-    public function test_midtrans_notification_with_an_invalid_signature_does_not_settle_a_pending_transaction(): void
-    {
-        $order = $this->midtransOrder(User::factory()->create());
-        $this->fakeMidtransStatus($order, ['transaction_status' => 'pending']);
-        $notification = $this->midtransNotification($order);
-        $notification['signature_key'] = str_repeat('0', 128);
-
-        $this->postJson(route('midtrans.notifications'), $notification)->assertUnauthorized();
-
-        Http::assertNothingSent();
-        $this->assertSame('pending_payment', $order->fresh()->status);
-        $this->assertDatabaseHas('payments', ['order_id' => $order->id, 'status' => 'pending']);
-        $this->assertDatabaseCount('tickets', 0);
-    }
-
-    public function test_buyer_payment_status_endpoint_reports_current_payment_and_ticket_eligibility(): void
+    public function test_midtrans_status_and_refresh_routes_are_removed_and_return_404(): void
     {
         $buyer = User::factory()->create();
         $order = $this->midtransOrder($buyer);
 
         $this->actingAs($buyer)
-            ->getJson(route('payments.midtrans.status', $order))
-            ->assertOk()
-            ->assertJson([
-                'payment_status' => 'pending',
-                'order_status' => 'pending_payment',
-                'ticket_available' => false,
-                'ticket_url' => null,
-                'is_pending' => true,
-            ]);
-
-        $order->update(['status' => 'paid']);
-        $order->payment()->update(['status' => 'verified']);
-        $order->ticket()->create([
-            'ticket_code' => 'FXT-MIDTRANS01',
-            'issued_at' => now(),
-        ]);
-
-        $this->actingAs($buyer)
-            ->getJson(route('payments.midtrans.status', $order))
-            ->assertOk()
-            ->assertJson([
-                'payment_status' => 'verified',
-                'order_status' => 'paid',
-                'ticket_available' => true,
-                'ticket_url' => route('tickets.show', $order),
-                'is_pending' => false,
-            ]);
-    }
-
-    public function test_buyer_cannot_read_midtrans_status_for_another_buyers_order(): void
-    {
-        $order = $this->midtransOrder(User::factory()->create());
-
-        $this->actingAs(User::factory()->create())
-            ->getJson(route('payments.midtrans.status', $order))
+            ->getJson('/orders/'.$order->order_code.'/midtrans/status')
             ->assertNotFound();
 
-        $this->assertSame('pending_payment', $order->fresh()->status);
-        $this->assertDatabaseCount('tickets', 0);
-    }
-
-    public function test_unauthenticated_buyer_cannot_read_midtrans_status(): void
-    {
-        $order = $this->midtransOrder(User::factory()->create());
-
-        $this->getJson(route('payments.midtrans.status', $order))
-            ->assertUnauthorized();
-
-        $this->assertSame('pending_payment', $order->fresh()->status);
-    }
-
-    public function test_buyer_can_refresh_midtrans_status_from_the_authenticated_status_api(): void
-    {
-        config(['services.midtrans.server_key' => 'sandbox-server-key']);
-        $buyer = User::factory()->create();
-        $order = $this->midtransOrder($buyer);
-        $this->fakeMidtransStatus($order, [
-            'transaction_status' => 'settlement',
-            'transaction_id' => 'midtrans-transaction-refresh',
-        ]);
-
         $this->actingAs($buyer)
-            ->post(route('payments.midtrans.refresh', $order))
-            ->assertRedirect(route('orders.show', $order))
-            ->assertSessionHas('status', 'Status Midtrans berhasil diperiksa: settlement.');
-
-        $this->assertSame('paid', $order->fresh()->status);
-        $this->assertDatabaseHas('payments', [
-            'order_id' => $order->id,
-            'status' => 'verified',
-            'transaction_id' => 'midtrans-transaction-refresh',
-        ]);
-        $this->assertDatabaseCount('tickets', 1);
-    }
-
-    public function test_another_buyer_cannot_refresh_midtrans_status_for_an_order(): void
-    {
-        $order = $this->midtransOrder(User::factory()->create());
-
-        $this->actingAs(User::factory()->create())
-            ->post(route('payments.midtrans.refresh', $order))
+            ->post('/orders/'.$order->order_code.'/midtrans/refresh')
             ->assertNotFound();
-
-        $this->assertSame('pending_payment', $order->fresh()->status);
-        $this->assertDatabaseCount('tickets', 0);
-    }
-
-    public function test_midtrans_status_refresh_does_not_update_an_order_when_the_api_amount_does_not_match(): void
-    {
-        config(['services.midtrans.server_key' => 'sandbox-server-key']);
-        $buyer = User::factory()->create();
-        $order = $this->midtransOrder($buyer);
-        $this->fakeMidtransStatus($order, ['gross_amount' => '1.00']);
-
-        $this->actingAs($buyer)
-            ->post(route('payments.midtrans.refresh', $order))
-            ->assertUnprocessable();
-
-        $this->assertSame('pending_payment', $order->fresh()->status);
-        $this->assertDatabaseHas('payments', ['order_id' => $order->id, 'status' => 'pending']);
-        $this->assertDatabaseCount('tickets', 0);
-    }
-
-    public function test_midtrans_notification_rejects_an_amount_that_does_not_match_the_order(): void
-    {
-        config(['services.midtrans.server_key' => 'sandbox-server-key']);
-        $order = $this->midtransOrder(User::factory()->create());
-        $notification = $this->midtransNotification($order, ['gross_amount' => '1.00']);
-        $this->fakeMidtransStatus($order);
-
-        $this->postJson(route('midtrans.notifications'), $notification)->assertUnprocessable();
-
-        $this->assertSame('pending_payment', $order->fresh()->status);
-        $this->assertDatabaseHas('payments', ['order_id' => $order->id, 'status' => 'pending']);
-        $this->assertDatabaseCount('tickets', 0);
-    }
-
-    public function test_midtrans_expiration_cancels_the_order_and_returns_reserved_stock_once(): void
-    {
-        config(['services.midtrans.server_key' => 'sandbox-server-key']);
-        $buyer = User::factory()->create();
-        $seller = $this->seller();
-        $product = Product::create(['seller_id' => $seller->id, 'name' => 'Seed kit', 'slug' => 'midtrans-seed-kit', 'description' => 'Seeds', 'price' => 14000, 'stock' => 0, 'review_status' => 'approved', 'status' => 'published']);
-        $order = $this->midtransOrder($buyer);
-        $order->items()->create(['product_id' => $product->id, 'seller_id' => $seller->id, 'product_name' => $product->name, 'quantity' => 1, 'price_at_order' => 14000, 'subtotal' => 14000]);
-        $notification = $this->midtransNotification($order, ['transaction_status' => 'expire']);
-        $this->fakeMidtransStatus($order, ['transaction_status' => 'expire']);
-
-        $this->postJson(route('midtrans.notifications'), $notification)->assertOk();
-        $this->postJson(route('midtrans.notifications'), $notification)->assertOk();
-
-        $this->assertSame('cancelled', $order->fresh()->status);
-        $this->assertSame(1, $product->fresh()->stock);
-        $this->assertDatabaseHas('payments', ['order_id' => $order->id, 'status' => 'expired']);
-        $this->assertDatabaseCount('tickets', 0);
-    }
-
-    public function test_midtrans_capture_with_an_accepted_fraud_status_marks_the_order_paid(): void
-    {
-        config(['services.midtrans.server_key' => 'sandbox-server-key']);
-        $order = $this->midtransOrder(User::factory()->create());
-        $notification = $this->midtransNotification($order, [
-            'transaction_status' => 'capture',
-            'fraud_status' => 'accept',
-        ]);
-        $this->fakeMidtransStatus($order, [
-            'transaction_status' => 'capture',
-            'fraud_status' => 'accept',
-        ]);
-
-        $this->postJson(route('midtrans.notifications'), $notification)->assertOk();
-
-        $this->assertSame('paid', $order->fresh()->status);
-        $this->assertDatabaseHas('payments', ['order_id' => $order->id, 'status' => 'verified']);
-        $this->assertDatabaseCount('tickets', 1);
-    }
-
-    public function test_midtrans_capture_with_a_challenge_fraud_status_does_not_mark_the_order_paid(): void
-    {
-        config(['services.midtrans.server_key' => 'sandbox-server-key']);
-        $order = $this->midtransOrder(User::factory()->create());
-        $notification = $this->midtransNotification($order, [
-            'transaction_status' => 'capture',
-            'fraud_status' => 'challenge',
-        ]);
-        $this->fakeMidtransStatus($order, [
-            'transaction_status' => 'capture',
-            'fraud_status' => 'challenge',
-        ]);
-
-        $this->postJson(route('midtrans.notifications'), $notification)->assertOk();
-
-        $this->assertSame('pending_payment', $order->fresh()->status);
-        $this->assertDatabaseHas('payments', ['order_id' => $order->id, 'status' => 'pending']);
-        $this->assertDatabaseCount('tickets', 0);
-    }
-
-    public function test_midtrans_uses_the_verified_status_instead_of_the_callback_status(): void
-    {
-        config(['services.midtrans.server_key' => 'sandbox-server-key']);
-        $order = $this->midtransOrder(User::factory()->create());
-        $notification = $this->midtransNotification($order, ['transaction_status' => 'settlement']);
-        $this->fakeMidtransStatus($order, ['transaction_status' => 'pending']);
-
-        $this->postJson(route('midtrans.notifications'), $notification)->assertOk();
-
-        $this->assertSame('pending_payment', $order->fresh()->status);
-        $this->assertDatabaseHas('payments', ['order_id' => $order->id, 'status' => 'pending']);
-        $this->assertDatabaseCount('tickets', 0);
     }
 
     public function test_buyer_cannot_upload_manual_proof_for_a_midtrans_order(): void
@@ -2151,12 +1872,6 @@ class MarketplaceTest extends TestCase
         ]);
         $buyer = User::factory()->create();
         $order = $this->midtransOrder($buyer);
-
-        $this->actingAs($buyer)->get(route('orders.show', $order))
-            ->assertOk()
-            ->assertSee('Memverifikasi pembayaran dengan Midtrans.')
-            ->assertSee('data-midtrans-payment-monitor', false)
-            ->assertDontSee('Periksa status pembayaran');
 
         $this->actingAs($buyer)->post(route('payments.store', $order), [
             '_token' => csrf_token(),

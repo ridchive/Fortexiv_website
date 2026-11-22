@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Actions\CompleteOrderQr;
+use App\Mail\PaymentProofUploadedMail;
 use App\Models\CartItem;
 use App\Models\Category;
 use App\Models\EventSetting;
@@ -12,7 +13,7 @@ use App\Models\Payment;
 use App\Models\Product;
 use App\Models\Project;
 use App\Services\CarbonImpactService;
-use App\Services\MidtransService;
+use App\Services\EmailService;
 use App\Support\PurchaseWindow;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Relations\HasMany;
@@ -397,6 +398,11 @@ class MarketplaceController extends Controller
                 throw ValidationException::withMessages(['po' => 'Tanggal acara belum dikonfigurasi. Hubungi admin sebelum memesan.']);
             }
 
+            $timeoutHours = config('marketplace.payment_timeout_hours', 24);
+            $orderTimeout = now()->addHours($timeoutHours);
+            $globalDeadline = $purchaseWindow->paymentDeadline();
+            $expiresAt = $globalDeadline ? $orderTimeout->min($globalDeadline) : $orderTimeout;
+
             $order = Order::query()->create([
                 'order_code' => 'TEMP-'.Str::upper(Str::random(12)),
                 'buyer_id' => $request->user()->id,
@@ -407,6 +413,7 @@ class MarketplaceController extends Controller
                 'pickup_contact_phone' => $pickupContactPhone,
                 'terms_accepted_at' => now(),
                 'terms_version' => config('marketplace.terms_version'),
+                'expires_at' => $expiresAt,
             ]);
             $order->update(['order_code' => 'FX-'.str_pad((string) $order->id, 8, '0', STR_PAD_LEFT)]);
 
@@ -506,130 +513,13 @@ class MarketplaceController extends Controller
         ]);
     }
 
-    public function retryMidtransPayment(Request $request, Order $order, MidtransService $midtrans): RedirectResponse
-    {
-        abort_unless($order->buyer_id === $request->user()->id, 404);
-        abort_unless($order->status === 'pending_payment', 422, 'Pesanan ini tidak menunggu pembayaran.');
-
-        try {
-            $redirectUrl = DB::transaction(function () use ($order, $midtrans): string {
-                $lockedOrder = Order::query()->whereKey($order->id)->lockForUpdate()->firstOrFail();
-                abort_unless($lockedOrder->status === 'pending_payment', 422, 'Status pesanan telah berubah.');
-
-                $payment = $lockedOrder->payment()->lockForUpdate()->firstOrFail();
-                abort_unless($payment->gateway === Payment::GATEWAY_MIDTRANS, 422, 'Pesanan ini tidak menggunakan Midtrans.');
-                abort_unless($payment->status === 'pending', 422, 'Status pembayaran telah berubah.');
-
-                if (filled($payment->snap_redirect_url)) {
-                    return $payment->snap_redirect_url;
-                }
-
-                abort_unless(filled(config('services.midtrans.server_key')), 503, 'Midtrans belum dikonfigurasi.');
-
-                $transaction = $midtrans->createSnapTransaction($lockedOrder);
-                $payment->update([
-                    'midtrans_order_id' => $transaction['order_id'],
-                    'snap_token' => $transaction['token'],
-                    'snap_redirect_url' => $transaction['redirect_url'],
-                ]);
-
-                return $transaction['redirect_url'];
-            });
-        } catch (ConnectionException|RequestException|UnexpectedValueException $exception) {
-            Log::warning('Midtrans checkout retry could not be completed.', [
-                'order_code' => $order->order_code,
-                'exception' => $exception::class,
-                'error' => $exception->getMessage(),
-            ]);
-
-            return redirect()->route('orders.show', $order)
-                ->with('error', 'Halaman pembayaran belum berhasil disiapkan. Periksa koneksi Midtrans, lalu coba lagi. Jika transaksi sudah terlihat di dashboard Midtrans, minta admin mengeceknya sebelum mengulang.');
-        }
-
-        return redirect()->away($redirectUrl);
-    }
-
-    public function refreshMidtransPaymentStatus(Request $request, Order $order, MidtransService $midtrans): RedirectResponse
-    {
-        abort_unless($order->buyer_id === $request->user()->id, 404);
-        abort_unless($order->status === 'pending_payment', 422, 'Pesanan ini tidak menunggu pembayaran.');
-
-        $payment = $order->payment()->firstOrFail();
-        abort_unless($payment->gateway === Payment::GATEWAY_MIDTRANS, 422, 'Pesanan ini tidak menggunakan Midtrans.');
-        abort_unless($payment->status === 'pending', 422, 'Status pembayaran telah berubah.');
-
-        try {
-            $transactionStatus = $midtrans->syncTransactionStatus($order);
-        } catch (ConnectionException|RequestException|UnexpectedValueException $exception) {
-            Log::warning('Midtrans payment status refresh could not be completed.', [
-                'order_code' => $order->order_code,
-                'exception' => $exception::class,
-                'error' => $exception->getMessage(),
-            ]);
-
-            return redirect()->route('orders.show', $order)
-                ->with('error', 'Status pembayaran belum dapat diperiksa ke Midtrans. Coba lagi beberapa saat.');
-        }
-
-        return redirect()->route('orders.show', $order)
-            ->with('status', 'Status Midtrans berhasil diperiksa: '.$transactionStatus.'.');
-    }
-
-    public function midtransPaymentStatus(Request $request, Order $order): JsonResponse
-    {
-        abort_unless($order->buyer_id === $request->user()->id, 404);
-
-        $order->loadMissing(['payment', 'ticket']);
-        $payment = $order->payment;
-        abort_unless($payment?->gateway === Payment::GATEWAY_MIDTRANS, 404);
-
-        $ticketAvailable = in_array($payment->status, ['verified', 'partially_refunded'], true)
-            && $order->ticket !== null
-            && in_array($order->status, ['paid', 'partially_picked_up', 'picked_up'], true);
-
-        return response()->json([
-            'payment_status' => $payment->status,
-            'order_status' => $order->status,
-            'ticket_available' => $ticketAvailable,
-            'ticket_url' => $ticketAvailable ? (Route::has('tickets.hub') ? route('tickets.hub') : url('/tickets')) : null,
-            'is_pending' => $payment->status === 'pending',
-        ])->header('Cache-Control', 'no-store');
-    }
-
-    public function simulatePayment(Request $request, Order $order): RedirectResponse
-    {
-        abort_unless($order->buyer_id === $request->user()->id, 404);
-
-        DB::transaction(function () use ($order): void {
-            $lockedOrder = Order::query()->whereKey($order->id)->lockForUpdate()->firstOrFail();
-            abort_unless($lockedOrder->status === 'pending_payment', 422, 'Pesanan ini tidak menunggu pembayaran.');
-
-            $payment = $lockedOrder->payment()->lockForUpdate()->first();
-            abort_unless(
-                $payment !== null
-                    && $payment->gateway === Payment::GATEWAY_MANUAL
-                    && $payment->status === 'pending',
-                422,
-                'Pembayaran ini tidak dapat disimulasikan.',
-            );
-
-            $payment->update([
-                'method' => 'DEMO',
-                'status' => 'verified',
-                'verified_by' => null,
-                'verified_at' => now(),
-            ]);
-            $lockedOrder->update(['status' => 'paid']);
-        });
-
-        return redirect()->route('orders.show', $order)->with('status', 'Pembayaran berhasil disimulasikan!');
-    }
-
-    public function uploadPayment(Request $request, Order $order): RedirectResponse
+    public function uploadPayment(Request $request, Order $order, EmailService $emailService): RedirectResponse
     {
         abort_unless($this->transferConfigured(), 503, 'Instruksi pembayaran manual belum dikonfigurasi.');
         abort_unless($order->buyer_id === $request->user()->id, 404);
         abort_unless($order->status === 'pending_payment', 422, 'Pesanan ini tidak menunggu pembayaran.');
+        abort_if($order->isExpired(), 422, 'Batas waktu pembayaran untuk pesanan ini telah berakhir.');
+
         $data = $request->validate([
             'proof' => ['required', 'file', 'mimes:jpg,jpeg,png,pdf', 'max:5120'],
             'method' => ['required', 'string', 'max:50'],
@@ -637,6 +527,8 @@ class MarketplaceController extends Controller
         DB::transaction(function () use ($order, $data): void {
             $lockedOrder = Order::query()->whereKey($order->id)->lockForUpdate()->firstOrFail();
             abort_unless($lockedOrder->status === 'pending_payment', 422, 'Status pesanan telah berubah.');
+            abort_if($lockedOrder->isExpired(), 422, 'Batas waktu pembayaran untuk pesanan ini telah berakhir.');
+
             $payment = $lockedOrder->payment()->lockForUpdate()->first();
             abort_unless(
                 $payment === null || ($payment->gateway === Payment::GATEWAY_MANUAL && $payment->status === 'rejected'),
@@ -661,6 +553,21 @@ class MarketplaceController extends Controller
             }
             $lockedOrder->update(['status' => 'waiting_verification']);
         });
+
+        try {
+            $order->loadMissing('buyer');
+            if ($order->buyer?->email) {
+                $emailService->send(
+                    new PaymentProofUploadedMail($order),
+                    $order->buyer->email
+                );
+            }
+        } catch (\Throwable $e) {
+            Log::warning('Failed to send payment proof uploaded email', [
+                'order_code' => $order->order_code,
+                'error' => $e->getMessage(),
+            ]);
+        }
 
         return back()->with('status', 'Bukti transfer berhasil dikirim! Pembayaran Anda sedang diproses dan diverifikasi secara manual oleh admin. Proses verifikasi dapat memakan waktu beberapa saat. Tiket pickup QR akan otomatis aktif setelah pembayaran diverifikasi.');
     }

@@ -62,9 +62,24 @@
         </div>
 
         <div style="margin-top: 16px; padding: 12px 14px; background: var(--soft); border-radius: 8px; font-size: 13px; display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 6px;">
-          <span class="muted">Nama &amp; Kontak Pemesan:</span>
-          <strong>{{ auth()->user()->name }} @if(auth()->user()->phone) ({{ auth()->user()->phone }}) @endif</strong>
+          <div>
+            <span class="eyebrow" style="font-size: 11px; margin-bottom: 2px; display: block;">02 · PENGAMBILAN</span>
+            <h2 style="font-size: 14px; margin: 0;">Kontak pengambil</h2>
+          </div>
+          <div style="text-align: right;">
+            <strong>{{ auth()->user()->name }}</strong>
+            @if(auth()->user()->phone)
+              <span class="muted">({{ auth()->user()->phone }})</span>
+            @endif
+          </div>
         </div>
+
+        @if($window['location'])
+          <div style="margin-top: 10px; padding: 10px 14px; background: var(--soft); border-radius: 8px; font-size: 13px;">
+            <span class="muted">Lokasi pengambilan:</span>
+            <strong>{{ $window['location'] }}</strong>
+          </div>
+        @endif
       </section>
     </div>
 
@@ -79,7 +94,7 @@
       <div style="margin: 16px 0; padding: 14px; background: var(--soft); border-radius: 10px;">
         <div style="display: flex; justify-content: space-between; align-items: center; font-size: 13px; color: var(--muted); margin-bottom: 8px;">
           <span>Metode Pembayaran</span>
-          <strong style="color: var(--ink);">QRIS / Transfer Bank</strong>
+          <strong style="color: var(--ink);">Manual (QRIS / Transfer Bank)</strong>
         </div>
         <div style="display: flex; justify-content: space-between; align-items: center; padding-top: 8px; border-top: 1px solid var(--line);">
           <span style="font-weight: 700; color: var(--ink);">Total Tagihan</span>
@@ -87,9 +102,15 @@
         </div>
       </div>
 
+      @if($manualPaymentConfigured)
+        <p class="muted checkout-payment-note" style="font-size: 12px; margin: 4px 0 10px;">Setelah pesanan dibuat, bayar dengan QRIS statis atau transfer bank, lalu unggah bukti pembayaran untuk diverifikasi admin.</p>
+      @else
+        <p class="note warn checkout-payment-note" style="font-size: 12px; margin: 4px 0 10px;">Pesanan tetap akan disimpan dengan status menunggu pembayaran. Instruksi QRIS atau transfer belum dikonfigurasi; jangan lakukan pembayaran sampai instruksi resmi tersedia.</p>
+      @endif
+
       <label class="chk checkout-terms" for="accepted_terms" style="margin-top: 8px;">
         <input id="accepted_terms" name="accepted_terms" type="checkbox" value="1" @checked(old('accepted_terms', true)) required @error('accepted_terms') aria-invalid="true" aria-describedby="accepted_terms_error" @enderror>
-        <span>Saya menyetujui <a href="{{ route('terms') }}" target="_blank" rel="noopener">Syarat &amp; Ketentuan</a> pemesanan.</span>
+        <span>Saya menyetujui <a href="{{ route('terms') }}" target="_blank" rel="noopener">Syarat &amp; ketentuan</a> pemesanan.</span>
       </label>
       @error('accepted_terms')
         <p class="checkout-error checkout-terms-error" id="accepted_terms_error">{{ $message }}</p>
