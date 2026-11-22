@@ -24,45 +24,47 @@
         @endif
       </div>
       <h1>{{ $product->name }}</h1>
-      <div class="price" style="font:800 1.5rem var(--fd)">{{ \App\Support\Money::format($product->price) }}</div>
-      <p class="muted">{{ $product->project?->class_name ?? $product->seller->store_name }} · {{ $product->category?->name ?? 'Produk kelas' }}</p>
-      <p>{{ $product->description }}</p>
+      <div class="price" style="font:800 1.5rem var(--fd); margin-bottom: 16px;">{{ \App\Support\Money::format($product->price) }}</div>
+
+      <section class="box">
+        <span class="eyebrow">INFORMASI PRODUK</span>
+        <p class="muted" style="margin: 4px 0 8px; font-size: 13.5px;">{{ $product->project?->class_name ?? $product->seller->store_name }} &middot; {{ $product->category?->name ?? 'Produk kelas' }}</p>
+        @if($product->description)
+          <p style="margin: 0;">{{ $product->description }}</p>
+        @endif
+      </section>
+
+      @if($product->story)
+        <section class="box">
+          <span class="eyebrow">CERITA PRODUK</span>
+          <p style="margin: 4px 0 0;">{{ $product->story }}</p>
+        </section>
+      @endif
+
+      @if($product->project)
+        <section class="box">
+          <span class="eyebrow">PROYEK KELAS TERKAIT</span>
+          <h3 style="margin: 4px 0 0;"><a href="{{ route('projects.show', $product->project) }}">{{ $product->project->title }}</a></h3>
+        </section>
+      @endif
+
       @if($product->carbon_reduction_value !== null)
         <section class="box">
           <span class="eyebrow">PENGURANGAN EMISI PRODUK</span>
-          <p><strong>{{ number_format((float) $product->carbon_reduction_value, 6, ',', '.') }} kg CO2e</strong> dikurangi per produk.</p>
+          <p style="margin: 4px 0 0;"><strong>{{ number_format((float) $product->carbon_reduction_value, 2, ',', '.') }} kg CO2e</strong> dikurangi per produk.</p>
         </section>
       @elseif($product->carbon_baseline_emission_factor !== null && $product->carbon_footprint_value !== null)
         <section class="box">
           <span class="eyebrow">FAKTOR EMISI PER UNIT FUNGSIONAL</span>
-          <p>Baseline konvensional: <strong>{{ number_format((float) $product->carbon_baseline_emission_factor, 6, ',', '.') }} kg CO2e</strong></p>
-          <p>Produk FORTEXIV: <strong>{{ number_format((float) $product->carbon_footprint_value, 6, ',', '.') }} kg CO2e</strong></p>
+          <p style="margin: 4px 0 0;">Baseline konvensional: <strong>{{ number_format((float) $product->carbon_baseline_emission_factor, 2, ',', '.') }} kg CO2e</strong></p>
+          <p>Produk FORTEXIV: <strong>{{ number_format((float) $product->carbon_footprint_value, 2, ',', '.') }} kg CO2e</strong></p>
           <p>Unit fungsional: {{ $product->carbon_functional_unit }}</p>
           <p class="muted">Sumber baseline: {{ $product->carbon_baseline_source }}</p>
-          <p class="muted">Sumber produk: {{ $product->carbon_product_source }}</p>
+          <p class="muted" style="margin-bottom: 0;">Sumber produk: {{ $product->carbon_product_source }}</p>
         </section>
       @endif
-      @if($product->story)
-        <section class="box">
-          <span class="eyebrow">CERITA PRODUK</span>
-          <p>{{ $product->story }}</p>
-        </section>
-      @endif
-      @if($product->project)
-        <section class="box">
-          <span class="eyebrow">PROYEK KELAS TERKAIT</span>
-          <h3><a href="{{ route('projects.show', $product->project) }}">{{ $product->project->title }}</a></h3>
-          <p>{{ Str::limit($product->project->introduction, 160) }}</p>
-        </section>
-      @endif
-      <section class="box">
-        <h3>PO dan pengambilan</h3>
-        <p>Tidak ada pengiriman. Produk diambil langsung di acara. Pesanan lintas kelas diserahkan per grup kelas.</p>
-        @if($window['eventAt'])
-          <p><strong>Hari H:</strong> {{ $window['eventAt']->format('d/m/Y H:i') }}</p>
-        @endif
-        <a href="{{ route('help') }}">Petunjuk pengambilan →</a>
-      </section>
+
+      <p style="margin: 12px 0 16px;"><a href="{{ route('help') }}">Petunjuk pengambilan &rarr;</a></p>
       @if($product->stock > 0 && $window['status'] === 'open')
         @auth
           @if(auth()->user()->role === 'buyer')
