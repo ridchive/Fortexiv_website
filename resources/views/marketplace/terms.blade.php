@@ -6,9 +6,7 @@
 <article class="wrap project-story">
   <nav class="crumb"><a href="{{ route('home') }}">Beranda</a> / <a href="{{ route('help') }}">Bantuan</a> / <span>Syarat & ketentuan</span></nav>
   <div class="pgh">
-    <span class="eyebrow">VERSI {{ $termsVersion }}</span>
     <h1>Syarat & ketentuan</h1>
-    <p>Ketentuan penggunaan prototipe marketplace FORTEXIV.</p>
   </div>
   <section class="panel">
     <h2>Pre-order dan pembayaran</h2>
