@@ -15,6 +15,16 @@
     @include('marketplace.partials.po-notice', ['window' => $window])
   </div>
 
+  @if(isset($activePendingOrder) && $activePendingOrder)
+    <div style="background: rgba(245, 158, 11, 0.12); border: 1px solid rgba(245, 158, 11, 0.35); padding: 14px 18px; border-radius: 10px; margin-bottom: 20px; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 12px;">
+      <div>
+        <strong style="color: #f59e0b; display: block; font-size: 14px;">⚠️ Anda sudah memiliki pesanan yang menunggu pembayaran ({{ $activePendingOrder->order_code }})</strong>
+        <span class="muted" style="font-size: 12.5px;">Batas waktu pembayaran masih aktif. Anda dapat langsung melanjutkan pembayaran pesanan ini.</span>
+      </div>
+      <a href="{{ route('orders.show', $activePendingOrder) }}" class="btn" style="font-size: 13px; padding: 7px 16px;">Lanjutkan Pembayaran →</a>
+    </div>
+  @endif
+
   @php
     $paymentMethods = ['manual' => 'Manual (QRIS / Transfer Bank)'];
     $productCount = $items->sum(fn ($item) => $item['quantity']);
@@ -119,7 +129,11 @@
 
       <div class="checkout-actions" style="margin-top: 18px; display: flex; flex-direction: column; gap: 8px;">
         @if($checkoutAvailable)
-          <button class="btn checkout-submit" id="checkout-submit" type="submit" aria-live="polite" style="width: 100%;">Buat Pesanan &amp; Lanjutkan Pembayaran</button>
+          @if(isset($activePendingOrder) && $activePendingOrder && $mode === 'now' && $activePendingOrder->items()->where('product_id', $items->first()['product']->id)->exists())
+            <a class="btn checkout-submit" href="{{ route('orders.show', $activePendingOrder) }}" style="width: 100%; text-align: center; text-decoration: none;">Lanjutkan Pembayaran ({{ $activePendingOrder->order_code }})</a>
+          @else
+            <button class="btn checkout-submit" id="checkout-submit" type="submit" aria-live="polite" style="width: 100%;">Buat Pesanan &amp; Lanjutkan Pembayaran</button>
+          @endif
         @else
           <button class="btn checkout-submit off" id="checkout-submit" type="submit" disabled style="width: 100%;">Checkout belum tersedia</button>
         @endif
@@ -136,6 +150,21 @@
       const checkoutForm = document.getElementById('checkout-form');
       const checkoutSubmit = document.getElementById('checkout-submit');
 
+      function resetSubmitButton() {
+        if (!checkoutSubmit) return;
+        if (checkoutForm) {
+          checkoutForm.dataset.submitting = 'false';
+        }
+        checkoutSubmit.disabled = false;
+        checkoutSubmit.removeAttribute('aria-busy');
+        if (checkoutSubmit.tagName && checkoutSubmit.tagName.toLowerCase() === 'button') {
+          checkoutSubmit.textContent = 'Buat Pesanan & Lanjutkan Pembayaran';
+        }
+      }
+
+      // Pastikan tombol aktif kembali saat navigasi browser Back / Forward (bfcache)
+      window.addEventListener('pageshow', resetSubmitButton);
+
       if (!checkoutForm || !checkoutSubmit) {
         return;
       }
@@ -149,7 +178,9 @@
         checkoutForm.dataset.submitting = 'true';
         checkoutSubmit.disabled = true;
         checkoutSubmit.setAttribute('aria-busy', 'true');
-        checkoutSubmit.textContent = 'Memproses pesanan...';
+        if (checkoutSubmit.tagName && checkoutSubmit.tagName.toLowerCase() === 'button') {
+          checkoutSubmit.textContent = 'Memproses pesanan...';
+        }
       });
     })();
   </script>

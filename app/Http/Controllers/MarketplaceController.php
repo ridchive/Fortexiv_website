@@ -306,6 +306,15 @@ class MarketplaceController extends Controller
         $groups = $items->groupBy(fn (array $item): string => (string) ($item['product']->project_id ?? $item['product']->seller->project_id ?? 'seller-'.$item['product']->seller_id));
         $publishedTerms = TermsVersion::currentPublished();
 
+        $activePendingOrder = $request->user()->orders()
+            ->where('status', 'pending_payment')
+            ->latest('id')
+            ->first();
+
+        if ($activePendingOrder && $activePendingOrder->isExpired()) {
+            $activePendingOrder = null;
+        }
+
         return view('marketplace.checkout', [
             'items' => $items,
             'groups' => $groups,
@@ -316,6 +325,7 @@ class MarketplaceController extends Controller
             'termsVersion' => $publishedTerms->version_label,
             'termsVersionId' => $publishedTerms->id,
             'manualPaymentConfigured' => $this->transferConfigured(),
+            'activePendingOrder' => $activePendingOrder,
         ]);
     }
 
@@ -335,6 +345,25 @@ class MarketplaceController extends Controller
             'accepted_terms.required' => 'Setujui syarat & ketentuan sebelum mengonfirmasi pesanan.',
             'accepted_terms.accepted' => 'Setujui syarat & ketentuan sebelum mengonfirmasi pesanan.',
         ]);
+
+        // Cek jika user sudah membuat pesanan pending_payment aktif (belum expired) untuk produk yang sama
+        $existingPendingOrder = $request->user()->orders()
+            ->where('status', 'pending_payment')
+            ->latest('id')
+            ->first();
+
+        if ($existingPendingOrder && ! $existingPendingOrder->isExpired()) {
+            if ($data['mode'] === 'now') {
+                $hasMatchingProduct = $existingPendingOrder->items()
+                    ->where('product_id', (int) $data['product_id'])
+                    ->exists();
+
+                if ($hasMatchingProduct) {
+                    return redirect()->route('orders.show', $existingPendingOrder)
+                        ->with('status', 'Mengarahkan ke pesanan Anda yang sedang menunggu pembayaran.');
+                }
+            }
+        }
 
         $pickupContactName = trim((string) ($request->input('pickup_contact_name') ?: $request->user()->name));
         $pickupContactPhone = trim((string) ($request->input('pickup_contact_phone') ?: $request->user()->phone ?: '-'));
