@@ -51,9 +51,18 @@
   </a>
   <div class="band">
     <span style="flex-basis:100%"><strong>Informasi Pre-Order (PO) – Berlaku untuk Seluruh Kelas</strong></span>
-    <span>Seluruh pesanan hanya dapat diambil langsung di lokasi acara (tidak melayani pengiriman).</span>
+    <span>{{ $window['banner'] ?: 'Seluruh pesanan hanya dapat diambil langsung di lokasi acara (tidak melayani pengiriman).' }}</span>
     <span class="chip {{ $window['status'] === 'open' ? 'good' : ($window['status'] === 'upcoming' ? 'warn' : 'bad') }}">{{ $poLabel }}</span>
-    <span class="small" style="flex-basis:100%">Periode PO: 15 – 21 November 2026 | Jadwal Pengambilan: 21 November 2026</span>
+    <span class="small" style="flex-basis:100%">
+      @if($window['opensAt'] && $window['closesAt'])
+        Periode PO: {{ $window['opensAt']->format('Y-m') === $window['closesAt']->format('Y-m') ? $window['opensAt']->translatedFormat('d') . ' – ' . $window['closesAt']->translatedFormat('d F Y') : $window['opensAt']->translatedFormat('d F Y') . ' – ' . $window['closesAt']->translatedFormat('d F Y') }}
+        @if($window['eventAt'])
+          | Jadwal Pengambilan: {{ $window['eventAt']->translatedFormat('d F Y') }}
+        @endif
+      @else
+        Jadwal PO belum tersedia
+      @endif
+    </span>
   </div>
 </div>
 

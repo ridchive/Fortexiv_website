@@ -284,7 +284,7 @@ class AdminContentController extends Controller
             'md_file' => ['nullable', 'file', 'mimes:txt,md,markdown', 'max:2048'],
         ]);
 
-        $eventSetting = EventSetting::latest('id')->first();
+        $eventSetting = EventSetting::current();
         if (! $eventSetting) {
             $eventSetting = new EventSetting;
         }

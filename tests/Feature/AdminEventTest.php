@@ -171,4 +171,44 @@ class AdminEventTest extends TestCase
             'payment_deadline' => 'Jika diisi, Batas Waktu Pembayaran harus sama dengan atau setelah Waktu Penutupan PO.',
         ]);
     }
+
+    public function test_updating_event_settings_preserves_hero_and_impact_data(): void
+    {
+        $admin = User::factory()->create(['role' => 'admin']);
+
+        EventSetting::create([
+            'po_start' => now()->subDay(),
+            'po_end' => now()->addDays(3),
+            'event_at' => now()->addDays(5),
+            'event_location' => 'Lokasi Lama',
+            'hero_title' => 'Judul Hero Kustom',
+            'hero_description' => 'Deskripsi Hero Kustom',
+            'hero_image' => 'hero/test.jpg',
+            'impact_title' => 'Judul Dampak Kustom',
+            'impact_intro' => 'Intro Kustom',
+            'impact_body' => 'Body Kustom',
+            'impact_image' => 'impact/test.jpg',
+            'impact_baseline_co2' => 25.50,
+            'change_reason' => 'Inisialisasi',
+        ]);
+
+        $this->actingAs($admin)->put(route('admin.event.update'), [
+            'po_start' => now()->format('Y-m-d H:i:s'),
+            'po_end' => now()->addDays(7)->format('Y-m-d H:i:s'),
+            'event_at' => now()->addDays(10)->format('Y-m-d H:i:s'),
+            'event_location' => 'Lokasi Baru',
+            'change_reason' => 'Ubah jadwal PO tanpa merusak Hero.',
+        ])->assertRedirect(route('admin.event.edit'));
+
+        $latest = EventSetting::current();
+        $this->assertNotNull($latest);
+        $this->assertSame('Judul Hero Kustom', $latest->hero_title);
+        $this->assertSame('Deskripsi Hero Kustom', $latest->hero_description);
+        $this->assertSame('hero/test.jpg', $latest->hero_image);
+        $this->assertSame('Judul Dampak Kustom', $latest->impact_title);
+        $this->assertSame('Intro Kustom', $latest->impact_intro);
+        $this->assertSame('Body Kustom', $latest->impact_body);
+        $this->assertSame('impact/test.jpg', $latest->impact_image);
+        $this->assertEquals(25.50, $latest->impact_baseline_co2);
+    }
 }

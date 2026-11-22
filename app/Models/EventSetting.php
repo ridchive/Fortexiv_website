@@ -51,6 +51,49 @@ class EventSetting extends Model
 
     public static function current(): ?self
     {
-        return static::query()->with('updater')->latest('id')->first();
+        $current = static::query()->with('updater')->latest('id')->first();
+        if (! $current) {
+            return null;
+        }
+
+        $needsHero = is_null($current->hero_title) && is_null($current->hero_image);
+        $needsImpact = is_null($current->impact_title) && is_null($current->impact_body);
+
+        if ($needsHero || $needsImpact) {
+            $fallback = static::query()
+                ->where('id', '<', $current->id)
+                ->where(function ($query) {
+                    $query->whereNotNull('hero_title')
+                        ->orWhereNotNull('hero_image')
+                        ->orWhereNotNull('impact_title')
+                        ->orWhereNotNull('impact_body');
+                })
+                ->latest('id')
+                ->first();
+
+            if ($fallback) {
+                $dirty = false;
+                if ($needsHero) {
+                    $current->hero_title = $fallback->hero_title;
+                    $current->hero_description = $fallback->hero_description;
+                    $current->hero_image = $fallback->hero_image;
+                    $dirty = true;
+                }
+                if ($needsImpact) {
+                    $current->impact_title = $fallback->impact_title;
+                    $current->impact_intro = $fallback->impact_intro;
+                    $current->impact_body = $fallback->impact_body;
+                    $current->impact_image = $fallback->impact_image;
+                    $current->impact_baseline_co2 = $fallback->impact_baseline_co2;
+                    $dirty = true;
+                }
+
+                if ($dirty && $current->exists) {
+                    $current->save();
+                }
+            }
+        }
+
+        return $current;
     }
 }

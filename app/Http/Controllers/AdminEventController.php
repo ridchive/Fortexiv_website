@@ -60,6 +60,18 @@ class AdminEventController extends Controller
         $validated['payment_deadline'] = filled($validated['payment_deadline'] ?? null) ? $validated['payment_deadline'] : null;
         $validated['updated_by'] = $request->user()->id;
 
+        $currentSetting = EventSetting::current();
+        if ($currentSetting) {
+            $validated['hero_title'] = $currentSetting->hero_title;
+            $validated['hero_description'] = $currentSetting->hero_description;
+            $validated['hero_image'] = $currentSetting->hero_image;
+            $validated['impact_title'] = $currentSetting->impact_title;
+            $validated['impact_intro'] = $currentSetting->impact_intro;
+            $validated['impact_body'] = $currentSetting->impact_body;
+            $validated['impact_image'] = $currentSetting->impact_image;
+            $validated['impact_baseline_co2'] = $currentSetting->impact_baseline_co2;
+        }
+
         EventSetting::create($validated);
         $purchaseWindow->resetSetting();
 
