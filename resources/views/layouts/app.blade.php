@@ -1580,7 +1580,7 @@
           <a class="ib" href="{{ route('orders.index') }}" aria-label="Pesanan saya">
             <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><path d="M6 3h9l4 4v14H6z"></path><path d="M14 3v5h5M9 12h7M9 16h7"></path></svg>
           </a>
-          <a class="ib" href="{{ route('tickets.hub') }}" aria-label="Tiket pickup" title="Tiket pickup">
+          <a class="ib" href="{{ Route::has('tickets.hub') ? route('tickets.hub') : url('/tickets') }}" aria-label="Tiket pickup" title="Tiket pickup">
             <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><rect x="3" y="3" width="7" height="7"></rect><rect x="14" y="3" width="7" height="7"></rect><rect x="14" y="14" width="7" height="7"></rect><rect x="3" y="14" width="7" height="7"></rect></svg>
           </a>
         @endif
@@ -1592,7 +1592,7 @@
             <div class="who"><strong>{{ auth()->user()->name }}</strong><div class="muted small">{{ auth()->user()->email }}</div></div>
             @if(auth()->user()->role === 'buyer')
               <a href="{{ route('orders.index') }}">Pesanan saya</a>
-              <a href="{{ route('tickets.hub') }}">Tiket Pickup</a>
+              <a href="{{ Route::has('tickets.hub') ? route('tickets.hub') : url('/tickets') }}">Tiket Pickup</a>
             @elseif(auth()->user()->role === 'seller')
               <a href="{{ route('seller.dashboard') }}">Portal kelas</a>
             @elseif(auth()->user()->role === 'admin')
@@ -1636,7 +1636,7 @@
       </div>
       <div><h4>Jelajahi</h4><ul><li><a href="{{ route('projects.index') }}">Proyek Kelas</a></li><li><a href="{{ route('catalog.index') }}">Katalog Produk</a></li><li><a href="{{ route('home') }}">Beranda</a></li></ul></div>
       <div><h4>Bantuan</h4><ul><li><a href="{{ route('help', ['section' => 'cara-memesan']) }}#cara-memesan">Cara Pemesanan</a></li><li><a href="{{ route('help', ['section' => 'pengambilan-barang']) }}#pengambilan-barang">Pengambilan Barang</a></li><li><a href="{{ route('terms') }}">Syarat & Ketentuan</a></li></ul></div>
-      <div><h4>Akun</h4><ul><li><a href="{{ route('login') }}">Masuk</a></li><li><a href="{{ route('register') }}">Daftar</a></li>@auth @if(auth()->user()->role === 'buyer')<li><a href="{{ route('orders.index') }}">Pesanan Saya</a></li><li><a href="{{ route('tickets.hub') }}">Tiket Pickup</a></li>@endif @endauth</ul></div>
+      <div><h4>Akun</h4><ul><li><a href="{{ route('login') }}">Masuk</a></li><li><a href="{{ route('register') }}">Daftar</a></li>@auth @if(auth()->user()->role === 'buyer')<li><a href="{{ route('orders.index') }}">Pesanan Saya</a></li><li><a href="{{ Route::has('tickets.hub') ? route('tickets.hub') : url('/tickets') }}">Tiket Pickup</a></li>@endif @endauth</ul></div>
     </div>
   </div>
 </footer>

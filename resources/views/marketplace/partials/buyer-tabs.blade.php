@@ -77,7 +77,7 @@
       <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M6 3h9l4 4v14H6z"></path><path d="M14 3v5h5M9 12h7M9 16h7"></path></svg>
       <span>Pesanan Saya</span>
     </a>
-    <a href="{{ route('tickets.hub') }}" class="buyer-subtab {{ ($activeTab ?? '') === 'tickets' ? 'active' : '' }}">
+    <a href="{{ Route::has('tickets.hub') ? route('tickets.hub') : url('/tickets') }}" class="buyer-subtab {{ ($activeTab ?? '') === 'tickets' ? 'active' : '' }}">
       <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><rect x="3" y="3" width="7" height="7"></rect><rect x="14" y="3" width="7" height="7"></rect><rect x="14" y="14" width="7" height="7"></rect><rect x="3" y="14" width="7" height="7"></rect></svg>
       <span>Tiket Pickup</span>
       @if($activePickupsCount > 0)
