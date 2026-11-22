@@ -342,7 +342,23 @@
     .dashboard-actions-grid > .panel { height: 100%; margin: 0; }
     .stat strong { display: block; color: #315B2D; font: 800 24px var(--fd); }
     .stat span { color: var(--muted); font-size: 12px; }
-    .pagination { margin-top: 20px; }
+    .pagination { margin-top: 24px; }
+    .pagination nav { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; gap: 14px; width: 100%; }
+    .pagination svg, .pagination .w-5, .pagination .h-5 { width: 18px !important; height: 18px !important; min-width: 18px !important; min-height: 18px !important; max-width: 18px !important; max-height: 18px !important; display: inline-block; vertical-align: middle; fill: currentColor; }
+    .pagination .sm\:hidden { display: flex; justify-content: space-between; width: 100%; gap: 10px; margin-bottom: 8px; }
+    @media (min-width: 640px) {
+      .pagination .sm\:hidden { display: none !important; }
+      .pagination .sm\:flex { display: flex !important; }
+      .pagination .sm\:items-center { align-items: center; }
+      .pagination .sm\:justify-between { justify-content: space-between; width: 100%; }
+    }
+    .pagination p { margin: 0; font-size: 13px; color: var(--muted); }
+    .pagination .relative.z-0 { display: inline-flex; border-radius: 8px; overflow: hidden; border: 1px solid var(--line); }
+    .pagination a, .pagination span { text-decoration: none; font-size: 13px; }
+    .pagination a.relative, .pagination span.relative { display: inline-flex; align-items: center; justify-content: center; min-width: 36px; height: 36px; padding: 6px 12px; background: var(--surface); color: var(--ink); border: 1px solid var(--line); margin-left: -1px; transition: background .15s ease, color .15s ease; }
+    .pagination a.relative:hover { background: var(--soft); color: var(--lime-ink); }
+    .pagination [aria-current="page"] span { background: var(--dark) !important; color: var(--dark-ink) !important; font-weight: 700; border-color: var(--dark) !important; }
+    .pagination [aria-disabled="true"] span { color: var(--muted); opacity: .5; cursor: not-allowed; }
     .footer { padding: 26px 20px; background: #101810; color: #D8E0D5; text-align: center; font-size: 13px; }
     .footer a { color: #EAF1E6; }
     .footer-links { display: flex; justify-content: center; flex-wrap: wrap; gap: 16px; margin-bottom: 10px; }
