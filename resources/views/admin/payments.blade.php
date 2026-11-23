@@ -117,6 +117,83 @@
     gap: 6px;
     flex-wrap: wrap;
   }
+  .btn.btn-reject-payment {
+    background: #FEE2E2;
+    border-color: #F87171;
+    color: #991B1B;
+    padding: 5px 10px;
+    font-size: 12px;
+    font-weight: 600;
+    transition: all .15s ease;
+  }
+  .btn.btn-reject-payment:hover {
+    background: #FECACA;
+    border-color: #EF4444;
+    color: #7F1D1D;
+    transform: translateY(-1px);
+  }
+  :root[data-theme="dark"] .btn.btn-reject-payment,
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) .btn.btn-reject-payment {
+      background: rgba(239, 68, 68, 0.2);
+      border-color: #F87171;
+      color: #FCA5A5;
+    }
+    :root:not([data-theme="light"]) .btn.btn-reject-payment:hover {
+      background: rgba(239, 68, 68, 0.32);
+      border-color: #FCA5A5;
+      color: #FFFFFF;
+    }
+  }
+  :root[data-theme="dark"] .btn.btn-reject-payment {
+    background: rgba(239, 68, 68, 0.2);
+    border-color: #F87171;
+    color: #FCA5A5;
+  }
+  :root[data-theme="dark"] .btn.btn-reject-payment:hover {
+    background: rgba(239, 68, 68, 0.32);
+    border-color: #FCA5A5;
+    color: #FFFFFF;
+  }
+
+  .btn.btn-cancel-order {
+    background: #B91C1C;
+    border-color: #991B1B;
+    color: #FFFFFF;
+    padding: 4px 8px;
+    font-size: 11px;
+    font-weight: 600;
+    transition: all .15s ease;
+  }
+  .btn.btn-cancel-order:hover {
+    background: #991B1B;
+    border-color: #7F1D1D;
+    color: #FFFFFF;
+    transform: translateY(-1px);
+  }
+  :root[data-theme="dark"] .btn.btn-cancel-order,
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) .btn.btn-cancel-order {
+      background: #7F1D1D;
+      border-color: #DC2626;
+      color: #FFF1F2;
+    }
+    :root:not([data-theme="light"]) .btn.btn-cancel-order:hover {
+      background: #991B1B;
+      border-color: #EF4444;
+      color: #FFFFFF;
+    }
+  }
+  :root[data-theme="dark"] .btn.btn-cancel-order {
+    background: #7F1D1D;
+    border-color: #DC2626;
+    color: #FFF1F2;
+  }
+  :root[data-theme="dark"] .btn.btn-cancel-order:hover {
+    background: #991B1B;
+    border-color: #EF4444;
+    color: #FFFFFF;
+  }
   .modal-backdrop-custom {
     position: fixed;
     inset: 0;
@@ -331,19 +408,16 @@
                     <button type="button" class="btn btn-sm" onclick="openVerifyModal('{{ $payment->id }}', '{{ $payment->order?->order_code }}', '{{ $payment->order?->total_price }}')" style="padding: 5px 10px; font-size: 12px;">
                       ✓ Verifikasi
                     </button>
-                    <button type="button" class="btn sec btn-sm" onclick="openRejectModal('{{ $payment->id }}', '{{ $payment->order?->order_code }}')" style="padding: 5px 10px; font-size: 12px; color: var(--bad); border-color: var(--bad);">
+                    <button type="button" class="btn btn-reject-payment btn-sm" onclick="openRejectModal('{{ $payment->id }}', '{{ $payment->order?->order_code }}')">
                       ✕ Tolak
                     </button>
                   </div>
                 @endif
 
                 @if($payment->order && in_array($payment->order->status, ['pending_payment', 'waiting_verification'], true))
-                  <form method="post" action="{{ route('admin.orders.cancel', $payment->order) }}" onsubmit="return confirm('Batalkan pesanan #{{ $payment->order->order_code }} dan kembalikan seluruh stok barang ke sistem?');" style="margin-top: 4px;">
-                    @csrf
-                    <button type="submit" class="btn sec btn-sm" style="padding: 4px 8px; font-size: 11px; color: var(--bad); border-color: var(--line);" title="Batalkan Pesanan & Kembalikan Stok">
-                      Batalkan &amp; Kembalikan Stok
-                    </button>
-                  </form>
+                  <button type="button" class="btn btn-cancel-order btn-sm" onclick="openCancelOrderModal('{{ $payment->order->id }}', '{{ $payment->order->order_code }}')" title="Batalkan Pesanan & Kembalikan Stok" style="margin-top: 4px;">
+                    Batalkan Pesanan
+                  </button>
                 @elseif($payment->status !== 'pending' && $payment->gateway !== 'midtrans')
                   <span class="muted" style="font-size: 12px;">Selesai</span>
                 @endif
@@ -452,6 +526,29 @@
   </div>
 </div>
 
+{{-- MODAL BATALKAN PESANAN --}}
+<div id="cancelOrderModal" class="modal-backdrop-custom" style="display: none;">
+  <div class="modal-card-custom" role="dialog" aria-modal="true" aria-labelledby="cancelOrderModalTitle">
+    <div class="modal-card-custom-head">
+      <h3 id="cancelOrderModalTitle" style="color: var(--bad);">Batalkan Pesanan</h3>
+      <button type="button" class="filter-modal-close" onclick="closeCancelOrderModal()">&times;</button>
+    </div>
+    <form id="cancelOrderForm" method="post" action="">
+      @csrf
+      <div class="modal-card-custom-body">
+        <p style="margin: 0; font-size: 13.5px;" id="cancelOrderPromptText">Batalkan pesanan ini dan kembalikan seluruh stok barang ke sistem?</p>
+        <div style="background: var(--bad-bg); border: 1px solid var(--bad); border-radius: 8px; padding: 10px 14px; font-size: 12.5px; color: var(--bad); line-height: 1.45;">
+          ⚠️ <strong>Peringatan:</strong> Seluruh stok barang pada pesanan ini akan otomatis dikembalikan ke katalog publik. Tindakan ini bersifat permanen.
+        </div>
+      </div>
+      <div class="modal-card-custom-footer">
+        <button type="button" class="btn sec btn-sm" onclick="closeCancelOrderModal()">Batal</button>
+        <button type="submit" class="btn btn-sm btn-cancel-order">Ya, Batalkan Pesanan</button>
+      </div>
+    </form>
+  </div>
+</div>
+
 {{-- LIGHTBOX PREVIEW BUKTI TRANSFER --}}
 <div id="lightboxModal" class="lightbox-modal" style="display: none;" onclick="closeLightbox(event)">
   <button type="button" class="lightbox-close" onclick="closeLightbox(event)">&times;</button>
@@ -508,6 +605,16 @@
     document.getElementById('rejectModal').style.display = 'none';
   }
 
+  function openCancelOrderModal(orderId, orderCode) {
+    const form = document.getElementById('cancelOrderForm');
+    form.action = `/admin/orders/${orderId}/cancel`;
+    document.getElementById('cancelOrderPromptText').textContent = `Batalkan pesanan #${orderCode} dan kembalikan seluruh stok barang ke sistem?`;
+    document.getElementById('cancelOrderModal').style.display = 'flex';
+  }
+  function closeCancelOrderModal() {
+    document.getElementById('cancelOrderModal').style.display = 'none';
+  }
+
   function openLightbox(imgUrl) {
     document.getElementById('lightboxImg').src = imgUrl;
     document.getElementById('lightboxNewTabBtn').href = imgUrl;
@@ -525,6 +632,7 @@
       closeQrisModal();
       closeVerifyModal();
       closeRejectModal();
+      closeCancelOrderModal();
       document.getElementById('lightboxModal').style.display = 'none';
     }
   });
