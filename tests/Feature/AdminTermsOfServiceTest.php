@@ -70,10 +70,11 @@ class AdminTermsOfServiceTest extends TestCase
     {
         $this->get(route('terms'))
             ->assertOk()
+            ->assertSee('<h1>Syarat & ketentuan</h1>', false)
             ->assertSee('Pre-order dan pembayaran')
             ->assertSee('Pengambilan pesanan')
             ->assertSee('Pesanan hanya dapat dibuat selama jendela PO aktif.')
-            ->assertSee('Versi prototype-1.0');
+            ->assertDontSee('Versi prototype-1.0');
     }
 
     public function test_admin_can_save_a_draft_without_changing_published_terms(): void

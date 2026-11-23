@@ -10,7 +10,6 @@
   @endif
   <div class="pgh">
     <h1>Syarat & ketentuan</h1>
-    <p class="muted">Versi {{ $termsVersion }}</p>
   </div>
   @foreach($sections as $section)
     <section class="panel">
