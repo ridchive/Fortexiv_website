@@ -175,7 +175,7 @@ class AdminContentController extends Controller
         ]);
 
         $path = $request->file('image')->store('articles/content', 'public');
-        $url = asset('storage/'.$path);
+        $url = route('storage.fallback', ['path' => $path]);
 
         return response()->json([
             'url' => $url,

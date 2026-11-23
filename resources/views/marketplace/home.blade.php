@@ -16,9 +16,10 @@
 
 @php
   $heroImagePath = $eventSettings?->hero_image ?: $eventSettings?->impact_image;
-  $hasHeroImage = !empty($heroImagePath);
+  $heroImageUrl = $eventSettings?->heroImageUrl() ?: $eventSettings?->impactImageUrl() ?: ($heroImagePath ? Storage::disk('public')->url($heroImagePath) : null);
+  $hasHeroImage = !empty($heroImageUrl);
   $heroBgStyle = $hasHeroImage
-    ? "background-image: linear-gradient(to right, rgba(13,31,18,0.92) 0%, rgba(20,46,27,0.80) 55%, rgba(20,46,27,0.38) 100%), url('" . Storage::disk('public')->url($heroImagePath) . "'); background-size: cover; background-position: center;"
+    ? "background-image: linear-gradient(to right, rgba(13,31,18,0.92) 0%, rgba(20,46,27,0.80) 55%, rgba(20,46,27,0.38) 100%), url('" . $heroImageUrl . "'); background-size: cover; background-position: center;"
     : "";
   $heroTitle = $eventSettings?->hero_title ?: 'Konsumsi Bijak, Bumi Lestari.';
   $heroDescription = $eventSettings?->hero_description ?: 'Empat kelas mengerjakan proyek nyata dari kebun, dapur, dan studio sekolah. Baca ceritanya, lalu pesan produknya lewat satu periode PO terpadu.';

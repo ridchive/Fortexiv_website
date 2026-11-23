@@ -49,6 +49,59 @@ class EventSetting extends Model
         return $this->belongsTo(User::class, 'updated_by');
     }
 
+    public function heroImageUrl(): ?string
+    {
+        if (! $this->hero_image) {
+            return null;
+        }
+
+        if (str_starts_with($this->hero_image, 'http://') || str_starts_with($this->hero_image, 'https://')) {
+            return $this->hero_image;
+        }
+
+        return route('storage.fallback', [
+            'path' => ltrim($this->hero_image, '/'),
+        ]);
+    }
+
+    public function impactImageUrl(): ?string
+    {
+        if (! $this->impact_image) {
+            return null;
+        }
+
+        if (str_starts_with($this->impact_image, 'http://') || str_starts_with($this->impact_image, 'https://')) {
+            return $this->impact_image;
+        }
+
+        return route('storage.fallback', [
+            'path' => ltrim($this->impact_image, '/'),
+        ]);
+    }
+
+    public function impactBodyAsMarkdown(): string
+    {
+        $defaultBody = "## Mengapa Green Ecosystem Impact Tracker?\n\nProyek FORTEXIV bukan sekadar marketplace produk sekolah biasa. Melalui tema **Green Ecosystem**, empat kelas berkolaborasi menjalankan aksi nyata untuk merawat bumi melalui kebun sekolah, pengolahan limbah daur ulang, dan produksi bernilai guna tinggi.\n\n> \"Setiap pilihan konsumsi yang kita buat memiliki jejak terhadap lingkungan. Di FORTEXIV, kami memilih konsumsi bijak demi bumi yang tetap lestari.\"\n\n### Tiga Pilar Reduksi Emisi Kami:\n- **Pemanfaatan Bahan Daur Ulang**: Mengolah limbah kertas, karton, dan kain perca menjadi kartu ucapan, tas belanja, dan tempat pensil tanpa menambang bahan baku baru.\n- **Pangan & Pertanian Organik**: Sayuran dan produk olahan dipanen langsung dari kebun kelas tanpa pestisida kimia sintetis dan bebas rantai pasok panjang.\n- **Nol Sampah Ekspedisi (Direct Pickup)**: Seluruh pesanan diambil langsung di acara tanpa kemasan bubble wrap, plastik kurir berlebih, maupun emisi bahan bakar kendaraan ekspedisi.\n\nKetika Anda memesan karya kelas di FORTEXIV, Anda secara langsung berpartisipasi menurunkan jejak karbon sekolah kita.";
+        $content = $this->impact_body ?: $defaultBody;
+
+        return preg_replace_callback(
+            '/!\[([^\]]*)\]\(([^)]+)\)/',
+            function ($matches) {
+                $alt = $matches[1];
+                $url = trim($matches[2], " \t\n\r\0\x0B\"'");
+
+                if (preg_match('#(?:https?://[^/]+)?/?storage/(.+)$#i', $url, $pathMatches)) {
+                    $storagePath = trim($pathMatches[1], " \t\n\r\0\x0B\"'");
+
+                    return "![{$alt}](".route('storage.fallback', ['path' => $storagePath]).')';
+                }
+
+                return $matches[0];
+            },
+            $content
+        );
+    }
+
     public static function current(): ?self
     {
         $current = static::query()->with('updater')->latest('id')->first();

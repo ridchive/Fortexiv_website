@@ -7,7 +7,7 @@
   $isAdmin = auth()->check() && auth()->user()->role === 'admin';
   $title = $eventSettings->impact_title ?: 'Jejak Dampak Nyata Green Ecosystem: Konsumsi Bijak, Bumi Lestari';
   $intro = $eventSettings->impact_intro ?: 'Dokumentasi transparansi pengurangan jejak emisi karbon melalui proyek nyata dari kebun, dapur, dan studio karya sekolah.';
-  $body = $eventSettings->impact_body ?: "## Mengapa Green Ecosystem Impact Tracker?\n\nProyek FORTEXIV bukan sekadar marketplace produk sekolah biasa. Melalui tema **Green Ecosystem**, empat kelas berkolaborasi menjalankan aksi nyata untuk merawat bumi melalui kebun sekolah, pengolahan limbah daur ulang, dan produksi bernilai guna tinggi.\n\n> \"Setiap pilihan konsumsi yang kita buat memiliki jejak terhadap lingkungan. Di FORTEXIV, kami memilih konsumsi bijak demi bumi yang tetap lestari.\"\n\n### Tiga Pilar Reduksi Emisi Kami:\n- **Pemanfaatan Bahan Daur Ulang**: Mengolah limbah kertas, karton, dan kain perca menjadi kartu ucapan, tas belanja, dan tempat pensil tanpa menambang bahan baku baru.\n- **Pangan & Pertanian Organik**: Sayuran dan produk olahan dipanen langsung dari kebun kelas tanpa pestisida kimia sintetis dan bebas rantai pasok panjang.\n- **Nol Sampah Ekspedisi (Direct Pickup)**: Seluruh pesanan diambil langsung di acara tanpa kemasan bubble wrap, plastik kurir berlebih, maupun emisi bahan bakar kendaraan ekspedisi.\n\nKetika Anda memesan karya kelas di FORTEXIV, Anda secara langsung berpartisipasi menurunkan jejak karbon sekolah kita.";
+  $body = $eventSettings->impactBodyAsMarkdown();
   $hasCoverImage = !empty($eventSettings->impact_image);
   $hasHeroImage = !empty($eventSettings->hero_image);
   $heroTitle = $eventSettings->hero_title ?: 'Konsumsi Bijak, Bumi Lestari.';
@@ -97,7 +97,7 @@
 
               @if($hasHeroImage)
                 <div class="current-photo-preview" id="current-hero-photo-box">
-                  <img src="{{ Storage::disk('public')->url($eventSettings->hero_image) }}" alt="Preview Foto Hero Aktif" id="img-hero-preview-tag" class="thumb-preview">
+                  <img src="{{ $eventSettings->heroImageUrl() ?? Storage::disk('public')->url($eventSettings->hero_image) }}" alt="Preview Foto Hero Aktif" id="img-hero-preview-tag" class="thumb-preview">
                   <div class="photo-meta">
                     <span class="photo-status">✓ Foto aktif sebagai Background Hero Beranda</span>
                     <label class="photo-remove-label">
@@ -154,7 +154,7 @@
 
               @if($hasCoverImage)
                 <div class="current-photo-preview" id="current-photo-box">
-                  <img src="{{ Storage::disk('public')->url($eventSettings->impact_image) }}" alt="Preview Foto Artikel Aktif" id="img-preview-tag" class="thumb-preview">
+                  <img src="{{ $eventSettings->impactImageUrl() ?? Storage::disk('public')->url($eventSettings->impact_image) }}" alt="Preview Foto Artikel Aktif" id="img-preview-tag" class="thumb-preview">
                   <div class="photo-meta">
                     <span class="photo-status">✓ Foto aktif sebagai Cover Artikel GEIT</span>
                     <label class="photo-remove-label">
@@ -231,7 +231,7 @@
     <!-- Cover Header Image -->
     <div class="article-cover-wrap">
       @if($hasCoverImage)
-        <img src="{{ Storage::disk('public')->url($eventSettings->impact_image) }}" alt="{{ $title }}" class="article-cover-img">
+        <img src="{{ $eventSettings->impactImageUrl() ?? Storage::disk('public')->url($eventSettings->impact_image) }}" alt="{{ $title }}" class="article-cover-img">
       @else
         <div class="article-cover-fallback">
           @include('marketplace.partials.garden-scene', ['class' => 'cover-fallback-scene'])
