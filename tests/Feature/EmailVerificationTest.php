@@ -56,6 +56,21 @@ class EmailVerificationTest extends TestCase
         Notification::assertSentTo($user, VerifyEmail::class);
     }
 
+    public function test_get_email_verification_notification_redirects_to_verification_notice(): void
+    {
+        $user = User::factory()->unverified()->create();
+
+        $this->actingAs($user)
+            ->get('/email/verification-notification')
+            ->assertRedirect(route('verification.notice'));
+    }
+
+    public function test_unauthenticated_get_email_verification_notification_redirects_to_login(): void
+    {
+        $this->get('/email/verification-notification')
+            ->assertRedirect(route('login'));
+    }
+
     public function test_unverified_user_can_request_a_six_digit_email_verification_code(): void
     {
         Notification::fake();
@@ -165,15 +180,15 @@ class EmailVerificationTest extends TestCase
         $this->assertNull($user->fresh()->email_verified_at);
     }
 
-    public function test_verification_notice_offers_email_code_verification(): void
+    public function test_verification_notice_displays_resend_button(): void
     {
         $user = User::factory()->unverified()->create();
 
         $this->actingAs($user)
             ->get(route('verification.notice'))
             ->assertOk()
-            ->assertSee('name="code"', false)
-            ->assertSee('Kirim kode verifikasi');
+            ->assertSee('Kirim Ulang Email Verifikasi')
+            ->assertSee('Keluar / Ganti Akun');
     }
 
     public function test_unverified_user_must_verify_before_using_buyer_routes(): void
