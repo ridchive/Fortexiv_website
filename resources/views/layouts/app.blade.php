@@ -345,7 +345,38 @@
     .pagination { margin-top: 24px; }
     .pagination nav { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; gap: 14px; width: 100%; }
     .pagination svg, .pagination .w-5, .pagination .h-5 { width: 18px !important; height: 18px !important; min-width: 18px !important; min-height: 18px !important; max-width: 18px !important; max-height: 18px !important; display: inline-block; vertical-align: middle; fill: currentColor; }
-    .pagination .sm\:hidden { display: flex; justify-content: space-between; width: 100%; gap: 10px; margin-bottom: 8px; }
+    .pagination .sm\:hidden { display: flex; justify-content: space-between; align-items: center; width: 100%; gap: 12px; margin-bottom: 12px; }
+    .pagination .sm\:hidden a,
+    .pagination .sm\:hidden span {
+      display: inline-flex !important;
+      align-items: center !important;
+      justify-content: center !important;
+      min-height: 38px !important;
+      padding: 8px 16px !important;
+      border-radius: 8px !important;
+      border: 1px solid var(--line) !important;
+      background: var(--surface) !important;
+      color: var(--ink) !important;
+      font-size: 13px !important;
+      font-weight: 700 !important;
+      text-decoration: none !important;
+      box-shadow: 0 2px 6px rgba(0,0,0,0.15) !important;
+      transition: all .2s ease !important;
+      margin-left: 0 !important;
+    }
+    .pagination .sm\:hidden a:hover {
+      background: var(--soft) !important;
+      border-color: var(--good) !important;
+      color: var(--good) !important;
+      transform: translateY(-1px);
+    }
+    .pagination .sm\:hidden span {
+      opacity: .4 !important;
+      cursor: not-allowed !important;
+      background: var(--soft) !important;
+      color: var(--muted) !important;
+      box-shadow: none !important;
+    }
     @media (min-width: 640px) {
       .pagination .sm\:hidden { display: none !important; }
       .pagination .sm\:flex { display: flex !important; }
