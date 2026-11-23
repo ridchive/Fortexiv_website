@@ -21,15 +21,18 @@ class CancelOrder
                 return false;
             }
 
-            // Restore product stock for each ordered item
+            // Restore product stock for each ordered item in ascending order of product_id to prevent deadlocks
             $lockedOrder->loadMissing('items');
-            foreach ($lockedOrder->items as $item) {
-                if ($item->product_id) {
-                    Product::query()
-                        ->whereKey($item->product_id)
-                        ->lockForUpdate()
-                        ->increment('stock', $item->quantity);
-                }
+            $orderedItems = $lockedOrder->items
+                ->whereNotNull('product_id')
+                ->sortBy('product_id')
+                ->values();
+
+            foreach ($orderedItems as $item) {
+                Product::query()
+                    ->whereKey($item->product_id)
+                    ->lockForUpdate()
+                    ->increment('stock', $item->quantity);
             }
 
             // Update payment record if exists

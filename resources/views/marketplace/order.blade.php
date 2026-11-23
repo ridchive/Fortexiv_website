@@ -75,8 +75,7 @@
 
 @php
   $qrisImageAvailable = \Illuminate\Support\Facades\Storage::disk('public')->exists('qris-statis.png')
-      || (filled($qrisImage) && is_file(public_path($qrisImage)))
-      || is_file(base_path('public/images/qris-statis.png'));
+      || (filled($qrisImage) && is_file(public_path($qrisImage)));
   $ticketAvailable = in_array($order->payment?->status, ['verified', 'partially_refunded'], true)
       && $order->ticket !== null
       && in_array($order->status, ['paid', 'partially_picked_up', 'picked_up'], true);
@@ -104,7 +103,7 @@
       {{-- BOX BATAS WAKTU BERAKHIR (KEDALUWARSA) --}}
       <div id="paymentExpiredContent" style="{{ $order->isExpired() ? 'display: block;' : 'display: none;' }} margin-bottom: 14px; text-align: left; font-size: 13px; background: rgba(244, 63, 94, 0.15); border: 1px solid var(--bad); color: var(--bad); padding: 14px; border-radius: 8px;">
         <strong style="font-size: 14px; display: block; margin-bottom: 4px;">⛔ Batas Waktu Pembayaran Telah Berakhir</strong>
-        <p style="margin: 0 0 12px; font-size: 12.5px; color: var(--muted);">Pesanan ini telah melewati batas waktu pembayaran (10 menit) dan otomatis dibatalkan. Stok produk telah dikembalikan ke katalog.</p>
+        <p style="margin: 0 0 12px; font-size: 12.5px; color: var(--muted);">Pesanan ini telah melewati batas waktu pembayaran dan otomatis dibatalkan. Stok produk telah dikembalikan ke katalog.</p>
         <a class="btn" href="{{ route('catalog.index') }}" style="font-size: 13px; padding: 6px 14px;">Pesan Ulang di Katalog</a>
       </div>
 
@@ -120,7 +119,7 @@
         {{-- FOTO QRIS --}}
         @if($qrisImageAvailable)
           <div style="background: #fff; padding: 12px; border: 1px solid var(--line); border-radius: 12px; display: inline-block; max-width: 100%; margin-bottom: 14px;">
-            <img src="{{ Route::has('qris.image') ? route('qris.image') : (filled($qrisImage) && is_file(public_path($qrisImage)) ? asset($qrisImage) : url('/images/qris-statis.png')) }}" alt="QRIS statis resmi FORTEXIV" style="max-height: 220px; width: auto; max-width: 100%; object-fit: contain; display: block; margin: 0 auto;">
+            <img src="{{ filled($qrisImage) && is_file(public_path($qrisImage)) ? asset($qrisImage) : (Route::has('qris.image') ? route('qris.image') : url('/images/qris-statis.png')) }}" alt="QRIS statis resmi FORTEXIV" style="max-height: 220px; width: auto; max-width: 100%; object-fit: contain; display: block; margin: 0 auto;">
           </div>
           <p class="muted" style="font-size: 12.5px; margin: 0 0 14px;">
             Scan QRIS di atas, masukkan nominal yang sesuai, lalu unggah screenshot bukti pembayaran di bawah ini.

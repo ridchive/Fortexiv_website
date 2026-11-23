@@ -14,6 +14,7 @@ use App\Models\Seller;
 use App\Models\User;
 use App\Services\CarbonImpactService;
 use App\Services\EmailService;
+use App\Support\PurchaseWindow;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -146,10 +147,10 @@ class AdminController extends Controller
         return back()->with('status', 'Pembayaran diverifikasi dan ticket pickup diterbitkan.');
     }
 
-    public function reject(Request $request, Payment $payment, EmailService $emailService): RedirectResponse
+    public function reject(Request $request, Payment $payment, EmailService $emailService, PurchaseWindow $purchaseWindow): RedirectResponse
     {
         $data = $request->validate(['notes' => ['required', 'string', 'max:255']]);
-        DB::transaction(function () use ($payment, $data) {
+        DB::transaction(function () use ($payment, $data, $purchaseWindow) {
             $lockedPayment = Payment::whereKey($payment->id)->lockForUpdate()->firstOrFail();
             $order = Order::whereKey($lockedPayment->order_id)->lockForUpdate()->firstOrFail();
             abort_unless(
@@ -166,7 +167,18 @@ class AdminController extends Controller
                 'verified_at' => now(),
                 'notes' => $data['notes'],
             ]);
-            $order->update(['status' => 'pending_payment']);
+
+            $graceMinutes = (int) config('marketplace.payment_rejection_grace_minutes', config('marketplace.payment_timeout_minutes', 10));
+            $targetExpiry = now()->addMinutes($graceMinutes);
+            $globalDeadline = $purchaseWindow->paymentDeadline();
+            $newExpiresAt = ($globalDeadline && $globalDeadline->isFuture())
+                ? $targetExpiry->min($globalDeadline)
+                : $targetExpiry;
+
+            $order->update([
+                'status' => 'pending_payment',
+                'expires_at' => $newExpiresAt,
+            ]);
         });
 
         try {

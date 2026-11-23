@@ -2,6 +2,7 @@
 
 namespace Tests\Feature;
 
+use App\Actions\CancelOrder;
 use App\Mail\PaymentProofUploadedMail;
 use App\Mail\PaymentRejectedMail;
 use App\Mail\PaymentVerifiedMail;
@@ -1065,8 +1066,7 @@ class MarketplaceTest extends TestCase
 
         $this->actingAs($seller->user)->get(route('seller.pickup.scan'))
             ->assertOk()
-            ->assertSee('Scan Class QR')
-            ->assertSee('Scan Product QR')
+            ->assertSee('Buka Kamera Pemindai')
             ->assertSee('DETAIL SEBELUM KONFIRMASI');
 
         $this->actingAs($seller->user)->postJson(route('seller.pickup.qr.preview'), [
@@ -1418,7 +1418,7 @@ class MarketplaceTest extends TestCase
             'proof' => UploadedFile::fake()->create('late-proof.png', 300, 'image/png'),
         ])->assertUnprocessable();
 
-        $this->assertSame('pending_payment', $order->fresh()->status);
+        $this->assertSame('cancelled', $order->fresh()->status);
         $this->assertNull($order->fresh()->payment);
     }
 
@@ -2000,6 +2000,337 @@ class MarketplaceTest extends TestCase
         );
 
         return $notification;
+    }
+
+    public function test_admin_reject_extends_order_expires_at_and_buyer_can_reupload_within_grace_period(): void
+    {
+        Storage::fake('local');
+        config([
+            'marketplace.payment_rejection_grace_minutes' => 15,
+            'marketplace.payment_deadline' => now()->subDay()->toDateTimeString(), // Deadline PO masa lalu
+        ]);
+
+        $seller = $this->seller();
+        $product = Product::create([
+            'seller_id' => $seller->id,
+            'name' => 'Extended Order Item',
+            'slug' => 'extended-order-item',
+            'description' => 'Test item',
+            'price' => 20000,
+            'stock' => 5,
+            'review_status' => 'approved',
+            'status' => 'published',
+        ]);
+        $buyer = User::factory()->create();
+        $order = Order::create([
+            'order_code' => 'FX-REJECT-EXT',
+            'buyer_id' => $buyer->id,
+            'status' => 'waiting_verification',
+            'total_price' => 20000,
+            'pickup_date' => now()->addDay(),
+            'expires_at' => now()->subHours(2), // Sudah kedaluwarsa sebelumnya
+        ]);
+        $order->items()->create([
+            'product_id' => $product->id,
+            'seller_id' => $seller->id,
+            'product_name' => $product->name,
+            'quantity' => 1,
+            'price_at_order' => 20000,
+            'subtotal' => 20000,
+        ]);
+        $payment = $order->payment()->create([
+            'proof_image' => UploadedFile::fake()->create('proof.png', 100, 'image/png')->store('payment-proofs', 'local'),
+            'method' => 'Transfer BCA',
+            'status' => 'pending',
+        ]);
+        $admin = User::factory()->create(['role' => 'admin']);
+
+        // Admin me-reject pembayaran
+        $this->actingAs($admin)->post(route('admin.payments.reject', $payment), [
+            'notes' => 'Nominal transfer kurang Rp 5.000',
+        ])->assertRedirect();
+
+        $freshOrder = $order->fresh();
+        $this->assertSame('pending_payment', $freshOrder->status);
+        $this->assertNotNull($freshOrder->expires_at);
+        $this->assertTrue($freshOrder->expires_at->gt(now()));
+        $this->assertFalse($freshOrder->isExpired());
+        $this->assertNotNull($freshOrder->effectivePaymentDeadline());
+        $this->assertTrue($freshOrder->effectivePaymentDeadline()->gt(now()));
+
+        // Cron tidak membatalkan order ini karena expires_at diperpanjang
+        $this->artisan('marketplace:cancel-expired-manual-orders')
+            ->expectsOutputToContain('No expired orders found.')
+            ->assertExitCode(0);
+
+        // Buyer berhasil unggah ulang bukti bayar baru
+        $this->actingAs($buyer)->post(route('payments.store', $order), [
+            'method' => 'Transfer BCA',
+            'proof' => UploadedFile::fake()->create('proof-fixed.png', 200, 'image/png'),
+        ])->assertRedirect();
+
+        $this->assertSame('waiting_verification', $order->fresh()->status);
+    }
+
+    public function test_old_payment_proof_file_is_safely_deleted_after_successful_reupload(): void
+    {
+        Storage::fake('local');
+        $seller = $this->seller();
+        $product = Product::create([
+            'seller_id' => $seller->id,
+            'name' => 'Storage Cleanup Test Item',
+            'slug' => 'storage-cleanup-item',
+            'description' => 'Test item',
+            'price' => 15000,
+            'stock' => 5,
+            'review_status' => 'approved',
+            'status' => 'published',
+        ]);
+        $buyer = User::factory()->create();
+        $order = Order::create([
+            'order_code' => 'FX-CLEANUP01',
+            'buyer_id' => $buyer->id,
+            'status' => 'waiting_verification',
+            'total_price' => 15000,
+            'pickup_date' => now()->addDay(),
+            'expires_at' => now()->addMinutes(10),
+        ]);
+        $order->items()->create([
+            'product_id' => $product->id,
+            'seller_id' => $seller->id,
+            'product_name' => $product->name,
+            'quantity' => 1,
+            'price_at_order' => 15000,
+            'subtotal' => 15000,
+        ]);
+        $oldFile = UploadedFile::fake()->create('initial-proof.png', 100, 'image/png');
+        $oldPath = $oldFile->store('payment-proofs', 'local');
+
+        $payment = $order->payment()->create([
+            'proof_image' => $oldPath,
+            'method' => 'Transfer BCA',
+            'status' => 'pending',
+        ]);
+
+        Storage::disk('local')->assertExists($oldPath);
+
+        $admin = User::factory()->create(['role' => 'admin']);
+        $this->actingAs($admin)->post(route('admin.payments.reject', $payment), [
+            'notes' => 'Bukti buram',
+        ])->assertRedirect();
+
+        // Buyer upload ulang bukti baru
+        $this->actingAs($buyer)->post(route('payments.store', $order), [
+            'method' => 'Transfer BCA',
+            'proof' => UploadedFile::fake()->create('new-proof.png', 150, 'image/png'),
+        ])->assertRedirect();
+
+        $newPayment = $order->fresh()->payment;
+        $this->assertNotSame($oldPath, $newPayment->proof_image);
+        Storage::disk('local')->assertExists($newPayment->proof_image);
+        Storage::disk('local')->assertMissing($oldPath);
+    }
+
+    public function test_concurrent_order_detail_view_ticket_generation_is_idempotent_without_500_error(): void
+    {
+        $seller = $this->seller();
+        $product = Product::create([
+            'seller_id' => $seller->id,
+            'name' => 'Atomic Ticket Test Item',
+            'slug' => 'atomic-ticket-item',
+            'description' => 'Test item',
+            'price' => 25000,
+            'stock' => 5,
+            'review_status' => 'approved',
+            'status' => 'published',
+        ]);
+        $buyer = User::factory()->create();
+        $order = Order::create([
+            'order_code' => 'FX-ATOMIC-TKT',
+            'buyer_id' => $buyer->id,
+            'status' => 'paid',
+            'total_price' => 25000,
+            'pickup_date' => now()->addDay(),
+        ]);
+        $order->items()->create([
+            'product_id' => $product->id,
+            'seller_id' => $seller->id,
+            'product_name' => $product->name,
+            'quantity' => 1,
+            'price_at_order' => 25000,
+            'subtotal' => 25000,
+        ]);
+        $order->payment()->create([
+            'method' => 'Transfer BCA',
+            'status' => 'verified',
+            'verified_at' => now(),
+        ]);
+
+        $this->assertNull($order->fresh()->ticket);
+
+        // Kunjungan pertama: tiket diterbitkan
+        $response1 = $this->actingAs($buyer)->get(route('orders.show', $order));
+        $response1->assertOk();
+        $this->assertNotNull($order->fresh()->ticket);
+        $ticketCode = $order->fresh()->ticket->ticket_code;
+
+        // Kunjungan kedua (simulasi tab kedua / refresh): tidak error 500 dan tiket tetap sama
+        $response2 = $this->actingAs($buyer)->get(route('orders.show', $order));
+        $response2->assertOk();
+        $this->assertSame($ticketCode, $order->fresh()->ticket->ticket_code);
+        $this->assertDatabaseCount('tickets', 1);
+    }
+
+    public function test_per_order_lazy_cancellation_restores_stock_when_accessing_expired_order_detail(): void
+    {
+        $seller = $this->seller();
+        $product = Product::create([
+            'seller_id' => $seller->id,
+            'name' => 'Lazy Cancel Item',
+            'slug' => 'lazy-cancel-item',
+            'description' => 'Test item',
+            'price' => 10000,
+            'stock' => 3, // Sisa stok setelah checkout 2 unit dari awal 5
+            'review_status' => 'approved',
+            'status' => 'published',
+        ]);
+        $buyer = User::factory()->create();
+        $order = Order::create([
+            'order_code' => 'FX-LAZY-ORDER',
+            'buyer_id' => $buyer->id,
+            'status' => 'pending_payment',
+            'total_price' => 20000,
+            'pickup_date' => now()->addDay(),
+            'expires_at' => now()->subMinute(),
+        ]);
+        $order->items()->create([
+            'product_id' => $product->id,
+            'seller_id' => $seller->id,
+            'product_name' => $product->name,
+            'quantity' => 2,
+            'price_at_order' => 10000,
+            'subtotal' => 20000,
+        ]);
+
+        $this->assertTrue($order->isExpired());
+        $this->assertSame(3, $product->fresh()->stock);
+
+        // Buyer mengakses detail pesanan
+        $response = $this->actingAs($buyer)->get(route('orders.show', $order));
+        $response->assertOk();
+
+        // Pesanan otomatis dibatalkan dan stok dikembalikan menjadi 5
+        $this->assertSame('cancelled', $order->fresh()->status);
+        $this->assertSame(5, $product->fresh()->stock);
+    }
+
+    public function test_upload_payment_on_expired_order_triggers_lazy_cancellation_and_returns_422(): void
+    {
+        Storage::fake('local');
+        $seller = $this->seller();
+        $product = Product::create([
+            'seller_id' => $seller->id,
+            'name' => 'Upload Expired Item',
+            'slug' => 'upload-expired-item',
+            'description' => 'Test item',
+            'price' => 12000,
+            'stock' => 2, // Sisa stok
+            'review_status' => 'approved',
+            'status' => 'published',
+        ]);
+        $buyer = User::factory()->create();
+        $order = Order::create([
+            'order_code' => 'FX-UPLOAD-EXP',
+            'buyer_id' => $buyer->id,
+            'status' => 'pending_payment',
+            'total_price' => 36000,
+            'pickup_date' => now()->addDay(),
+            'expires_at' => now()->subMinutes(5),
+        ]);
+        $order->items()->create([
+            'product_id' => $product->id,
+            'seller_id' => $seller->id,
+            'product_name' => $product->name,
+            'quantity' => 3,
+            'price_at_order' => 12000,
+            'subtotal' => 36000,
+        ]);
+
+        $this->assertSame(2, $product->fresh()->stock);
+
+        // Buyer upload bukti pada order yang kedaluwarsa
+        $response = $this->actingAs($buyer)->post(route('payments.store', $order), [
+            'method' => 'Transfer BCA',
+            'proof' => UploadedFile::fake()->create('too-late.png', 100, 'image/png'),
+        ]);
+
+        $response->assertUnprocessable();
+        $this->assertSame('cancelled', $order->fresh()->status);
+        // Stok terestorasi: 2 + 3 = 5
+        $this->assertSame(5, $product->fresh()->stock);
+    }
+
+    public function test_checkout_and_cancel_order_sort_items_by_product_id_to_prevent_deadlock(): void
+    {
+        $seller = $this->seller();
+        $product1 = Product::create([
+            'seller_id' => $seller->id,
+            'name' => 'Item A',
+            'slug' => 'item-a',
+            'description' => 'Item A',
+            'price' => 10000,
+            'stock' => 10,
+            'review_status' => 'approved',
+            'status' => 'published',
+        ]);
+        $product2 = Product::create([
+            'seller_id' => $seller->id,
+            'name' => 'Item B',
+            'slug' => 'item-b',
+            'description' => 'Item B',
+            'price' => 20000,
+            'stock' => 10,
+            'review_status' => 'approved',
+            'status' => 'published',
+        ]);
+        $product3 = Product::create([
+            'seller_id' => $seller->id,
+            'name' => 'Item C',
+            'slug' => 'item-c',
+            'description' => 'Item C',
+            'price' => 30000,
+            'stock' => 10,
+            'review_status' => 'approved',
+            'status' => 'published',
+        ]);
+
+        $buyer = User::factory()->create();
+
+        // Tambah ke cart dengan urutan terbalik / acak: product3, product1, product2
+        $this->actingAs($buyer)->post(route('cart.store'), ['product_id' => $product3->id, 'quantity' => 1]);
+        $this->actingAs($buyer)->post(route('cart.store'), ['product_id' => $product1->id, 'quantity' => 2]);
+        $this->actingAs($buyer)->post(route('cart.store'), ['product_id' => $product2->id, 'quantity' => 1]);
+
+        $this->actingAs($buyer)->post(route('checkout'), [
+            'mode' => 'cart',
+            'pickup_contact_name' => $buyer->name,
+            'pickup_contact_phone' => '081234567890',
+            'accepted_terms' => '1',
+        ])->assertRedirect();
+
+        $order = Order::where('buyer_id', $buyer->id)->latest('id')->firstOrFail();
+        $this->assertSame(8, $product1->fresh()->stock);
+        $this->assertSame(9, $product2->fresh()->stock);
+        $this->assertSame(9, $product3->fresh()->stock);
+
+        // Batalkan via CancelOrder action (yang juga mengurutkan per product_id)
+        $cancelled = app(CancelOrder::class)->handle($order, 'Deadlock prevention verification');
+        $this->assertTrue($cancelled);
+        $this->assertSame('cancelled', $order->fresh()->status);
+
+        $this->assertSame(10, $product1->fresh()->stock);
+        $this->assertSame(10, $product2->fresh()->stock);
+        $this->assertSame(10, $product3->fresh()->stock);
     }
 
     private function seller(string $email = 'seller@example.test'): Seller

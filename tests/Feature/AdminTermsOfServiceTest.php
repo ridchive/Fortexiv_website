@@ -167,7 +167,7 @@ class AdminTermsOfServiceTest extends TestCase
         $this->get(route('terms'))
             ->assertOk()
             ->assertSeeInOrder(['Bagian Pertama', 'Bagian Kedua'])
-            ->assertSee('Versi '.$newVersion->version_label);
+            ->assertDontSee('Versi '.$newVersion->version_label);
 
         $unchangedOrder = $order->fresh('termsVersion');
         $this->assertSame($originalVersion->id, $unchangedOrder->terms_version_id);

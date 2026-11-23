@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Actions\CancelOrder;
 use App\Actions\CompleteOrderQr;
 use App\Mail\PaymentProofUploadedMail;
 use App\Models\CartItem;
@@ -18,6 +19,8 @@ use App\Services\EmailService;
 use App\Support\PurchaseWindow;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\QueryException;
+use Illuminate\Database\UniqueConstraintViolationException;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Collection;
@@ -392,6 +395,9 @@ class MarketplaceController extends Controller
                 throw ValidationException::withMessages(['cart' => 'Keranjang masih kosong. Pilih produk sebelum melanjutkan.']);
             }
 
+            // Urutkan item berdasarkan product_id secara menaik untuk mencegah database deadlock
+            $items = $items->sortBy('product_id')->values();
+
             $total = 0;
             $orderItems = [];
             foreach ($items as $item) {
@@ -533,17 +539,27 @@ class MarketplaceController extends Controller
         ]);
     }
 
-    public function order(Request $request, Order $order, PurchaseWindow $purchaseWindow): View
+    public function order(Request $request, Order $order, PurchaseWindow $purchaseWindow, CancelOrder $cancelOrder): View
     {
         abort_unless($order->buyer_id === $request->user()->id, 404);
+
+        if ($order->status === 'pending_payment' && $order->isExpired()) {
+            $cancelOrder->handle($order, 'Pesanan dibatalkan otomatis karena melewati batas waktu pembayaran.');
+            $order->refresh();
+        }
+
         $order->loadMissing('payment');
         if (in_array($order->status, ['paid', 'partially_picked_up', 'picked_up'], true)
             && in_array($order->payment?->status, ['verified', 'partially_refunded'], true)
             && ! $order->ticket()->exists()) {
-            $order->ticket()->create([
-                'ticket_code' => 'FXT-'.Str::upper(Str::random(12)),
-                'issued_at' => now(),
-            ]);
+            try {
+                $order->ticket()->firstOrCreate([], [
+                    'ticket_code' => 'FXT-'.Str::upper(Str::random(12)),
+                    'issued_at' => now(),
+                ]);
+            } catch (UniqueConstraintViolationException|QueryException) {
+                // Idempotent: Abaikan jika tiket telah dibuat secara bersamaan oleh request paralel
+            }
         }
         $order->load(['buyer', 'fulfillments.seller.project', 'fulfillments.project', 'fulfillments.items.units', 'payment', 'ticket']);
         $eventAt = $purchaseWindow->eventAt();
@@ -560,21 +576,34 @@ class MarketplaceController extends Controller
         ]);
     }
 
-    public function uploadPayment(Request $request, Order $order, EmailService $emailService): RedirectResponse
+    public function uploadPayment(Request $request, Order $order, EmailService $emailService, CancelOrder $cancelOrder): RedirectResponse
     {
         abort_unless($this->transferConfigured(), 503, 'Instruksi pembayaran manual belum dikonfigurasi.');
         abort_unless($order->buyer_id === $request->user()->id, 404);
+
+        if ($order->status === 'pending_payment' && $order->isExpired()) {
+            $cancelOrder->handle($order, 'Pesanan dibatalkan otomatis karena melewati batas waktu pembayaran.');
+            abort(422, 'Batas waktu pembayaran untuk pesanan ini telah berakhir.');
+        }
+
         abort_unless($order->status === 'pending_payment', 422, 'Pesanan ini tidak menunggu pembayaran.');
-        abort_if($order->isExpired(), 422, 'Batas waktu pembayaran untuk pesanan ini telah berakhir.');
 
         $data = $request->validate([
             'proof' => ['required', 'file', 'mimes:jpg,jpeg,png,pdf', 'max:5120'],
             'method' => ['required', 'string', 'max:50'],
         ]);
-        DB::transaction(function () use ($order, $data): void {
+
+        $oldProofPath = null;
+        $newProofPath = null;
+
+        DB::transaction(function () use ($order, $data, $cancelOrder, &$oldProofPath, &$newProofPath): void {
             $lockedOrder = Order::query()->whereKey($order->id)->lockForUpdate()->firstOrFail();
+            if ($lockedOrder->status === 'pending_payment' && $lockedOrder->isExpired()) {
+                $cancelOrder->handle($lockedOrder, 'Pesanan dibatalkan otomatis karena melewati batas waktu pembayaran.');
+                abort(422, 'Batas waktu pembayaran untuk pesanan ini telah berakhir.');
+            }
+
             abort_unless($lockedOrder->status === 'pending_payment', 422, 'Status pesanan telah berubah.');
-            abort_if($lockedOrder->isExpired(), 422, 'Batas waktu pembayaran untuk pesanan ini telah berakhir.');
 
             $payment = $lockedOrder->payment()->lockForUpdate()->first();
             abort_unless(
@@ -583,8 +612,14 @@ class MarketplaceController extends Controller
                 'Pesanan ini tidak dapat menerima bukti pembayaran baru.',
             );
 
+            if ($payment && $payment->proof_image) {
+                $oldProofPath = $payment->proof_image;
+            }
+
+            $newProofPath = $data['proof']->store('payment-proofs', 'local');
+
             $paymentAttributes = [
-                'proof_image' => $data['proof']->store('payment-proofs', 'local'),
+                'proof_image' => $newProofPath,
                 'method' => $data['method'],
                 'gateway' => Payment::GATEWAY_MANUAL,
                 'status' => 'pending',
@@ -600,6 +635,10 @@ class MarketplaceController extends Controller
             }
             $lockedOrder->update(['status' => 'waiting_verification']);
         });
+
+        if ($oldProofPath && $oldProofPath !== $newProofPath && Storage::disk('local')->exists($oldProofPath)) {
+            Storage::disk('local')->delete($oldProofPath);
+        }
 
         try {
             $order->loadMissing('buyer');
