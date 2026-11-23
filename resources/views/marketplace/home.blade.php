@@ -1,6 +1,6 @@
 @extends('layouts.app')
 
-@section('title', 'FORTEXIV — Konsumsi Bijak, Bumi Lestari')
+@section('title', 'FORTEXIV')
 
 @section('content')
 @php
