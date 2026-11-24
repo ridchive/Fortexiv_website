@@ -15,7 +15,7 @@
       @if($preset === 'today')
         Periode: <strong>Hari Ini ({{ \Illuminate\Support\Carbon::now()->locale('id')->translatedFormat('d F Y') }})</strong>
       @elseif($preset === 'event')
-        Periode: <strong>23 – 27 Nov 2026 (Pekan Acara & Bazar)</strong>
+        Periode: <strong>22 – 27 Nov 2026 (Pekan Acara & Bazar)</strong>
       @elseif($preset === 'all')
         Periode: <strong>Semua Waktu (Akumulasi Total)</strong>
       @else
@@ -40,7 +40,7 @@
         </a>
         <a href="{{ route('admin.reports', array_merge(request()->except(['date', 'start_date', 'end_date']), ['preset' => 'event'])) }}"
            class="btn {{ $preset === 'event' ? '' : 'sec' }} btn-small" style="font-size: 13px; text-decoration: none;">
-          23 – 27 Nov (Acara)
+          22 – 27 Nov (Acara)
         </a>
         <a href="{{ route('admin.reports', array_merge(request()->except(['date', 'start_date', 'end_date']), ['preset' => 'all'])) }}"
            class="btn {{ $preset === 'all' ? '' : 'sec' }} btn-small" style="font-size: 13px; text-decoration: none;">

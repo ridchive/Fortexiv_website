@@ -45,14 +45,118 @@ class AdminController extends Controller
         ]);
     }
 
-    public function carbonEmissions(): View
+    public function carbonEmissions(Request $request): View
     {
+        $carbonSummary = app(CarbonImpactService::class)->adminDashboardSummary();
+        $carbonProductBreakdown = $carbonSummary['product_breakdown']->keyBy('product_id');
+
+        $search = trim((string) $request->query('search', ''));
+        $selectedProjectId = $request->query('project_id');
+        $statusFilter = $request->query('status_filter', 'all'); // 'all', 'unset', 'set', 'sold'
+        $sort = $request->query('sort', 'name_asc');
+
+        $allProjects = Project::query()
+            ->orderBy('grade')
+            ->orderBy('class_name')
+            ->get();
+
+        $products = Product::query()
+            ->with(['seller.project', 'project'])
+            ->get();
+
+        // Calculate actual total sold units from verified orders for each product
+        $validStatuses = ['paid', 'partially_picked_up', 'picked_up'];
+        $actualSoldPerProduct = DB::table('order_items')
+            ->join('orders', 'order_items.order_id', '=', 'orders.id')
+            ->whereIn('orders.status', $validStatuses)
+            ->whereNotNull('order_items.product_id')
+            ->groupBy('order_items.product_id')
+            ->select('order_items.product_id', DB::raw('SUM(order_items.quantity) as total_sold'))
+            ->pluck('total_sold', 'product_id');
+
+        // Calculate counts for quick tabs
+        $totalCount = $products->count();
+        $unsetCount = $products->filter(function (Product $p) {
+            return $p->carbon_reduction_value === null
+                && ($p->carbon_baseline_emission_factor === null || $p->carbon_footprint_value === null);
+        })->count();
+        $setCount = $totalCount - $unsetCount;
+        $soldCount = $products->filter(function (Product $p) use ($actualSoldPerProduct) {
+            return ($actualSoldPerProduct[$p->id] ?? 0) > 0;
+        })->count();
+
+        // Apply filters
+        $filtered = $products->filter(function (Product $product) use ($search, $selectedProjectId, $statusFilter, $actualSoldPerProduct) {
+            // Search
+            if ($search !== '') {
+                $searchLower = mb_strtolower($search);
+                $name = mb_strtolower($product->name ?? '');
+                $id = (string) $product->id;
+                $className = mb_strtolower($product->seller?->project?->class_name ?? ($product->project?->class_name ?? ''));
+                if (! str_contains($name, $searchLower) && ! str_contains($id, $searchLower) && ! str_contains($className, $searchLower)) {
+                    return false;
+                }
+            }
+
+            // Project/Class filter
+            if ($selectedProjectId !== null && $selectedProjectId !== '') {
+                $projId = $product->project_id ?? $product->seller?->project_id;
+                if ((string) $projId !== (string) $selectedProjectId) {
+                    return false;
+                }
+            }
+
+            // Status filter (all, unset, set, sold)
+            $isSet = $product->carbon_reduction_value !== null
+                || ($product->carbon_baseline_emission_factor !== null && $product->carbon_footprint_value !== null);
+
+            if ($statusFilter === 'unset' && $isSet) {
+                return false;
+            }
+            if ($statusFilter === 'set' && ! $isSet) {
+                return false;
+            }
+            if ($statusFilter === 'sold') {
+                if (($actualSoldPerProduct[$product->id] ?? 0) <= 0) {
+                    return false;
+                }
+            }
+
+            return true;
+        });
+
+        // Sorting
+        $sorted = match ($sort) {
+            'name_desc' => $filtered->sortByDesc('name', SORT_NATURAL | SORT_FLAG_CASE),
+            'class_asc' => $filtered->sortBy(function (Product $p) {
+                $proj = $p->seller?->project ?? $p->project;
+                return [$proj?->grade ?? 9999, $proj?->class_name ?? ''];
+            }),
+            'sold_desc' => $filtered->sortByDesc(function (Product $p) use ($actualSoldPerProduct) {
+                return $actualSoldPerProduct[$p->id] ?? 0;
+            }),
+            'factor_desc' => $filtered->sortByDesc(function (Product $p) {
+                return (float) ($p->carbon_reduction_value ?? 0);
+            }),
+            'factor_asc' => $filtered->sortBy(function (Product $p) {
+                return (float) ($p->carbon_reduction_value ?? 0);
+            }),
+            default => $filtered->sortBy('name', SORT_NATURAL | SORT_FLAG_CASE),
+        };
+
         return view('admin.carbon-emissions', [
-            'carbonSummary' => app(CarbonImpactService::class)->adminDashboardSummary(),
-            'carbonProducts' => Product::query()
-                ->with(['seller.project', 'project'])
-                ->orderBy('name')
-                ->get(),
+            'carbonSummary' => $carbonSummary,
+            'carbonProducts' => $sorted,
+            'actualSoldPerProduct' => $actualSoldPerProduct,
+            'allProjects' => $allProjects,
+            'search' => $search,
+            'selectedProjectId' => $selectedProjectId,
+            'statusFilter' => $statusFilter,
+            'sort' => $sort,
+            'totalCount' => $totalCount,
+            'unsetCount' => $unsetCount,
+            'setCount' => $setCount,
+            'soldCount' => $soldCount,
         ]);
     }
 
@@ -62,17 +166,52 @@ class AdminController extends Controller
             'carbon_reduction_value' => ['nullable', 'numeric', 'min:0', 'max:999999999999.999999'],
         ]);
 
+        $reduction = $data['carbon_reduction_value'] ?? null;
+
         $product->update([
-            'carbon_reduction_value' => $data['carbon_reduction_value'] ?? null,
-            'carbon_footprint_value' => $data['carbon_reduction_value'] !== null ? 0 : null,
-            'carbon_baseline_emission_factor' => $data['carbon_reduction_value'] !== null ? $data['carbon_reduction_value'] : null,
-            'carbon_footprint_unit' => $data['carbon_reduction_value'] !== null ? CarbonImpactService::UNIT : null,
-            'carbon_baseline_source' => $data['carbon_reduction_value'] !== null ? 'Nilai pengurangan karbon langsung per produk' : null,
-            'carbon_product_source' => $data['carbon_reduction_value'] !== null ? 'Nilai pengurangan karbon langsung per produk' : null,
-            'carbon_functional_unit' => $data['carbon_reduction_value'] !== null ? '1 produk' : null,
+            'carbon_reduction_value' => $reduction,
+            'carbon_footprint_value' => $reduction !== null ? 0 : null,
+            'carbon_baseline_emission_factor' => $reduction !== null ? $reduction : null,
+            'carbon_footprint_unit' => $reduction !== null ? CarbonImpactService::UNIT : null,
+            'carbon_baseline_source' => $reduction !== null ? 'Nilai pengurangan karbon langsung per produk' : null,
+            'carbon_product_source' => $reduction !== null ? 'Nilai pengurangan karbon langsung per produk' : null,
+            'carbon_functional_unit' => $reduction !== null ? '1 produk' : null,
         ]);
 
-        return back()->with('status', 'Faktor emisi produk berhasil diperbarui untuk transaksi berikutnya.');
+        // Auto-sync / recalculate all past verified orders for this product
+        if ($reduction !== null) {
+            $orderItems = OrderItem::query()
+                ->where('product_id', $product->id)
+                ->whereHas('order', function ($q) {
+                    $q->whereIn('status', ['paid', 'partially_picked_up', 'picked_up']);
+                })
+                ->with('order.payment')
+                ->get();
+
+            foreach ($orderItems as $item) {
+                $item->update([
+                    'carbon_reduction_value_at_purchase' => $reduction,
+                    'carbon_footprint_value_at_purchase' => 0,
+                    'carbon_footprint_unit_at_purchase' => CarbonImpactService::UNIT,
+                    'carbon_baseline_emission_factor_at_purchase' => $reduction,
+                    'carbon_baseline_source_at_purchase' => 'Nilai pengurangan karbon langsung per produk',
+                    'carbon_product_source_at_purchase' => 'Nilai pengurangan karbon langsung per produk',
+                    'carbon_functional_unit_at_purchase' => '1 produk',
+                    'carbon_quantity_at_purchase' => $item->quantity,
+                    'carbon_calculation_version_at_purchase' => CarbonImpactService::CALCULATION_VERSION,
+                    'carbon_snapshot_source' => 'admin_sync',
+                ]);
+
+                if ($item->order && $item->order->payment?->status === 'verified') {
+                    $item->update([
+                        'carbon_contribution' => round((float) $reduction * (int) $item->quantity, 6),
+                        'carbon_eligible_at' => now(),
+                    ]);
+                }
+            }
+        }
+
+        return back()->with('status', 'Faktor emisi produk berhasil diperbarui dan disinkronkan ke seluruh pesanan terkait.');
     }
 
     public function payments(): View
@@ -363,7 +502,7 @@ class AdminController extends Controller
             $startDate = now()->toDateString();
             $endDate = now()->toDateString();
         } elseif ($preset === 'event') {
-            $startDate = '2026-11-23';
+            $startDate = '2026-11-22';
             $endDate = '2026-11-27';
         } elseif ($preset === 'all') {
             $startDate = null;
