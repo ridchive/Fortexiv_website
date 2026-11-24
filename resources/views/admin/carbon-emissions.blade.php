@@ -82,28 +82,6 @@
       </table>
     </div>
 
-    @if($carbonSummary['incomplete_items']->isNotEmpty())
-      <div class="table-wrap" style="margin-top: 16px;">
-        <table>
-          <thead><tr><th>Pesanan</th><th>Pembeli</th><th>Item</th><th>Snapshot</th><th>Status perhitungan</th></tr></thead>
-          <tbody>
-            @foreach($carbonSummary['incomplete_items'] as $item)
-              <tr>
-                <td>{{ $item->order_code }}</td>
-                <td>{{ $item->buyer_name }}</td>
-                <td>{{ $item->product_name }}</td>
-                <td>{{ $item->carbon_snapshot_source ?? 'Tidak tersedia' }}</td>
-                <td>Faktor, sumber, unit fungsional, atau hasil belum lengkap</td>
-              </tr>
-            @endforeach
-          </tbody>
-        </table>
-        @if($carbonSummary['missing_snapshot_count'] > $carbonSummary['incomplete_items']->count())
-          <p class="muted">Menampilkan 50 catatan terbaru dari {{ $carbonSummary['missing_snapshot_count'] }} item yang belum lengkap.</p>
-        @endif
-      </div>
-    @endif
-
     <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 16px; margin-top: 16px;">
       <div class="table-wrap">
         <table>
