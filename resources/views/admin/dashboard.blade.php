@@ -150,6 +150,62 @@
       <div class="stat"><strong>{{ $carbonSummary['adjustment_count'] }}</strong><span>Total koreksi tercatat</span></div>
     </div>
 
+    @php
+      $carbonProductBreakdown = $carbonSummary['product_breakdown']->keyBy('product_id');
+    @endphp
+
+    <div class="section-head" style="margin: 20px 0 10px;">
+      <div>
+        <div class="eyebrow">FAKTOR EMISI PRODUK</div>
+        <h3 style="margin: 4px 0 0;">Edit tabel kontribusi per produk</h3>
+      </div>
+    </div>
+    <p class="muted" style="font-size: 13px; margin-bottom: 12px;">Isi pengurangan karbon per produk dalam kg CO2e. Perubahan ini digunakan untuk snapshot transaksi baru dan tidak mengubah hasil pesanan lama.</p>
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr>
+            <th>Karya / Produk</th>
+            <th>Kelas</th>
+            <th>Unit terverifikasi</th>
+            <th>Dihindari</th>
+            <th>Tambahan</th>
+            <th>Net</th>
+            <th>Pengurangan karbon / produk</th>
+          </tr>
+        </thead>
+        <tbody>
+          @forelse($carbonProducts as $carbonProduct)
+            @php
+              $impact = $carbonProductBreakdown->get($carbonProduct->id);
+              $factor = old('carbon_reduction_value', $carbonProduct->carbon_reduction_value
+                ?? (($carbonProduct->carbon_baseline_emission_factor !== null && $carbonProduct->carbon_footprint_value !== null)
+                  ? (float) $carbonProduct->carbon_baseline_emission_factor - (float) $carbonProduct->carbon_footprint_value
+                  : null));
+            @endphp
+            <tr>
+              <td><strong>{{ $carbonProduct->name }}</strong></td>
+              <td>{{ $carbonProduct->seller->project->class_name ?? ($carbonProduct->project->class_name ?? '-') }}</td>
+              <td>{{ $impact ? $impact->eligible_sold_units : 0 }} unit</td>
+              <td>{{ $impact ? number_format($impact->total_avoided_emissions, 6, ',', '.') . ' kg CO2e' : '—' }}</td>
+              <td>{{ $impact ? number_format($impact->total_additional_emissions, 6, ',', '.') . ' kg CO2e' : '—' }}</td>
+              <td>{{ $impact ? number_format($impact->net_avoided_emissions, 6, ',', '.') . ' kg CO2e' : '—' }}</td>
+              <td>
+                <form method="post" action="{{ route('admin.carbon-factor.update', $carbonProduct) }}" style="display: flex; align-items: center; gap: 8px; min-width: 210px;">
+                  @csrf
+                  @method('PUT')
+                  <input class="input" name="carbon_reduction_value" type="number" step="0.000001" min="0" max="999999999999.999999" value="{{ $factor }}" aria-label="Pengurangan karbon untuk {{ $carbonProduct->name }}">
+                  <button class="btn sm" type="submit">Simpan</button>
+                </form>
+              </td>
+            </tr>
+          @empty
+            <tr><td colspan="7" class="muted">Belum ada produk.</td></tr>
+          @endforelse
+        </tbody>
+      </table>
+    </div>
+
     @if($carbonSummary['missing_factor_count'] > 0 || $carbonSummary['legacy_snapshot_count'] > 0 || $carbonSummary['unit_mismatch_count'] > 0)
       <div class="note warn" style="margin-top: 12px;">
         Ditemukan

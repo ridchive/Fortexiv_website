@@ -9,6 +9,7 @@ use App\Mail\PaymentVerifiedMail;
 use App\Models\Order;
 use App\Models\OrderItem;
 use App\Models\Payment;
+use App\Models\Product;
 use App\Models\Project;
 use App\Models\Seller;
 use App\Models\User;
@@ -43,7 +44,30 @@ class AdminController extends Controller
                 ->get(),
             'orders' => Order::query()->with(['buyer', 'payment', 'items.seller.project'])->latest()->limit(12)->get(),
             'classes' => Project::query()->with(['seller.user', 'products'])->withCount('products')->orderBy('grade')->orderBy('class_name')->get(),
+            'carbonProducts' => Product::query()
+                ->with(['seller.project', 'project'])
+                ->orderBy('name')
+                ->get(),
         ]);
+    }
+
+    public function updateCarbonFactor(Request $request, Product $product): RedirectResponse
+    {
+        $data = $request->validate([
+            'carbon_reduction_value' => ['nullable', 'numeric', 'min:0', 'max:999999999999.999999'],
+        ]);
+
+        $product->update([
+            'carbon_reduction_value' => $data['carbon_reduction_value'] ?? null,
+            'carbon_footprint_value' => $data['carbon_reduction_value'] !== null ? 0 : null,
+            'carbon_baseline_emission_factor' => $data['carbon_reduction_value'] !== null ? $data['carbon_reduction_value'] : null,
+            'carbon_footprint_unit' => $data['carbon_reduction_value'] !== null ? CarbonImpactService::UNIT : null,
+            'carbon_baseline_source' => $data['carbon_reduction_value'] !== null ? 'Nilai pengurangan karbon langsung per produk' : null,
+            'carbon_product_source' => $data['carbon_reduction_value'] !== null ? 'Nilai pengurangan karbon langsung per produk' : null,
+            'carbon_functional_unit' => $data['carbon_reduction_value'] !== null ? '1 produk' : null,
+        ]);
+
+        return back()->with('status', 'Faktor emisi produk berhasil diperbarui untuk transaksi berikutnya.');
     }
 
     public function payments(): View
