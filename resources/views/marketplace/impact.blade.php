@@ -255,48 +255,6 @@
 
         <div class="table-responsive">
           <table class="table-impact">
-            <thead>
-              <tr>
-                <th>Karya / Produk</th>
-                <th>Kelas</th>
-                <th>Unit terverifikasi</th>
-                <th>Dihindari</th>
-                <th>Tambahan</th>
-                <th>Net</th>
-              </tr>
-            </thead>
-            <tbody>
-              @foreach($products as $prod)
-                @php
-                  $sold = (int) ($prod->eligible_sold_units ?? 0);
-                  $impact = $prod->eligible_carbon_contribution;
-                @endphp
-                <tr>
-                  <td><strong>{{ $prod->name }}</strong></td>
-                  <td>{{ $prod->seller->project->class_name ?? ($prod->project->class_name ?? '-') }}</td>
-                  <td>{{ $sold }} unit</td>
-                  <td class="subtotal-cell">
-                    @if($impact === null)
-                      Belum ada transaksi eligible
-                    @else
-                      {{ number_format($impact->total_avoided_emissions, 6, ',', '.') }} kg CO2e
-                    @endif
-                  </td>
-                  <td>{{ $impact === null ? '—' : number_format($impact->total_additional_emissions, 6, ',', '.') . ' kg CO2e' }}</td>
-                  <td>{{ $impact === null ? '—' : number_format($impact->net_avoided_emissions, 6, ',', '.') . ' kg CO2e' }}</td>
-                </tr>
-              @endforeach
-              @foreach($unlinkedCarbonProducts as $unlinkedProduct)
-                <tr>
-                  <td><strong>{{ $unlinkedProduct->product_name }} <span class="muted">(produk tidak lagi terdaftar)</span></strong></td>
-                  <td>{{ $unlinkedProduct->class_name }}</td>
-                  <td>{{ $unlinkedProduct->eligible_sold_units }} unit</td>
-                  <td class="subtotal-cell">{{ number_format($unlinkedProduct->total_avoided_emissions, 6, ',', '.') }} kg CO2e</td>
-                  <td>{{ number_format($unlinkedProduct->total_additional_emissions, 6, ',', '.') }} kg CO2e</td>
-                  <td>{{ number_format($unlinkedProduct->net_avoided_emissions, 6, ',', '.') }} kg CO2e</td>
-                </tr>
-              @endforeach
-            </tbody>
             <tfoot>
               <tr class="total-row"><th colspan="4" style="text-align: right;">Total emisi dihindari:</th><th colspan="2" class="total-cell">{{ $co2Reduced }} @if($co2Reduced !== 'Belum tersedia') kg CO2e @endif</th></tr>
               <tr class="total-row"><th colspan="4" style="text-align: right;">Total emisi tambahan:</th><th colspan="2" class="total-cell">{{ number_format($carbonSummary['total_additional_emissions'], 6, ',', '.') }} kg CO2e</th></tr>

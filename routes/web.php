@@ -93,6 +93,7 @@ Route::prefix('seller')->name('seller.')->middleware(['auth', 'verified', 'role:
 
 Route::prefix('admin')->name('admin.')->middleware(['auth', 'verified', 'role:admin'])->group(function () {
     Route::get('/', [AdminController::class, 'dashboard'])->name('dashboard');
+    Route::get('/carbon-emissions', [AdminController::class, 'carbonEmissions'])->name('carbon-emissions');
     Route::get('/terms', [AdminTermsController::class, 'edit'])->name('terms.edit');
     Route::post('/terms/draft', [AdminTermsController::class, 'saveDraft'])->name('terms.draft');
     Route::post('/terms/preview', [AdminTermsController::class, 'preview'])->name('terms.preview');
@@ -106,11 +107,14 @@ Route::prefix('admin')->name('admin.')->middleware(['auth', 'verified', 'role:ad
     Route::post('/payments/{payment}/reject', [AdminController::class, 'reject'])->name('payments.reject');
     Route::post('/orders/{order}/cancel', [AdminController::class, 'cancelOrder'])->name('orders.cancel');
     Route::post('/order-items/{orderItem}/carbon-impact/adjust', [AdminController::class, 'adjustCarbonImpact'])->name('carbon-impact.adjust');
+    Route::put('/products/{product}/carbon-factor', [AdminController::class, 'updateCarbonFactor'])->name('carbon-factor.update');
     Route::get('/users', [AdminController::class, 'users'])->name('users');
     Route::patch('/users/{user}/toggle-active', [AdminController::class, 'toggleUser'])->name('users.toggle');
     Route::get('/pickup', [AdminController::class, 'pickupForm'])->name('pickup');
     Route::post('/pickup', [AdminController::class, 'pickup'])->name('pickup.validate');
-    Route::get('/reports/daily', [AdminController::class, 'report'])->name('reports');
+    Route::get('/reports', [AdminController::class, 'report'])->name('reports');
+    Route::get('/reports/classes/{project}', [AdminController::class, 'classReport'])->name('reports.class');
+    Route::redirect('/reports/daily', '/admin/reports');
     Route::get('/event-settings', [AdminEventController::class, 'edit'])->name('event.edit');
     Route::put('/event-settings', [AdminEventController::class, 'update'])->name('event.update');
     Route::get('/classes', [AdminClassController::class, 'index'])->name('classes.index');

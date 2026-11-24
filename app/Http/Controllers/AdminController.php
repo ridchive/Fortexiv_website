@@ -8,7 +8,9 @@ use App\Mail\PaymentRejectedMail;
 use App\Mail\PaymentVerifiedMail;
 use App\Models\Order;
 use App\Models\OrderItem;
+use App\Models\OrderItemUnit;
 use App\Models\Payment;
+use App\Models\Product;
 use App\Models\Project;
 use App\Models\Seller;
 use App\Models\User;
@@ -27,14 +29,11 @@ class AdminController extends Controller
 {
     public function dashboard(): View
     {
-        $carbonSummary = app(CarbonImpactService::class)->adminDashboardSummary();
-
         return view('admin.dashboard', [
             'ordersCount' => Order::count(),
             'pendingPayments' => Payment::where('gateway', Payment::GATEWAY_MANUAL)->where('status', 'pending')->count(),
             'buyersCount' => User::where('role', 'buyer')->count(),
             'productsSold' => OrderItem::whereHas('order', fn ($query) => $query->whereIn('status', ['paid', 'partially_picked_up', 'picked_up']))->sum('quantity'),
-            'carbonSummary' => $carbonSummary,
             'payments' => Payment::with('order.buyer')
                 ->where('gateway', Payment::GATEWAY_MANUAL)
                 ->where('status', 'pending')
@@ -44,6 +43,36 @@ class AdminController extends Controller
             'orders' => Order::query()->with(['buyer', 'payment', 'items.seller.project'])->latest()->limit(12)->get(),
             'classes' => Project::query()->with(['seller.user', 'products'])->withCount('products')->orderBy('grade')->orderBy('class_name')->get(),
         ]);
+    }
+
+    public function carbonEmissions(): View
+    {
+        return view('admin.carbon-emissions', [
+            'carbonSummary' => app(CarbonImpactService::class)->adminDashboardSummary(),
+            'carbonProducts' => Product::query()
+                ->with(['seller.project', 'project'])
+                ->orderBy('name')
+                ->get(),
+        ]);
+    }
+
+    public function updateCarbonFactor(Request $request, Product $product): RedirectResponse
+    {
+        $data = $request->validate([
+            'carbon_reduction_value' => ['nullable', 'numeric', 'min:0', 'max:999999999999.999999'],
+        ]);
+
+        $product->update([
+            'carbon_reduction_value' => $data['carbon_reduction_value'] ?? null,
+            'carbon_footprint_value' => $data['carbon_reduction_value'] !== null ? 0 : null,
+            'carbon_baseline_emission_factor' => $data['carbon_reduction_value'] !== null ? $data['carbon_reduction_value'] : null,
+            'carbon_footprint_unit' => $data['carbon_reduction_value'] !== null ? CarbonImpactService::UNIT : null,
+            'carbon_baseline_source' => $data['carbon_reduction_value'] !== null ? 'Nilai pengurangan karbon langsung per produk' : null,
+            'carbon_product_source' => $data['carbon_reduction_value'] !== null ? 'Nilai pengurangan karbon langsung per produk' : null,
+            'carbon_functional_unit' => $data['carbon_reduction_value'] !== null ? '1 produk' : null,
+        ]);
+
+        return back()->with('status', 'Faktor emisi produk berhasil diperbarui untuk transaksi berikutnya.');
     }
 
     public function payments(): View
@@ -310,18 +339,273 @@ class AdminController extends Controller
 
     public function report(Request $request): View
     {
-        $data = $request->validate(['date' => ['nullable', 'date']]);
-        $date = $data['date'] ?? now()->toDateString();
-        $orders = Order::whereDate('created_at', $date);
+        $preset = $request->query('preset');
+        $startDate = $request->query('start_date');
+        $endDate = $request->query('end_date');
+
+        // Backwards compatibility for single date param
+        if (! $preset && $request->filled('date')) {
+            $startDate = $request->query('date');
+            $endDate = $request->query('date');
+            $preset = 'custom';
+        }
+
+        if (! $preset) {
+            if ($startDate || $endDate) {
+                $preset = 'custom';
+            } else {
+                $preset = 'event'; // default preset
+            }
+        }
+
+        if ($preset === 'today') {
+            $startDate = now()->toDateString();
+            $endDate = now()->toDateString();
+        } elseif ($preset === 'event') {
+            $startDate = '2026-11-23';
+            $endDate = '2026-11-27';
+        } elseif ($preset === 'all') {
+            $startDate = null;
+            $endDate = null;
+        } elseif ($preset === 'custom') {
+            // Keep $startDate and $endDate as passed
+        }
+
+        $validStatuses = ['paid', 'partially_picked_up', 'picked_up'];
+
+        $applyDateFilter = function ($query, string $column = 'created_at') use ($startDate, $endDate) {
+            if ($startDate && $endDate) {
+                if ($startDate === $endDate) {
+                    $query->whereDate($column, $startDate);
+                } else {
+                    $query->whereDate($column, '>=', $startDate)->whereDate($column, '<=', $endDate);
+                }
+            } elseif ($startDate) {
+                $query->whereDate($column, '>=', $startDate);
+            } elseif ($endDate) {
+                $query->whereDate($column, '<=', $endDate);
+            }
+        };
+
+        // Orders query in period
+        $ordersQuery = Order::query();
+        $applyDateFilter($ordersQuery, 'created_at');
+
+        $totalOrders = (clone $ordersQuery)->count();
+        $cancelledOrders = (clone $ordersQuery)->where('status', 'cancelled')->count();
+        $paidOrdersQuery = (clone $ordersQuery)->whereIn('status', $validStatuses);
+        $paidOrders = $paidOrdersQuery->count();
+        $revenue = $paidOrdersQuery->sum('total_price');
+
+        // Products sold in period
+        $productsSold = OrderItem::query()->whereHas('order', function ($q) use ($validStatuses, $applyDateFilter) {
+            $q->whereIn('status', $validStatuses);
+            $applyDateFilter($q, 'created_at');
+        })->sum('quantity');
+
+        // Units picked up (delivered) in period
+        $deliveredUnits = OrderItemUnit::query()->whereHas('orderItem.order', function ($q) use ($validStatuses, $applyDateFilter) {
+            $q->whereIn('status', $validStatuses);
+            $applyDateFilter($q, 'created_at');
+        })->where('status', 'delivered')->count();
+
+        $totalUnits = OrderItemUnit::query()->whereHas('orderItem.order', function ($q) use ($validStatuses, $applyDateFilter) {
+            $q->whereIn('status', $validStatuses);
+            $applyDateFilter($q, 'created_at');
+        })->count();
+
+        if ($totalUnits === 0 && $productsSold > 0) {
+            $totalUnits = $productsSold;
+        }
+
+        // All projects and class breakdown
+        $projects = Project::query()
+            ->with([
+                'seller.user',
+                'products' => function ($q) use ($validStatuses) {
+                    $q->with([
+                        'category',
+                        'orderItems' => function ($itemQ) use ($validStatuses) {
+                            $itemQ->whereHas('order', fn ($oq) => $oq->whereIn('status', $validStatuses))
+                                ->with(['order', 'units']);
+                        },
+                    ]);
+                },
+            ])
+            ->get();
+
+        $classesData = $projects->map(function (Project $project) use ($startDate, $endDate) {
+            $seller = $project->seller;
+            $allProducts = $project->products;
+
+            $periodSoldUnits = 0;
+            $periodRevenue = 0;
+            $allTimeSoldUnits = 0;
+            $allTimeRevenue = 0;
+            $classDeliveredUnits = 0;
+            $classPendingUnits = 0;
+
+            foreach ($allProducts as $product) {
+                foreach ($product->orderItems as $item) {
+                    $order = $item->order;
+                    if (! $order) {
+                        continue;
+                    }
+
+                    // All time stats
+                    $allTimeSoldUnits += $item->quantity;
+                    $allTimeRevenue += $item->subtotal;
+
+                    // Period filter
+                    $createdAt = $order->created_at?->toDateString();
+                    $inPeriod = true;
+                    if ($startDate && $endDate) {
+                        $inPeriod = ($createdAt >= $startDate && $createdAt <= $endDate);
+                    } elseif ($startDate) {
+                        $inPeriod = ($createdAt >= $startDate);
+                    } elseif ($endDate) {
+                        $inPeriod = ($createdAt <= $endDate);
+                    }
+
+                    if ($inPeriod) {
+                        $periodSoldUnits += $item->quantity;
+                        $periodRevenue += $item->subtotal;
+                    }
+
+                    // Units status
+                    foreach ($item->units as $unit) {
+                        if ($unit->status === 'delivered') {
+                            $classDeliveredUnits++;
+                        } else {
+                            $classPendingUnits++;
+                        }
+                    }
+                }
+            }
+
+            return [
+                'project' => $project,
+                'seller' => $seller,
+                'products_count' => $allProducts->count(),
+                'period_sold_units' => $periodSoldUnits,
+                'period_revenue' => $periodRevenue,
+                'all_time_sold_units' => $allTimeSoldUnits,
+                'all_time_revenue' => $allTimeRevenue,
+                'delivered_units' => $classDeliveredUnits,
+                'pending_units' => $classPendingUnits,
+            ];
+        });
+
+        // Search & Filter
+        $search = trim((string) $request->query('search', ''));
+        $selectedGrade = $request->query('grade');
+        $sort = $request->query('sort', 'revenue_desc');
+
+        if ($search !== '') {
+            $searchLower = mb_strtolower($search);
+            $classesData = $classesData->filter(function ($item) use ($searchLower) {
+                $className = mb_strtolower($item['project']->class_name ?? '');
+                $title = mb_strtolower($item['project']->title ?? '');
+                $storeName = mb_strtolower($item['seller']?->store_name ?? '');
+                $userName = mb_strtolower($item['seller']?->user?->name ?? '');
+                $userUsername = mb_strtolower($item['seller']?->user?->username ?? '');
+                $projectId = (string) ($item['project']->id ?? '');
+                $projectGrade = (string) ($item['project']->grade ?? '');
+
+                return str_contains($className, $searchLower)
+                    || str_contains($title, $searchLower)
+                    || str_contains($storeName, $searchLower)
+                    || str_contains($userName, $searchLower)
+                    || str_contains($userUsername, $searchLower)
+                    || str_contains('@'.$userUsername, $searchLower)
+                    || str_contains($projectId, $searchLower)
+                    || str_contains($projectGrade, $searchLower);
+            });
+        }
+
+        if ($selectedGrade !== null && $selectedGrade !== '') {
+            $classesData = $classesData->filter(function ($item) use ($selectedGrade) {
+                return (string) $item['project']->grade === (string) $selectedGrade;
+            });
+        }
+
+        // Sorting
+        $classesData = match ($sort) {
+            'revenue_asc' => $classesData->sortBy('period_revenue'),
+            'qty_desc' => $classesData->sortByDesc('period_sold_units'),
+            'all_time_desc' => $classesData->sortByDesc('all_time_revenue'),
+            'name_asc' => $classesData->sortBy(fn ($item) => [$item['project']->grade, $item['project']->class_name]),
+            default => $classesData->sortByDesc('period_revenue'),
+        };
+
+        $availableGrades = Project::query()->distinct()->orderBy('grade')->pluck('grade');
 
         return view('admin.reports', [
-            'date' => $date,
-            'totalOrders' => (clone $orders)->count(),
-            'cancelledOrders' => (clone $orders)->where('status', 'cancelled')->count(),
-            'paidOrders' => (clone $orders)->whereIn('status', ['paid', 'partially_picked_up', 'picked_up'])->count(),
-            'revenue' => (clone $orders)->whereIn('status', ['paid', 'partially_picked_up', 'picked_up'])->sum('total_price'),
-            'productsSold' => OrderItem::whereHas('order', fn ($query) => $query->whereDate('created_at', $date)->whereIn('status', ['paid', 'partially_picked_up', 'picked_up']))->sum('quantity'),
-            'pickedUpOrders' => (clone $orders)->where('status', 'picked_up')->count(),
+            'preset' => $preset,
+            'startDate' => $startDate,
+            'endDate' => $endDate,
+            'search' => $search,
+            'selectedGrade' => $selectedGrade,
+            'sort' => $sort,
+            'availableGrades' => $availableGrades,
+            'totalOrders' => $totalOrders,
+            'cancelledOrders' => $cancelledOrders,
+            'paidOrders' => $paidOrders,
+            'revenue' => $revenue,
+            'productsSold' => $productsSold,
+            'deliveredUnits' => $deliveredUnits,
+            'totalUnits' => $totalUnits,
+            'classesData' => $classesData,
+        ]);
+    }
+
+    public function classReport(Request $request, Project $project): View
+    {
+        $seller = $project->seller;
+        $validStatuses = ['paid', 'partially_picked_up', 'picked_up'];
+
+        $products = $project->products()
+            ->with(['category', 'orderItems.order', 'orderItems.units'])
+            ->get();
+
+        $productsWithStats = $products->map(function (Product $product) use ($validStatuses) {
+            $validItems = $product->orderItems->filter(function (OrderItem $item) use ($validStatuses) {
+                return in_array($item->order?->status, $validStatuses, true);
+            });
+
+            $soldUnits = $validItems->sum('quantity');
+            $revenue = $validItems->sum('subtotal');
+
+            $deliveredUnits = 0;
+            $pendingUnits = 0;
+            foreach ($validItems as $item) {
+                $deliveredUnits += $item->units->where('status', 'delivered')->count();
+                $pendingUnits += $item->units->where('status', 'pending')->count();
+            }
+
+            return [
+                'product' => $product,
+                'stock' => $product->stock,
+                'sold_units' => $soldUnits,
+                'delivered_units' => $deliveredUnits,
+                'pending_units' => $pendingUnits,
+                'revenue' => $revenue,
+            ];
+        });
+
+        $totalRevenue = $productsWithStats->sum('revenue');
+        $totalSold = $productsWithStats->sum('sold_units');
+        $totalDelivered = $productsWithStats->sum('delivered_units');
+        $totalPending = $productsWithStats->sum('pending_units');
+
+        return view('admin.class-report', [
+            'project' => $project,
+            'seller' => $seller,
+            'productsWithStats' => $productsWithStats,
+            'totalRevenue' => $totalRevenue,
+            'totalSold' => $totalSold,
+            'totalDelivered' => $totalDelivered,
+            'totalPending' => $totalPending,
         ]);
     }
 }

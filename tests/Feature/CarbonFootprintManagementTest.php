@@ -127,7 +127,7 @@ class CarbonFootprintManagementTest extends TestCase
             ->assertSee('1,50 kg CO2e');
     }
 
-    public function test_admin_dashboard_aggregates_carbon_by_class_seller_and_buyer(): void
+    public function test_admin_carbon_emissions_page_aggregates_carbon_by_class_seller_and_buyer(): void
     {
         $admin = User::factory()->create(['role' => 'admin']);
         $buyer = User::factory()->create(['role' => 'buyer', 'name' => 'Pembeli Dashboard']);
@@ -167,7 +167,7 @@ class CarbonFootprintManagementTest extends TestCase
         ]);
 
         $this->actingAs($admin)
-            ->get(route('admin.dashboard'))
+            ->get(route('admin.carbon-emissions'))
             ->assertOk()
             ->assertSee('CARBON EMISSION AVOIDED DASHBOARD')
             ->assertSee('2,500000 kg CO2e')
@@ -175,6 +175,11 @@ class CarbonFootprintManagementTest extends TestCase
             ->assertSee('Produk Dashboard')
             ->assertSee('Kelas Penguji')
             ->assertSee('Pembeli Dashboard');
+
+        $this->get(route('admin.dashboard'))
+            ->assertOk()
+            ->assertSee('Emisi Karbon')
+            ->assertDontSee('Edit tabel kontribusi per produk');
     }
 
     public function test_seller_dashboard_only_shows_its_eligible_carbon_contribution(): void
@@ -1263,7 +1268,7 @@ class CarbonFootprintManagementTest extends TestCase
         ], $this->carbonSnapshot(4.0, 1.0, 2)));
         app(CarbonImpactService::class)->recordEligiblePurchase($order);
 
-        $this->actingAs($admin)->get(route('admin.dashboard'))->assertOk()->assertSee('6,000000 kg CO2e');
+        $this->actingAs($admin)->get(route('admin.carbon-emissions'))->assertOk()->assertSee('6,000000 kg CO2e');
         $this->actingAs($seller->user)->get(route('seller.dashboard'))->assertOk()->assertSee('6,000000 kg CO2e');
         $this->actingAs($buyer)->get(route('orders.index'))->assertOk()->assertSee('6,000 kg CO2e');
         $this->get(route('impact.index'))->assertOk()->assertSee('6,000000 kg CO2e');

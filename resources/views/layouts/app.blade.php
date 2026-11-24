@@ -1303,6 +1303,12 @@
               </a>
             </li>
             <li>
+              <a href="{{ route('admin.carbon-emissions') }}" @class(['admin-nav-item', 'active' => request()->routeIs('admin.carbon-emissions')])>
+                <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M20 4c-7 0-13 3-13 10a6 6 0 0 0 6 6c7 0 10-6 7-16Z"></path><path d="M4 20c3-5 7-8 12-10"></path></svg>
+                <span>Emisi Karbon</span>
+              </a>
+            </li>
+            <li>
               <a href="{{ route('admin.event.edit') }}" @class(['admin-nav-item', 'active' => request()->routeIs('admin.event*')])>
                 <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect><line x1="16" y1="2" x2="16" y2="6"></line><line x1="8" y1="2" x2="8" y2="6"></line><line x1="3" y1="10" x2="21" y2="10"></line></svg>
                 <span>Jadwal PO & Acara</span>
@@ -1311,7 +1317,7 @@
             <li>
               <a href="{{ route('admin.reports') }}" @class(['admin-nav-item', 'active' => request()->routeIs('admin.reports*')])>
                 <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor"><line x1="12" y1="20" x2="12" y2="10"></line><line x1="18" y1="20" x2="18" y2="4"></line><line x1="6" y1="20" x2="6" y2="16"></line></svg>
-                <span>Laporan Harian</span>
+                <span>Laporan Penjualan</span>
               </a>
             </li>
           </ul>
@@ -1422,8 +1428,9 @@
           elseif (request()->routeIs('admin.terms*') || request()->is('admin/terms*')) $subpageName = 'Terms of Service';
           elseif (request()->routeIs('admin.articles*') || request()->is('admin/articles*')) $subpageName = 'Articles';
           elseif (request()->routeIs('admin.products*') || request()->is('admin/products*')) $subpageName = 'Products';
+          elseif (request()->routeIs('admin.carbon-emissions*') || request()->is('admin/carbon-emissions*')) $subpageName = 'Emisi Karbon';
           elseif (request()->routeIs('admin.event*') || request()->is('admin/event*')) $subpageName = 'Jadwal';
-          elseif (request()->routeIs('admin.reports*') || request()->is('admin/reports*')) $subpageName = 'Reports';
+          elseif (request()->routeIs('admin.reports*') || request()->is('admin/reports*')) $subpageName = 'Laporan Penjualan';
           elseif (request()->routeIs('admin.payments*') || request()->is('admin/payments*')) $subpageName = 'Payments';
           elseif (request()->routeIs('admin.pickup*') || request()->is('admin/pickup*')) $subpageName = 'Pickup';
         @endphp
