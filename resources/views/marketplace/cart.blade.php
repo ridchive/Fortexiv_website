@@ -59,7 +59,7 @@
                     @csrf
                     @method('PATCH')
                     <label class="sr-only" for="quantity-{{ $item->id }}">Jumlah {{ $product->name }}</label>
-                    <input class="input" id="quantity-{{ $item->id }}" name="quantity" type="number" min="1" max="100" value="{{ $item->quantity }}" required>
+                    <input class="input" id="quantity-{{ $item->id }}" name="quantity" type="number" min="1" max="{{ min(100, max(1, $product->stock)) }}" value="{{ $item->quantity }}" required>
                     <button class="btn sec sm" type="submit">Perbarui</button>
                   </form>
                   <strong>{{ \App\Support\Money::format($product->price * $item->quantity) }}</strong>

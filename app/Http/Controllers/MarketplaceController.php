@@ -262,7 +262,11 @@ class MarketplaceController extends Controller
     {
         abort_unless($cartItem->user_id === $request->user()->id, 404);
         $data = $request->validate(['quantity' => ['required', 'integer', 'min:1', 'max:100']]);
-        abort_if($cartItem->product->status !== 'published' || $cartItem->product->review_status !== 'approved' || $data['quantity'] > $cartItem->product->stock, 422, 'Produk tidak tersedia sebanyak jumlah yang diminta. Hapus produk atau kurangi jumlahnya.');
+        if ($cartItem->product->status !== 'published' || $cartItem->product->review_status !== 'approved' || $data['quantity'] > $cartItem->product->stock) {
+            throw ValidationException::withMessages([
+                'quantity' => 'Produk tidak tersedia sebanyak jumlah yang diminta. Hapus produk atau kurangi jumlahnya.',
+            ]);
+        }
         $cartItem->update(['quantity' => $data['quantity']]);
 
         return back()->with('status', 'Jumlah produk diperbarui.');
