@@ -111,7 +111,9 @@ Route::prefix('admin')->name('admin.')->middleware(['auth', 'verified', 'role:ad
     Route::patch('/users/{user}/toggle-active', [AdminController::class, 'toggleUser'])->name('users.toggle');
     Route::get('/pickup', [AdminController::class, 'pickupForm'])->name('pickup');
     Route::post('/pickup', [AdminController::class, 'pickup'])->name('pickup.validate');
-    Route::get('/reports/daily', [AdminController::class, 'report'])->name('reports');
+    Route::get('/reports', [AdminController::class, 'report'])->name('reports');
+    Route::get('/reports/classes/{project}', [AdminController::class, 'classReport'])->name('reports.class');
+    Route::redirect('/reports/daily', '/admin/reports');
     Route::get('/event-settings', [AdminEventController::class, 'edit'])->name('event.edit');
     Route::put('/event-settings', [AdminEventController::class, 'update'])->name('event.update');
     Route::get('/classes', [AdminClassController::class, 'index'])->name('classes.index');

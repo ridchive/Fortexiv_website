@@ -1311,7 +1311,7 @@
             <li>
               <a href="{{ route('admin.reports') }}" @class(['admin-nav-item', 'active' => request()->routeIs('admin.reports*')])>
                 <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor"><line x1="12" y1="20" x2="12" y2="10"></line><line x1="18" y1="20" x2="18" y2="4"></line><line x1="6" y1="20" x2="6" y2="16"></line></svg>
-                <span>Laporan Harian</span>
+                <span>Laporan Penjualan</span>
               </a>
             </li>
           </ul>
@@ -1423,7 +1423,7 @@
           elseif (request()->routeIs('admin.articles*') || request()->is('admin/articles*')) $subpageName = 'Articles';
           elseif (request()->routeIs('admin.products*') || request()->is('admin/products*')) $subpageName = 'Products';
           elseif (request()->routeIs('admin.event*') || request()->is('admin/event*')) $subpageName = 'Jadwal';
-          elseif (request()->routeIs('admin.reports*') || request()->is('admin/reports*')) $subpageName = 'Reports';
+          elseif (request()->routeIs('admin.reports*') || request()->is('admin/reports*')) $subpageName = 'Laporan Penjualan';
           elseif (request()->routeIs('admin.payments*') || request()->is('admin/payments*')) $subpageName = 'Payments';
           elseif (request()->routeIs('admin.pickup*') || request()->is('admin/pickup*')) $subpageName = 'Pickup';
         @endphp
