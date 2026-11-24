@@ -28,14 +28,11 @@ class AdminController extends Controller
 {
     public function dashboard(): View
     {
-        $carbonSummary = app(CarbonImpactService::class)->adminDashboardSummary();
-
         return view('admin.dashboard', [
             'ordersCount' => Order::count(),
             'pendingPayments' => Payment::where('gateway', Payment::GATEWAY_MANUAL)->where('status', 'pending')->count(),
             'buyersCount' => User::where('role', 'buyer')->count(),
             'productsSold' => OrderItem::whereHas('order', fn ($query) => $query->whereIn('status', ['paid', 'partially_picked_up', 'picked_up']))->sum('quantity'),
-            'carbonSummary' => $carbonSummary,
             'payments' => Payment::with('order.buyer')
                 ->where('gateway', Payment::GATEWAY_MANUAL)
                 ->where('status', 'pending')
@@ -44,6 +41,13 @@ class AdminController extends Controller
                 ->get(),
             'orders' => Order::query()->with(['buyer', 'payment', 'items.seller.project'])->latest()->limit(12)->get(),
             'classes' => Project::query()->with(['seller.user', 'products'])->withCount('products')->orderBy('grade')->orderBy('class_name')->get(),
+        ]);
+    }
+
+    public function carbonEmissions(): View
+    {
+        return view('admin.carbon-emissions', [
+            'carbonSummary' => app(CarbonImpactService::class)->adminDashboardSummary(),
             'carbonProducts' => Product::query()
                 ->with(['seller.project', 'project'])
                 ->orderBy('name')

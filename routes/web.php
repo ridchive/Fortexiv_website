@@ -93,6 +93,7 @@ Route::prefix('seller')->name('seller.')->middleware(['auth', 'verified', 'role:
 
 Route::prefix('admin')->name('admin.')->middleware(['auth', 'verified', 'role:admin'])->group(function () {
     Route::get('/', [AdminController::class, 'dashboard'])->name('dashboard');
+    Route::get('/carbon-emissions', [AdminController::class, 'carbonEmissions'])->name('carbon-emissions');
     Route::get('/terms', [AdminTermsController::class, 'edit'])->name('terms.edit');
     Route::post('/terms/draft', [AdminTermsController::class, 'saveDraft'])->name('terms.draft');
     Route::post('/terms/preview', [AdminTermsController::class, 'preview'])->name('terms.preview');
