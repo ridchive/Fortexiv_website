@@ -102,16 +102,18 @@ class AdminController extends Controller
             'received_amount' => ['nullable', 'integer', 'min:0', 'max:4294967295'],
             'notes' => ['nullable', 'string', 'max:255'],
         ]);
-        DB::transaction(function () use ($payment, $carbonImpact, $data) {
+        $alreadyHandled = false;
+        DB::transaction(function () use ($payment, $carbonImpact, $data, &$alreadyHandled) {
             $lockedPayment = Payment::whereKey($payment->id)->lockForUpdate()->firstOrFail();
             $order = Order::whereKey($lockedPayment->order_id)->lockForUpdate()->firstOrFail();
-            abort_unless(
-                $lockedPayment->gateway === Payment::GATEWAY_MANUAL
-                    && $lockedPayment->status === 'pending'
-                    && $order->status === 'waiting_verification',
-                422,
-                'Pembayaran ini sudah diproses atau bukan pembayaran manual.',
-            );
+            if (
+                $lockedPayment->gateway !== Payment::GATEWAY_MANUAL
+                || $lockedPayment->status !== 'pending'
+                || $order->status !== 'waiting_verification'
+            ) {
+                $alreadyHandled = true;
+                return;
+            }
 
             $lockedPayment->update([
                 'status' => 'verified',
@@ -127,6 +129,10 @@ class AdminController extends Controller
             ]);
             $carbonImpact->recordEligiblePurchase($order);
         });
+
+        if ($alreadyHandled) {
+            return back()->with('error', 'Pembayaran ini sudah diproses atau bukan pembayaran manual.');
+        }
 
         try {
             $order = $payment->order()->first();
@@ -150,16 +156,18 @@ class AdminController extends Controller
     public function reject(Request $request, Payment $payment, EmailService $emailService, PurchaseWindow $purchaseWindow): RedirectResponse
     {
         $data = $request->validate(['notes' => ['required', 'string', 'max:255']]);
-        DB::transaction(function () use ($payment, $data, $purchaseWindow) {
+        $alreadyHandled = false;
+        DB::transaction(function () use ($payment, $data, $purchaseWindow, &$alreadyHandled) {
             $lockedPayment = Payment::whereKey($payment->id)->lockForUpdate()->firstOrFail();
             $order = Order::whereKey($lockedPayment->order_id)->lockForUpdate()->firstOrFail();
-            abort_unless(
-                $lockedPayment->gateway === Payment::GATEWAY_MANUAL
-                    && $lockedPayment->status === 'pending'
-                    && $order->status === 'waiting_verification',
-                422,
-                'Pembayaran ini sudah diproses atau bukan pembayaran manual.',
-            );
+            if (
+                $lockedPayment->gateway !== Payment::GATEWAY_MANUAL
+                || $lockedPayment->status !== 'pending'
+                || $order->status !== 'waiting_verification'
+            ) {
+                $alreadyHandled = true;
+                return;
+            }
 
             $lockedPayment->update([
                 'status' => 'rejected',
@@ -180,6 +188,10 @@ class AdminController extends Controller
                 'expires_at' => $newExpiresAt,
             ]);
         });
+
+        if ($alreadyHandled) {
+            return back()->with('error', 'Pembayaran ini sudah diproses atau bukan pembayaran manual.');
+        }
 
         try {
             $order = $payment->order()->first();

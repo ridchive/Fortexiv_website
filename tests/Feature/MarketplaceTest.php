@@ -1298,7 +1298,7 @@ class MarketplaceTest extends TestCase
         $this->post(route('admin.payments.reject', $payment), ['notes' => 'Amount does not match'])->assertRedirect();
         $this->assertSame('pending_payment', $order->fresh()->status);
         $this->assertSame(0, $product->fresh()->stock);
-        $this->actingAs($admin)->post(route('admin.payments.reject', $payment), ['notes' => 'Duplicate'])->assertUnprocessable();
+        $this->actingAs($admin)->post(route('admin.payments.reject', $payment), ['notes' => 'Duplicate'])->assertSessionHas('error');
         $this->assertSame(0, $product->fresh()->stock);
     }
 

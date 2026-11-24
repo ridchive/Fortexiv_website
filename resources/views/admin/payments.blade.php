@@ -572,8 +572,14 @@
     const form = document.getElementById('verifyForm');
     form.action = `/admin/payments/${paymentId}/verify`;
     currentOrderTotal = parseInt(totalPrice, 10) || 0;
+    const submitBtn = form.querySelector('button[type="submit"]');
+    if (submitBtn) {
+      submitBtn.disabled = false;
+      submitBtn.textContent = 'Ya, Verifikasi Pembayaran';
+    }
     document.getElementById('verifyPromptText').textContent = `Verifikasi pembayaran untuk pesanan ${orderCode}? Tiket QR pickup akan otomatis terbit.`;
     document.getElementById('received_amount_input').value = totalPrice || '';
+    document.getElementById('verify_notes_input').value = '';
     document.getElementById('verifyModal').style.display = 'flex';
   }
   function closeVerifyModal() {
@@ -590,13 +596,24 @@
       const formattedTot = 'Rp ' + currentOrderTotal.toLocaleString('id-ID');
       if (!confirm(`PERINGATAN KURANG BAYAR:\n\nNominal masuk (${formattedRec}) LEBIH KECIL dari total tagihan pesanan (${formattedTot}).\nSelisih kurang: ${formattedDiff}.\n\nTetap verifikasi pembayaran ini dan terbitkan tiket pickup?`)) {
         e.preventDefault();
+        return;
       }
+    }
+    const btn = this.querySelector('button[type="submit"]');
+    if (btn) {
+      btn.disabled = true;
+      btn.textContent = 'Memproses...';
     }
   });
 
   function openRejectModal(paymentId, orderCode) {
     const form = document.getElementById('rejectForm');
     form.action = `/admin/payments/${paymentId}/reject`;
+    const submitBtn = form.querySelector('button[type="submit"]');
+    if (submitBtn) {
+      submitBtn.disabled = false;
+      submitBtn.textContent = 'Tolak Pembayaran';
+    }
     document.getElementById('rejectPromptText').textContent = `Tolak bukti pembayaran pesanan ${orderCode}? Pembeli akan diberitahu alasan dan dapat upload bukti baru.`;
     document.getElementById('reject_reason_input').value = '';
     document.getElementById('rejectModal').style.display = 'flex';
@@ -605,15 +622,36 @@
     document.getElementById('rejectModal').style.display = 'none';
   }
 
+  document.getElementById('rejectForm')?.addEventListener('submit', function() {
+    const btn = this.querySelector('button[type="submit"]');
+    if (btn) {
+      btn.disabled = true;
+      btn.textContent = 'Memproses...';
+    }
+  });
+
   function openCancelOrderModal(orderId, orderCode) {
     const form = document.getElementById('cancelOrderForm');
     form.action = `/admin/orders/${orderId}/cancel`;
+    const submitBtn = form.querySelector('button[type="submit"]');
+    if (submitBtn) {
+      submitBtn.disabled = false;
+      submitBtn.textContent = 'Ya, Batalkan Pesanan';
+    }
     document.getElementById('cancelOrderPromptText').textContent = `Batalkan pesanan #${orderCode} dan kembalikan seluruh stok barang ke sistem?`;
     document.getElementById('cancelOrderModal').style.display = 'flex';
   }
   function closeCancelOrderModal() {
     document.getElementById('cancelOrderModal').style.display = 'none';
   }
+
+  document.getElementById('cancelOrderForm')?.addEventListener('submit', function() {
+    const btn = this.querySelector('button[type="submit"]');
+    if (btn) {
+      btn.disabled = true;
+      btn.textContent = 'Memproses...';
+    }
+  });
 
   function openLightbox(imgUrl) {
     document.getElementById('lightboxImg').src = imgUrl;
