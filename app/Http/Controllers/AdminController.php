@@ -80,7 +80,8 @@ class AdminController extends Controller
         $payments = Payment::with(['order.buyer', 'order.items.seller.project', 'verifier'])->latest()->paginate(20);
         $qrisImage = config('marketplace.qris_image');
         $qrisExists = Storage::disk('public')->exists('qris-statis.png')
-            || (filled($qrisImage) && is_file(public_path($qrisImage)));
+            || (filled($qrisImage) && is_file(public_path($qrisImage)))
+            || is_file(base_path('public/images/qris-statis.png'));
 
         return view('admin.payments', compact('payments', 'qrisImage', 'qrisExists'));
     }

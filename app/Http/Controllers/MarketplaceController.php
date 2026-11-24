@@ -772,21 +772,31 @@ class MarketplaceController extends Controller
     public function qrisImage()
     {
         if (Storage::disk('public')->exists('qris-statis.png')) {
-            return response()->file(Storage::disk('public')->path('qris-statis.png'), [
+            $path = Storage::disk('public')->path('qris-statis.png');
+            $mime = @mime_content_type($path) ?: 'image/png';
+
+            return response()->file($path, [
+                'Content-Type' => $mime,
                 'Cache-Control' => 'no-cache, private',
             ]);
         }
 
         $defaultPath = public_path(config('marketplace.qris_image', 'images/qris-statis.png'));
         if (is_file($defaultPath)) {
+            $mime = @mime_content_type($defaultPath) ?: 'image/png';
+
             return response()->file($defaultPath, [
+                'Content-Type' => $mime,
                 'Cache-Control' => 'no-cache, private',
             ]);
         }
 
         $basePublicPath = base_path('public/images/qris-statis.png');
         if (is_file($basePublicPath)) {
+            $mime = @mime_content_type($basePublicPath) ?: 'image/png';
+
             return response()->file($basePublicPath, [
+                'Content-Type' => $mime,
                 'Cache-Control' => 'no-cache, private',
             ]);
         }
@@ -798,7 +808,8 @@ class MarketplaceController extends Controller
     {
         $qrisImage = config('marketplace.qris_image');
         $hasQris = Storage::disk('public')->exists('qris-statis.png')
-            || (filled($qrisImage) && is_file(public_path($qrisImage)));
+            || (filled($qrisImage) && is_file(public_path($qrisImage)))
+            || is_file(base_path('public/images/qris-statis.png'));
 
         return $hasQris
             || (filled(config('marketplace.bank_name'))

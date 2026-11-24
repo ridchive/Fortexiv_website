@@ -934,6 +934,30 @@ class MarketplaceTest extends TestCase
         }
     }
 
+    public function test_pending_order_displays_admin_uploaded_qris_from_storage(): void
+    {
+        Storage::fake('public');
+        Storage::disk('public')->put('qris-statis.png', 'fake-qris-image-bytes');
+
+        $buyer = User::factory()->create(['role' => 'buyer']);
+        $order = Order::create([
+            'order_code' => 'FX-QRIS-STORAGE-TEST',
+            'buyer_id' => $buyer->id,
+            'status' => 'pending_payment',
+            'total_price' => 14000,
+            'pickup_date' => now()->addDay(),
+        ]);
+
+        $this->actingAs($buyer)->get(route('orders.show', $order))
+            ->assertOk()
+            ->assertSee(route('qris.image'), false)
+            ->assertSee('alt="QRIS statis resmi FORTEXIV"', false);
+
+        $this->get(route('qris.image'))
+            ->assertOk()
+            ->assertHeader('Cache-Control', 'no-cache, private');
+    }
+
     public function test_each_class_group_can_be_handed_over_independently_until_the_order_is_complete(): void
     {
         config([
