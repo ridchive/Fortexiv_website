@@ -640,3 +640,19 @@ squareImageInputs.forEach((imageInput) => {
         openButton.hidden = false;
     }
 });
+
+import Lenis from 'lenis';
+
+if (!window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
+    const lenis = new Lenis({
+        autoRaf: true,
+        lerp: 0.1,
+        smoothWheel: true,
+        prevent: (node) => Boolean(
+            node.classList?.contains('filter-modal-backdrop')
+            || node.dataset?.lenisSkip === 'true'
+        ),
+    });
+
+    window.fortexivLenis = lenis;
+}

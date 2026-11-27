@@ -48,8 +48,15 @@
       background: var(--bg);
     }
     * { box-sizing: border-box; }
+    html { scroll-behavior: smooth; }
+    html.lenis, html.lenis body { height: auto; }
+    .lenis.lenis-smooth { scroll-behavior: auto !important; }
+    .lenis.lenis-smooth [data-lenis-prevent] { overscroll-behavior: contain; }
     [hidden] { display: none !important; }
-    body { margin: 0; background: var(--bg); color: var(--ink); font: 16px/1.6 var(--fb); }
+    body { margin: 0; background: var(--bg); color: var(--ink); font: 16px/1.6 var(--fb); transition: background-color .28s ease, color .28s ease; }
+    .card, .product-card, .project-card, .stat, .auth-card, .detail-card, .notice, .panel, .box, .band, .ctab, .qcard, .steps li {
+      transition: background-color .28s ease, color .28s ease, border-color .28s ease;
+    }
     h1, h2, h3, h4 { margin: 0; font-family: var(--fd); line-height: 1.12; }
     h1 { font-size: clamp(2rem, 5vw, 3.4rem); letter-spacing: -.035em; }
     h2 { font-size: clamp(1.5rem, 3.5vw, 2.25rem); letter-spacing: -.025em; }
@@ -694,6 +701,13 @@
     .hero .btns { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 4px; }
     .hero .btn { min-height: 42px; padding: 10px 18px; font-size: .92rem; font-weight: 700; border-radius: 8px; }
 
+    .hero.hero-impact {
+      transition: transform .32s cubic-bezier(0.22, 1, 0.36, 1), box-shadow .32s ease, background-color .28s ease, border-color .28s ease;
+    }
+    .hero.hero-impact:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 14px 30px rgba(20, 41, 26, 0.14);
+    }
     .hero-impact-card {
       position: relative;
       z-index: 1;
@@ -850,11 +864,28 @@
     .sec-h { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: end; gap: 16px; margin-bottom: 22px; }
     .grid3 { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 20px; }
     .story-strip { display: grid; grid-auto-columns: minmax(240px, 280px); grid-auto-flow: column; gap: 20px; padding: 2px 2px 14px; overflow-x: auto; overscroll-behavior-inline: contain; scroll-snap-type: x mandatory; scrollbar-color: var(--line) transparent; }
+    .story-strip.is-auto-scrolling { scroll-snap-type: none; }
     .story-strip > .story { min-width: 0; scroll-snap-align: start; }
-    .story { display: flex; flex-direction: column; gap: 10px; color: var(--ink); text-decoration: none; }
+    .story { display: flex; flex-direction: column; gap: 10px; color: var(--ink); text-decoration: none; transition: transform .28s cubic-bezier(0.22, 1, 0.36, 1), color .28s ease; }
+    .story:hover { transform: translateY(-4px); }
     .story .im { aspect-ratio: 1; overflow: hidden; border-radius: 6px; background: var(--soft); }
-    .story .im img, .story .im svg { display: block; width: 100%; height: 100%; object-fit: cover; transition: transform .4s; }
-    .story:hover .im img, .story:hover .im svg { transform: scale(1.03); }
+    .story .im img, .story .im svg { display: block; width: 100%; height: 100%; object-fit: cover; transition: transform .42s cubic-bezier(0.22, 1, 0.36, 1); }
+    .story:hover .im img, .story:hover .im svg { transform: scale(1.05); }
+    [data-reveal] {
+      opacity: 0;
+      translate: 0 14px;
+      transition: opacity .52s cubic-bezier(0.22, 1, 0.36, 1), translate .52s cubic-bezier(0.22, 1, 0.36, 1);
+      transition-delay: var(--reveal-delay, 0ms);
+    }
+    [data-reveal].is-visible {
+      opacity: 1;
+      translate: 0 0;
+    }
+    @media (prefers-reduced-motion: reduce) {
+      html { scroll-behavior: auto; }
+      [data-reveal] { opacity: 1; translate: none; transition: none; }
+      .hero.hero-impact, .story, .story .im img, .story .im svg, .pcard, .pcard .pim > svg, .pcard .pim > img { transition: none; }
+    }
     .story h3 { font-size: 1.05rem; }
     .story p { color: var(--muted); }
     .story-scroll-hint { display: none; }
@@ -941,7 +972,14 @@
       .hero .tx h1 { font-size: clamp(1.65rem, 7vw, 2.1rem); line-height: 1.05; }
       .hero .tx p { max-width: 100%; font-size: .94rem; line-height: 1.42; }
       .hero .kick { font-size: .8rem; }
-      .hero-impact-card {
+      .hero.hero-impact {
+      transition: transform .32s cubic-bezier(0.22, 1, 0.36, 1), box-shadow .32s ease, background-color .28s ease, border-color .28s ease;
+    }
+    .hero.hero-impact:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 14px 30px rgba(20, 41, 26, 0.14);
+    }
+    .hero-impact-card {
         width: 100%;
         padding: 12px 16px;
         margin: 0;
@@ -1739,6 +1777,179 @@
         toggle.setAttribute('aria-label', isVisible ? 'Sembunyikan kata sandi' : 'Tampilkan kata sandi');
       });
     });
+  })();
+  (() => {
+    const reducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    const revealItems = document.querySelectorAll('[data-reveal]');
+
+    if (revealItems.length > 0) {
+      if (reducedMotion || !('IntersectionObserver' in window)) {
+        revealItems.forEach((el) => el.classList.add('is-visible'));
+      } else {
+        const observer = new IntersectionObserver((entries, obs) => {
+          entries.forEach((entry) => {
+            if (!entry.isIntersecting) {
+              return;
+            }
+            entry.target.classList.add('is-visible');
+            obs.unobserve(entry.target);
+          });
+        }, { threshold: 0.1, rootMargin: '0px 0px -24px 0px' });
+
+        revealItems.forEach((el) => observer.observe(el));
+      }
+    }
+
+    const storyStrip = document.querySelector('.story-strip');
+
+    if (storyStrip && !reducedMotion) {
+      let paused = false;
+      let isHovered = false;
+      let horizontalMode = false;
+      let resetting = false;
+      let wheelSmoothing = false;
+      let resumeTimer = null;
+      let modeTimer = null;
+      let lastPageWheelTs = 0;
+      let lastTs = 0;
+      let exactScrollLeft = storyStrip.scrollLeft;
+      let targetScrollLeft = storyStrip.scrollLeft;
+      const speedPxPerSec = 36;
+      const scrollCooldownMs = 420;
+
+      // Nonaktifkan snap selama JS aktif agar saat hover tidak loncat ke posisi snap
+      storyStrip.classList.add('is-auto-scrolling');
+
+      window.addEventListener('wheel', (e) => {
+        if (!storyStrip.contains(e.target)) {
+          lastPageWheelTs = performance.now();
+        }
+      }, { passive: true });
+
+      const pauseAutoScroll = (delayMs = 0) => {
+        paused = true;
+        clearTimeout(resumeTimer);
+        if (delayMs > 0 && !isHovered) {
+          resumeTimer = setTimeout(() => {
+            exactScrollLeft = storyStrip.scrollLeft;
+            targetScrollLeft = exactScrollLeft;
+            paused = false;
+            lastTs = 0;
+          }, delayMs);
+        }
+      };
+
+      const scheduleHorizontalMode = () => {
+        clearTimeout(modeTimer);
+        modeTimer = setTimeout(() => {
+          if (isHovered) {
+            horizontalMode = true;
+          }
+        }, scrollCooldownMs);
+      };
+
+      const step = (ts) => {
+        if (wheelSmoothing) {
+          exactScrollLeft += (targetScrollLeft - exactScrollLeft) * 0.14;
+          storyStrip.scrollLeft = exactScrollLeft;
+
+          if (Math.abs(targetScrollLeft - exactScrollLeft) < 0.5) {
+            storyStrip.scrollLeft = targetScrollLeft;
+            exactScrollLeft = targetScrollLeft;
+            wheelSmoothing = false;
+          }
+          lastTs = 0;
+        } else if (!paused && !resetting && storyStrip.scrollWidth > storyStrip.clientWidth + 4) {
+          if (lastTs > 0) {
+            const dt = Math.min(ts - lastTs, 64) / 1000;
+            exactScrollLeft += speedPxPerSec * dt;
+            storyStrip.scrollLeft = exactScrollLeft;
+          } else {
+            exactScrollLeft = storyStrip.scrollLeft;
+          }
+          lastTs = ts;
+
+          if (storyStrip.scrollLeft + storyStrip.clientWidth >= storyStrip.scrollWidth - 2) {
+            resetting = true;
+            setTimeout(() => {
+              storyStrip.scrollTo({ left: 0, behavior: 'smooth' });
+              setTimeout(() => {
+                exactScrollLeft = 0;
+                targetScrollLeft = 0;
+                resetting = false;
+                lastTs = 0;
+              }, 900);
+            }, 1200);
+          }
+        } else {
+          lastTs = 0;
+        }
+        requestAnimationFrame(step);
+      };
+
+      storyStrip.addEventListener('pointerenter', () => {
+        isHovered = true;
+        pauseAutoScroll();
+        if (performance.now() - lastPageWheelTs < scrollCooldownMs) {
+          horizontalMode = false;
+          scheduleHorizontalMode();
+        } else {
+          horizontalMode = true;
+        }
+      });
+      storyStrip.addEventListener('pointerleave', () => {
+        isHovered = false;
+        horizontalMode = false;
+        storyStrip.dataset.lenisSkip = 'false';
+        clearTimeout(modeTimer);
+        pauseAutoScroll(1000);
+      });
+      storyStrip.addEventListener('focusin', () => pauseAutoScroll());
+      storyStrip.addEventListener('focusout', () => pauseAutoScroll(1000));
+      storyStrip.addEventListener('touchstart', () => {
+        wheelSmoothing = false;
+        storyStrip.classList.remove('is-auto-scrolling');
+        pauseAutoScroll();
+      }, { passive: true });
+      storyStrip.addEventListener('touchend', () => {
+        pauseAutoScroll(1600);
+      }, { passive: true });
+      storyStrip.addEventListener('wheel', (e) => {
+        const maxScroll = storyStrip.scrollWidth - storyStrip.clientWidth;
+        const isTrackpadX = Math.abs(e.deltaX) > Math.abs(e.deltaY);
+        const useHorizontal = e.shiftKey || isTrackpadX || horizontalMode;
+
+        if (!useHorizontal) {
+          storyStrip.dataset.lenisSkip = 'false';
+          lastPageWheelTs = performance.now();
+          scheduleHorizontalMode();
+          return;
+        }
+
+        const delta = (e.shiftKey || !isTrackpadX) ? e.deltaY : e.deltaX;
+        if (maxScroll > 4 && delta !== 0) {
+          const currentPos = wheelSmoothing ? targetScrollLeft : storyStrip.scrollLeft;
+          const atStart = currentPos <= 0 && delta < 0;
+          const atEnd = currentPos >= maxScroll - 1 && delta > 0;
+          if (!atStart && !atEnd) {
+            storyStrip.dataset.lenisSkip = 'true';
+            e.preventDefault();
+            if (!wheelSmoothing) {
+              exactScrollLeft = storyStrip.scrollLeft;
+              targetScrollLeft = exactScrollLeft;
+              wheelSmoothing = true;
+            }
+            targetScrollLeft = Math.max(0, Math.min(maxScroll, targetScrollLeft + delta));
+            pauseAutoScroll(1400);
+            return;
+          }
+        }
+
+        storyStrip.dataset.lenisSkip = 'false';
+      }, { passive: false });
+
+      requestAnimationFrame(step);
+    }
   })();
 </script>
 </body>

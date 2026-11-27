@@ -56,10 +56,10 @@
   }
 </style>
 <div class="wrap">
-  <div class="pgh">
+  <div class="pgh" data-reveal>
     <nav class="crumb"><a href="{{ route('home') }}">Beranda</a> / <span>Proyek</span></nav>
     <h1>Proyek kelas</h1>
-    <p>Setiap kelas menceritakan latar belakang, proses, dan hasil proyeknya. Temukan produk terkait di tiap cerita.</p>
+    <p>Setiap kelas menceritakan latar belakang, proses, dan hasil proyeknya.</p>
   </div>
 
   <div class="filters-row" role="group" aria-label="Filter kelas">
@@ -78,7 +78,7 @@
 
   <div class="grid3 project-list-grid">
     @forelse($projects as $project)
-      <a class="story" href="{{ route('projects.show', $project) }}">
+      <a class="story" href="{{ route('projects.show', $project) }}" data-reveal style="--reveal-delay: {{ ($loop->index % 3) * 70 }}ms">
         <div class="im">@include('marketplace.partials.project-photo', ['project' => $project])</div>
         <span class="chip" title="{{ $project->class_name }}">{{ Str::limit($project->class_name, 28) }}</span>
         <h3>{{ $project->title }}</h3>

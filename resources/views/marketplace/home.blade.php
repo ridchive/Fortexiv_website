@@ -26,7 +26,7 @@
 @endphp
 
 <div class="wrap" style="padding-top:6px">
-  <a href="{{ route('impact.index') }}" class="hero hero-impact {{ $hasHeroImage ? 'has-bg-image' : '' }}" @if($hasHeroImage) style="{{ $heroBgStyle }}" @endif aria-label="Green Ecosystem Impact Tracker">
+  <a href="{{ route('impact.index') }}" class="hero hero-impact {{ $hasHeroImage ? 'has-bg-image' : '' }}" data-reveal @if($hasHeroImage) style="{{ $heroBgStyle }}" @endif aria-label="Green Ecosystem Impact Tracker">
     <div class="tx">
       <h1>{{ $heroTitle }}</h1>
       <p>{{ $heroDescription }}</p>
@@ -50,26 +50,11 @@
       </div>
     </div>
   </a>
-  <div class="band">
-    <span style="flex-basis:100%"><strong>Informasi Pre-Order (PO) – Berlaku untuk Seluruh Kelas</strong></span>
-    <span>{{ $window['banner'] ?: 'Seluruh pesanan hanya dapat diambil langsung di lokasi acara (tidak melayani pengiriman).' }}</span>
-    <span class="chip {{ $window['status'] === 'open' ? 'good' : ($window['status'] === 'upcoming' ? 'warn' : 'bad') }}">{{ $poLabel }}</span>
-    <span class="small" style="flex-basis:100%">
-      @if($window['opensAt'] && $window['closesAt'])
-        Periode PO: {{ $window['opensAt']->format('Y-m') === $window['closesAt']->format('Y-m') ? $window['opensAt']->translatedFormat('d') . ' – ' . $window['closesAt']->translatedFormat('d F Y') : $window['opensAt']->translatedFormat('d F Y') . ' – ' . $window['closesAt']->translatedFormat('d F Y') }}
-        @if($window['eventAt'])
-          | Jadwal Pengambilan: {{ $window['eventAt']->translatedFormat('d F Y') }}
-        @endif
-      @else
-        Jadwal PO belum tersedia
-      @endif
-    </span>
-  </div>
 </div>
 
 <section class="sec-b" style="margin-top:28px">
   <div class="wrap">
-    <div class="sec-h"><h2>Cerita dari kelas</h2><a class="btn sec sm" href="{{ route('projects.index') }}">Semua proyek</a></div>
+    <div class="sec-h" data-reveal><h2>Cerita dari kelas</h2><a class="btn sec sm" href="{{ route('projects.index') }}">Semua proyek</a></div>
     <p class="story-scroll-hint">Geser ke samping untuk melihat cerita lainnya</p>
     <div class="story-strip" role="region" aria-label="Cerita proyek kelas" tabindex="0">
       @forelse($projects as $project)
@@ -89,18 +74,18 @@
 
 <section class="sec-b">
   <div class="wrap">
-    <div class="sec-h"><h2>Cara Pre-Order dan Pengambilan Pesanan</h2></div>
+    <div class="sec-h" data-reveal><h2>Cara Pre-Order dan Pengambilan Pesanan</h2></div>
     <ol class="steps">
-      <li><h3>Pilih Produk</h3><p>Anda dapat memesan produk dari berbagai kategori kelas secara bersamaan dalam satu transaksi.</p></li>
-      <li><h3>Selesaikan Pembayaran</h3><p>Lakukan pembayaran sebelum batas waktu yang ditentukan agar pesanan dapat diproses.</p></li>
-      <li><h3>Dapatkan Kode QR per Kelas</h3><p>Setiap kategori kelas yang dipesan akan memiliki kode QR pengambilan yang terpisah.</p></li>
-      <li><h3>Ambil di Lokasi Acara</h3><p>Tunjukkan masing-masing kode QR kepada panitia di stan kelas terkait saat acara berlangsung.</p></li>
+      <li data-reveal style="--reveal-delay: 0ms"><h3>Pilih Produk</h3><p>Anda dapat memesan produk dari berbagai kategori kelas secara bersamaan dalam satu transaksi.</p></li>
+      <li data-reveal style="--reveal-delay: 70ms"><h3>Selesaikan Pembayaran</h3><p>Lakukan pembayaran sebelum batas waktu yang ditentukan agar pesanan dapat diproses.</p></li>
+      <li data-reveal style="--reveal-delay: 140ms"><h3>Dapatkan Kode QR per Kelas</h3><p>Setiap kategori kelas yang dipesan akan memiliki kode QR pengambilan yang terpisah.</p></li>
+      <li data-reveal style="--reveal-delay: 210ms"><h3>Ambil di Lokasi Acara</h3><p>Tunjukkan masing-masing kode QR kepada panitia di stan kelas terkait saat acara berlangsung.</p></li>
     </ol>
   </div>
 </section>
 
 <section class="ctab">
-  <div class="wrap">
+  <div class="wrap" data-reveal>
     <h2>Siap ikut PO bersama?</h2>
     <div class="btns"><a class="btn" href="{{ route('catalog.index') }}">Lihat katalog</a><a class="btn sec" href="{{ route('help') }}">Baca cara pemesanan</a></div>
   </div>

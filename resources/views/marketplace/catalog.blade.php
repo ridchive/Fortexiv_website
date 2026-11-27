@@ -179,10 +179,15 @@
   <div class="pgh">
     <nav class="crumb"><a href="{{ route('home') }}">Beranda</a> / <span>Katalog</span></nav>
     <h1>Katalog produk</h1>
-    <p>Produk dari proyek kelas peserta FORTEXIV.</p>
   </div>
 
-  @include('marketplace.partials.po-notice', ['window' => $window])
+  @if(($window['status'] ?? null) === 'closed')
+    <div class="status-note closed" role="status">
+      <strong>Pemesanan sudah ditutup</strong>
+    </div>
+  @else
+    @include('marketplace.partials.po-notice', ['window' => $window])
+  @endif
 
   @php
     $activeFilterCount = collect([request('class'), request('category'), request('stock')])->filter()->count();
@@ -295,7 +300,7 @@
     @endif
   </div>
 
-  <div class="grid catalog-grid">
+  <div class="grid catalog-grid" data-reveal>
     @forelse($products as $product)
       @include('marketplace.partials.product-card', ['product' => $product, 'window' => $window])
     @empty

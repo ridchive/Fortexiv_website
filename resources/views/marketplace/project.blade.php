@@ -46,7 +46,7 @@
 </style>
 <div class="wrap">
   <nav class="crumb"><a href="{{ route('home', absolute: false) }}">Beranda</a> / <a href="{{ route('projects.index') }}">Proyek</a> / <span>{{ $project->title }}</span></nav>
-  <article class="detail-card project-detail-card">
+  <article class="detail-card project-detail-card" data-reveal>
     <div class="detail-image-col">
       <a href="{{ url()->previous() !== url()->current() ? url()->previous() : route('projects.index') }}" onclick="if (window.history.length > 1) { window.history.back(); return false; }" class="project-back-btn" aria-label="Kembali ke halaman sebelumnya" title="Kembali ke halaman sebelumnya">
         <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">

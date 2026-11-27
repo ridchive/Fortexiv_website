@@ -229,7 +229,7 @@
   <article class="impact-article-card">
     
     <!-- Cover Header Image -->
-    <div class="article-cover-wrap">
+    <div class="article-cover-wrap" data-reveal>
       @if($hasCoverImage)
         <img src="{{ $eventSettings->impactImageUrl() ?? Storage::disk('public')->url($eventSettings->impact_image) }}" alt="{{ $title }}" class="article-cover-img">
       @else
@@ -265,7 +265,7 @@
       </div>
 
       <!-- Bottom Call To Action -->
-      <div class="article-bottom-cta">
+      <div class="article-bottom-cta" data-reveal>
         <div>
           <h3>Dukung Gerakan Hijau Sekolah</h3>
           <p>Pesan karya siswa melalui satu periode PO bersama. Seluruh pesanan diambil langsung tanpa emisi kurir.</p>

@@ -11,7 +11,7 @@
 
 <div class="wrap">
   <nav class="crumb"><a href="{{ route('home') }}">Beranda</a> / <span>Bantuan</span></nav>
-  <div class="pgh">
+  <div class="pgh" data-reveal>
     <h1>Bantuan dan pertanyaan umum</h1>
     <p>Informasi singkat tentang PO bersama, pembayaran, dan pengambilan pesanan FORTEXIV.</p>
   </div>
@@ -22,7 +22,7 @@
     <a href="{{ route('terms') }}" class="chip">Syarat & ketentuan</a>
   </div>
 
-  <section id="cara-memesan" class="panel">
+  <section id="cara-memesan" class="panel" data-reveal>
     <h2>Cara Pemesanan</h2>
     <p>Jelajahi cerita proyek kelas atau katalog produk. Tambahkan beberapa produk ke keranjang untuk membuat satu pesanan lintas kelas, atau pilih Beli Sekarang untuk checkout satu produk.</p>
     <ol class="steps help-steps">
@@ -37,7 +37,7 @@
     </div>
   </section>
 
-  <section id="pengambilan-barang" class="panel">
+  <section id="pengambilan-barang" class="panel" data-reveal style="--reveal-delay: 80ms">
     <h2>Pengambilan Barang</h2>
     <p>Tidak ada pengiriman kurir. Pesanan diambil langsung di Hari H acara sesuai grup kelas. Gunakan QR pickup yang muncul setelah pembayaran valid untuk mengecek dan menandai barang yang sudah diterima.</p>
     <ol class="steps help-steps">
