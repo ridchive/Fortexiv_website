@@ -1831,6 +1831,7 @@
         clearTimeout(resumeTimer);
         if (delayMs > 0 && !isHovered) {
           resumeTimer = setTimeout(() => {
+            storyStrip.classList.add('is-auto-scrolling');
             exactScrollLeft = storyStrip.scrollLeft;
             targetScrollLeft = exactScrollLeft;
             paused = false;
@@ -1887,7 +1888,12 @@
         requestAnimationFrame(step);
       };
 
-      storyStrip.addEventListener('pointerenter', () => {
+      let isTouchActive = false;
+
+      storyStrip.addEventListener('pointerenter', (e) => {
+        if (e.pointerType === 'touch') {
+          return;
+        }
         isHovered = true;
         pauseAutoScroll();
         if (performance.now() - lastPageWheelTs < scrollCooldownMs) {
@@ -1897,23 +1903,37 @@
           horizontalMode = true;
         }
       });
-      storyStrip.addEventListener('pointerleave', () => {
+      storyStrip.addEventListener('pointerleave', (e) => {
+        if (e.pointerType === 'touch') {
+          return;
+        }
         isHovered = false;
         horizontalMode = false;
         storyStrip.dataset.lenisSkip = 'false';
         clearTimeout(modeTimer);
         pauseAutoScroll(1000);
       });
-      storyStrip.addEventListener('focusin', () => pauseAutoScroll());
+      storyStrip.addEventListener('focusin', () => {
+        if (!isTouchActive) {
+          pauseAutoScroll();
+        }
+      });
       storyStrip.addEventListener('focusout', () => pauseAutoScroll(1000));
       storyStrip.addEventListener('touchstart', () => {
+        isTouchActive = true;
+        isHovered = false;
         wheelSmoothing = false;
         storyStrip.classList.remove('is-auto-scrolling');
         pauseAutoScroll();
       }, { passive: true });
-      storyStrip.addEventListener('touchend', () => {
+      const handleTouchEnd = () => {
+        setTimeout(() => {
+          isTouchActive = false;
+        }, 300);
         pauseAutoScroll(1600);
-      }, { passive: true });
+      };
+      storyStrip.addEventListener('touchend', handleTouchEnd, { passive: true });
+      storyStrip.addEventListener('touchcancel', handleTouchEnd, { passive: true });
       storyStrip.addEventListener('wheel', (e) => {
         const maxScroll = storyStrip.scrollWidth - storyStrip.clientWidth;
         const isTrackpadX = Math.abs(e.deltaX) > Math.abs(e.deltaY);
